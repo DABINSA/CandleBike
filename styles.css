@@ -36,7 +36,7 @@ body {
 .screen.active { display: flex; }
 
 /* 홈: 콘텐츠가 길면 위에서부터 + 스크롤 (가운데 정렬은 공간 남을 때만) */
-#screen-home { justify-content: flex-start; overflow-y: auto; }
+#screen-home { justify-content: flex-start; overflow-y: auto; overflow-x: hidden; }
 #screen-home .home-inner { margin: auto 0; padding: 64px 0 30px; }
 
 /* ===== 버튼 ===== */
@@ -105,7 +105,7 @@ body {
 .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--down); box-shadow: 0 0 8px var(--down); animation: blink 1.2s ease-in-out infinite; }
 .live { color: var(--down); font-size: 11px; }
 @keyframes blink { 50% { opacity: .3; } }
-.trending-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.trending-list { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
 .trending-skeleton { grid-column: 1 / -1; color: var(--muted); font-size: 13px; padding: 8px; }
 .trend-chip {
   display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer;

@@ -8,11 +8,11 @@ export const CONFIG = {
   // 'mock'       : 키 없이 즉시 플레이 (가짜 3년 차트 생성, 실제와 다름)
   // 'twelvedata' : 무료 키 발급 후 실데이터 (https://twelvedata.com, CORS 지원)
   // 'proxy'      : 직접 만든 서버리스/Supabase 함수로 Yahoo/Stooq 프록시
-  STOCK_PROVIDER: 'mock',
+  STOCK_PROVIDER: 'yahoo',
 
-  // yahoo 모드 CORS 우회 프록시. 비워두면 내장 공개 프록시들을 순서대로 시도.
-  // 운영 시엔 자체 Cloudflare Worker 권장 → 'https://내워커.workers.dev/?url=' 형태로 입력.
-  CORS_PROXY: '',
+  // yahoo 모드 CORS 우회 프록시. 동일 도메인 Vercel 서버리스 함수(/api/yahoo)를 사용 → 안정적.
+  // (비우면 공개 프록시들을 순서대로 시도하나 불안정)
+  CORS_PROXY: '/api/yahoo?url=',
 
   // ---- 코스 캐싱 / 갱신 주기 ----
   // 'week' 또는 'month' — 같은 기간 동안은 DB에 저장된 코스를 그대로 사용(즉시 로드).
