@@ -4,7 +4,7 @@
 //   getHistory(symbol)-> [{ date, close }]  (오래된 → 최신 순)
 
 import { CONFIG } from '../config.js';
-import { t } from '../i18n.js';
+import { t, LANG } from '../i18n.js';
 import { generateMockHistory, getMockTrending, MOCK_SYMBOLS } from './mockData.js';
 
 // ---------------- mock ----------------
@@ -112,7 +112,8 @@ export function activeMarket() {
   const usOpen = weekday && h >= 13.5 && h < 21;     // ~09:30–16:00 ET (DST 근사 포함)
   if (krOpen) return 'kr';
   if (usOpen) return 'us';
-  return h >= 21 ? 'us' : 'kr';                      // 둘 다 닫힘: 미국 마감 직후는 us, 그 외 kr
+  // 둘 다 닫힘(주말/장외): 접속 지역 기준 — 한국어 사용자는 한국, 그 외는 미국 (가장 최근 거래일 급등주)
+  return LANG === 'ko' ? 'kr' : 'us';
 }
 
 // 한국 실시간 급등주 (네이버 금융, 동일 도메인 /api/kr-gainers)
