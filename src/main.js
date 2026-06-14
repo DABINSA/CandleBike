@@ -10,6 +10,21 @@ import { initPlayBanner, showRewardedAd, renderHouseAd } from './ads/ads.js';
 import { submitScore, topScores, getNick, setNick, isRemote } from './leaderboard/leaderboard.js';
 import { shareResult, saveCard } from './share/share.js';
 import { quickDifficulty } from './difficulty.js';
+import { MOCK_SYMBOLS } from './stock/mockData.js';
+
+// 종목명 캐시 (코드→기업명): 검색·추천·플레이에서 본 이름을 저장해 순위에 표시
+const NAME_LS = 'candlebike_names';
+let nameMap = {};
+try { nameMap = JSON.parse(localStorage.getItem(NAME_LS)) || {}; } catch {}
+MOCK_SYMBOLS.forEach((s) => { if (!nameMap[s.symbol]) nameMap[s.symbol] = s.name; });
+function rememberName(symbol, name) {
+  const clean = (name || '').split('·')[0].trim();   // 거래소 꼬리표 제거
+  if (symbol && clean && nameMap[symbol] !== clean) {
+    nameMap[symbol] = clean;
+    try { localStorage.setItem(NAME_LS, JSON.stringify(nameMap)); } catch {}
+  }
+}
+function lookupName(symbol) { return nameMap[symbol] || null; }
 
 function diffBadge(symbol) {
   const d = quickDifficulty(symbol);
@@ -56,6 +71,7 @@ input.addEventListener('input', () => {
 function renderSearch(list) {
   resultsEl.innerHTML = '';
   list.forEach((item) => {
+    rememberName(item.symbol, item.name);
     const li = document.createElement('li');
     li.innerHTML =
       `<span class="sym">${item.symbol}</span>` +
@@ -75,6 +91,7 @@ function renderSearch(list) {
 async function launch(item) {
   if (!item) return;
   selected = item;
+  rememberName(item.symbol, item.name);
   show('loading');
   $('loading-text').textContent = t.loadingCourse(item.symbol);
   try {
@@ -105,6 +122,7 @@ async function renderTrending() {
     const list = await getTrending();
     el.innerHTML = '';
     list.forEach((item) => {
+      rememberName(item.symbol, item.name);
       const up = (item.change ?? 0) >= 0;
       const chg = item.change != null ? `${up ? '+' : ''}${item.change}%` : '';
       const div = document.createElement('div');
@@ -142,10 +160,12 @@ async function onGameEnd(result) {
   await showResult(result);
 }
 
+let regPromise = null;
 async function showResult(result) {
   show('result');
+  rememberName(result.symbol, result.name);
   $('rc-symbol').textContent = result.name ? `${result.name} (${result.symbol})` : result.symbol;
-  $('rc-distance').textContent = result.distance.toLocaleString();
+  $('rc-distance').textContent = (result.score != null ? result.score : result.distance).toLocaleString();
   $('rc-rank-line').textContent = '…';
   if (result.diff) {
     $('rc-diff').innerHTML =
@@ -158,10 +178,12 @@ async function showResult(result) {
   if (!nick) {
     promptNick(async (n) => {
       setNick(n);
-      await registerAndRender(result, n);
+      regPromise = registerAndRender(result, n);
+      await regPromise;
     });
   } else {
-    await registerAndRender(result, nick);
+    regPromise = registerAndRender(result, nick);
+    await regPromise;
   }
 }
 
@@ -187,10 +209,14 @@ async function renderLeaderboard(symbol, myId) {
   list.forEach((row, i) => {
     const li = document.createElement('li');
     if (row.id === myId) li.classList.add('me');
+    const nm = lookupName(row.symbol);
+    const symHtml = nm
+      ? `${escapeHtml(nm)} <span class="lb-code">${escapeHtml(row.symbol)}</span>`
+      : escapeHtml(row.symbol);
     li.innerHTML =
       `<span class="lb-rank ${i < 3 ? 'top' : ''}">${i + 1}</span>` +
       `<span class="lb-nick">${escapeHtml(row.nick)}</span>` +
-      `<span class="lb-sym">${escapeHtml(row.symbol)}</span>` +
+      `<span class="lb-sym">${symHtml}</span>` +
       `<span class="lb-score">${row.score.toLocaleString()}m</span>`;
     ol.appendChild(li);
   });
@@ -213,10 +239,15 @@ function promptNick(onSave) {
 // ---------------- 공유 / 저장 ----------------
 $('btn-share').onclick = async () => {
   if (!lastResult) return;
+  if (regPromise) { try { await regPromise; } catch {} }   // 순위 등록 완료 후 공유 (기록 정확히 반영)
   const r = await shareResult(lastResult);
   if (r === 'downloaded') alert(t.savedAlert);
 };
-$('btn-save-card').onclick = () => { if (lastResult) saveCard(lastResult); };
+$('btn-save-card').onclick = async () => {
+  if (!lastResult) return;
+  if (regPromise) { try { await regPromise; } catch {} }
+  saveCard(lastResult);
+};
 
 // ---------------- 네비게이션 ----------------
 $('btn-retry').onclick = () => {

@@ -8,7 +8,8 @@ import { t } from '../i18n.js';
 
 const W = 1080, H = 1350;
 
-export function drawResultCard({ symbol, name, distance, rank, percentile }) {
+export function drawResultCard({ symbol, name, distance, score, rank, percentile }) {
+  const record = (score != null ? score : distance) || 0;
   const cv = document.getElementById('card-canvas');
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
@@ -44,7 +45,7 @@ export function drawResultCard({ symbol, name, distance, rank, percentile }) {
   ctx.fillStyle = '#e6f0f0';
   ctx.font = '900 180px sans-serif';
   ctx.shadowColor = 'rgba(44,230,196,0.5)'; ctx.shadowBlur = 40;
-  ctx.fillText(`${distance.toLocaleString()}m`, W / 2, 450);
+  ctx.fillText(`${record.toLocaleString()}m`, W / 2, 450);
   ctx.shadowBlur = 0;
 
   ctx.fillStyle = '#ffd34d';
@@ -66,7 +67,8 @@ export async function shareResult(result) {
   const cv = drawResultCard(result);
   const blob = await canvasToBlob(cv);
   const file = new File([blob], 'candlebike.png', { type: 'image/png' });
-  const caption = t.shareCaption(result.symbol, result.distance, result.rank);
+  const record = result.score != null ? result.score : result.distance;
+  const caption = t.shareCaption(result.symbol, record, result.rank);
 
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
@@ -86,7 +88,7 @@ export async function saveCard(result) {
   const blob = await canvasToBlob(cv);
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `candlebike_${result.symbol}_${result.distance}m.png`;
+  a.href = url; a.download = `candlebike_${result.symbol}_${result.score != null ? result.score : result.distance}m.png`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

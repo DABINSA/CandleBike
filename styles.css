@@ -300,7 +300,8 @@ body {
 .lb-rank { width: 28px; font-weight: 800; color: var(--muted); }
 .lb-rank.top { color: var(--gold); }
 .lb-nick { flex: 1; font-weight: 700; }
-.lb-sym { color: var(--muted); font-size: 12px; }
+.lb-sym { color: var(--muted); font-size: 12px; max-width: 140px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lb-code { opacity: .55; font-size: 11px; }
 .lb-score { font-weight: 800; color: var(--neon); }
 
 /* ===== 모달 ===== */
