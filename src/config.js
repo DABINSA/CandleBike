@@ -30,8 +30,8 @@ export const CONFIG = {
 
   // ---- 리더보드 (Supabase) ----
   // 비워두면 자동으로 localStorage(기기 내) 순위로 동작합니다.
-  SUPABASE_URL: '',          // 예: 'https://xxxx.supabase.co'
-  SUPABASE_ANON_KEY: '',     // 공개 anon key
+  SUPABASE_URL: 'https://qcaeqfdhlshdmvtycapw.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjYWVxZmRobHNoZG12dHljYXB3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MjAyOTUsImV4cCI6MjA5Njk5NjI5NX0._zSqzrDUYXJIq24wNkRAEJkwpTsgSSWMM6Xwongfw2c',
 
   // ---- 광고 ----
   // 'house'  : "여기에 광고하세요" 자체 안내(이메일 문의 유도) — 자리 선점/광고주 유치용 ★기본
