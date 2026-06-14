@@ -3,7 +3,7 @@
 
 import { CONFIG } from './config.js';
 import { t, applyStatic, LANG, setLang } from './i18n.js';
-import { searchSymbols, getTrending, getProvider } from './stock/provider.js';
+import { searchSymbols, getTrending, getProvider, activeMarket } from './stock/provider.js';
 import { getCourse, getLastCourseSource, currentPeriod } from './courseCache.js';
 import { Game } from './game/game.js';
 import { initPlayBanner, showRewardedAd, renderHouseAd } from './ads/ads.js';
@@ -96,6 +96,11 @@ $('btn-start').onclick = () => launch(selected);
 // ---------------- 실시간 추천 종목 ----------------
 async function renderTrending() {
   const el = $('trending-list');
+  // 열린 장에 맞춰 헤더 표시 (한국장/미국장)
+  const headEl = $('trending-head-label');
+  if (headEl && CONFIG.STOCK_PROVIDER === 'yahoo') {
+    headEl.textContent = activeMarket() === 'kr' ? t.trendingKr : t.trendingUs;
+  }
   try {
     const list = await getTrending();
     el.innerHTML = '';

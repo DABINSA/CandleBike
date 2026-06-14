@@ -102,6 +102,38 @@ async function yahooTrending() {
   return list;
 }
 
+// 현재 '열린 장' 판별 (UTC 기준). 한국장 열리면 kr, 미국장 열리면 us.
+export function activeMarket() {
+  const now = new Date();
+  const day = now.getUTCDay();                      // 0 일 ~ 6 토
+  const h = now.getUTCHours() + now.getUTCMinutes() / 60;
+  const weekday = day >= 1 && day <= 5;
+  const krOpen = weekday && h >= 0 && h < 6.5;       // 09:00–15:30 KST
+  const usOpen = weekday && h >= 13.5 && h < 21;     // ~09:30–16:00 ET (DST 근사 포함)
+  if (krOpen) return 'kr';
+  if (usOpen) return 'us';
+  return h >= 21 ? 'us' : 'kr';                      // 둘 다 닫힘: 미국 마감 직후는 us, 그 외 kr
+}
+
+// 한국 실시간 급등주 (네이버 금융, 동일 도메인 /api/kr-gainers)
+async function krGainers() {
+  const r = await fetch('/api/kr-gainers');
+  if (!r.ok) throw new Error('kr http ' + r.status);
+  return await r.json();
+}
+
+// 열린 장에 맞춰 급등주 선택 (실패 시 반대 장으로 폴백)
+async function marketTrending() {
+  const m = activeMarket();
+  const primary = m === 'kr' ? krGainers : yahooTrending;
+  const secondary = m === 'kr' ? yahooTrending : krGainers;
+  try { const a = await primary(); if (a && a.length) return a.slice(0, 8); }
+  catch (e) { console.warn('primary trending 실패', e); }
+  try { const b = await secondary(); if (b && b.length) return b.slice(0, 8); }
+  catch (e) { console.warn('secondary trending 실패', e); }
+  throw new Error('no trending');
+}
+
 // ---------------- twelvedata ----------------
 async function tdSearch(q) {
   const url = `https://api.twelvedata.com/symbol_search?symbol=${encodeURIComponent(q)}&outputsize=8`;
@@ -151,7 +183,7 @@ async function proxyTrending() {
 }
 
 const PROVIDERS = {
-  yahoo: { search: yahooSearch, history: yahooHistory, trending: yahooTrending, label: '야후 파이낸스 실데이터' },
+  yahoo: { search: yahooSearch, history: yahooHistory, trending: marketTrending, label: '야후 파이낸스 실데이터' },
   mock: { search: async (q) => mockSearch(q), history: mockHistory, trending: mockTrending, label: '데모 데이터(오프라인) 모드' },
   twelvedata: { search: tdSearch, history: tdHistory, trending: tdTrending, label: 'Twelve Data 실시간 모드' },
   proxy: { search: proxySearch, history: proxyHistory, trending: proxyTrending, label: '프록시 서버 모드' },
