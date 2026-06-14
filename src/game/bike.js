@@ -62,8 +62,8 @@ export function createBike(world, x, y) {
       const reverse = 0.32;            // 뒤로 주행 힘 (전진보다 약하게)
 
       if (grounded) {
-        // 앞·뒤 바퀴를 비슷하게 굴려 뒷바퀴만 튀어 앞이 들리는 현상 억제
-        if (gas) { rear.torque += torque; front.torque += torque * 0.9; }
+        // AWD: 앞·뒤 바퀴를 동일하게 구동 → 급경사(급등)에서 앞이 안 들리고 끌어올림
+        if (gas) { rear.torque += torque; front.torque += torque; }
         // 브레이크/뒤로: 후진 토크 (전진 중이면 자연스럽게 감속 후 후진)
         if (brake) { rear.torque -= reverse; front.torque -= reverse * 0.9; }
         // 전진 속도 상한 — 부스트가 차오를수록 점점 빨라짐 (1.5 → 3.7)
@@ -74,10 +74,14 @@ export function createBike(world, x, y) {
         const maxRev = 0.95;
         if (rear.angularVelocity < -maxRev) Matter.Body.setAngularVelocity(rear, -maxRev);
         if (front.angularVelocity < -maxRev) Matter.Body.setAngularVelocity(front, -maxRev);
-        // ★ 빠를수록 차체 회전 제한이 풀려 컨트롤이 어려워짐(윌리/전복 위험 ↑)
-        const maxSpin = 0.22 + b * 0.55;
+        // 지상 회전 제한 — 윌리/전복 억제 (부스트 영향 축소)
+        const maxSpin = 0.2 + b * 0.1;
         if (chassis.angularVelocity < -maxSpin) Matter.Body.setAngularVelocity(chassis, -maxSpin);
         if (chassis.angularVelocity > maxSpin) Matter.Body.setAngularVelocity(chassis, maxSpin);
+        // ★ 지형 경사보다 앞이 더 들리면(진짜 윌리) 앞을 눌러 복원 → 뒤로 넘어가는 것 방지
+        if (chassis.angle < -0.95) {
+          Matter.Body.setAngularVelocity(chassis, Math.max(chassis.angularVelocity, 0.12));
+        }
       } else {
         // 공중: 차체 회전 (gas=백플립, brake=프론트플립)
         // 느리게 — 평지 깡총 점프로는 한 바퀴 안 돌고, 진짜 점프대/낙폭에서만 완성
