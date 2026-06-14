@@ -1,0 +1,183 @@
+// 주식 데이터 공급자 — config의 STOCK_PROVIDER 값에 따라 분기.
+// 모든 모드는 동일한 형태를 반환:
+//   searchSymbols(q)  -> [{ symbol, name }]
+//   getHistory(symbol)-> [{ date, close }]  (오래된 → 최신 순)
+
+import { CONFIG } from '../config.js';
+import { t } from '../i18n.js';
+import { generateMockHistory, getMockTrending, MOCK_SYMBOLS } from './mockData.js';
+
+// ---------------- mock ----------------
+function mockSearch(q) {
+  const s = q.trim();
+  if (!s) return [];
+  const low = s.toLowerCase();
+  const out = MOCK_SYMBOLS.filter((x) => (x._s || `${x.symbol} ${x.name}`.toLowerCase()).includes(low));
+  // 6자리 한국 종목코드는 목록에 없어도 바로 플레이 가능 (사실상 전 종목 커버)
+  const m = s.match(/^(\d{6})(\.(KS|KQ))?$/i);
+  if (m && !out.some((x) => x.symbol.startsWith(m[1]))) {
+    out.unshift({ symbol: m[2] ? s.toUpperCase() : `${m[1]}.KS`, name: t.krStock(m[1]) });
+  }
+  return out.slice(0, 8);
+}
+async function mockHistory(symbol) {
+  return generateMockHistory(symbol, CONFIG.HISTORY_YEARS);
+}
+async function mockTrending() {
+  return getMockTrending();
+}
+
+// ---------------- yahoo (CORS 프록시 경유, 실데이터) ----------------
+// 여러 프록시를 순서대로 시도 (자체 워커가 있으면 CONFIG.CORS_PROXY 우선)
+function proxyList(url) {
+  const enc = encodeURIComponent(url);
+  const list = [];
+  if (CONFIG.CORS_PROXY) list.push(CONFIG.CORS_PROXY + enc);
+  list.push(`https://api.allorigins.win/raw?url=${enc}`);
+  list.push(`https://api.codetabs.com/v1/proxy/?quest=${enc}`);
+  list.push(`https://thingproxy.freeboard.io/fetch/${url}`);
+  return list;
+}
+async function yfetch(url) {
+  let lastErr;
+  for (const purl of proxyList(url)) {
+    try {
+      const r = await fetch(purl);
+      if (!r.ok) throw new Error('http ' + r.status);
+      return JSON.parse(await r.text());
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error('all proxies failed');
+}
+// 미국 + 한국 거래소만 허용
+const US_KR_EXCHANGES = new Set([
+  'NMS', 'NGM', 'NCM', 'NYQ', 'NYS', 'ASE', 'PCX', 'BATS', 'NAS', // 미국
+  'KSC', 'KOE', 'KDQ', 'KOSDAQ', 'KSE',                            // 한국
+]);
+function isUsOrKr(x) {
+  if (/\.(KS|KQ)$/i.test(x.symbol)) return true;                   // 한국 접미사
+  if (US_KR_EXCHANGES.has(x.exchange)) return true;
+  return false;
+}
+async function yahooSearch(q) {
+  const j = await yfetch(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=12&newsCount=0`);
+  return (j.quotes || [])
+    .filter((x) => x.symbol && (x.quoteType === 'EQUITY' || x.quoteType === 'ETF') && isUsOrKr(x))
+    .map((x) => ({
+      symbol: x.symbol,
+      name: [x.shortname || x.longname || x.symbol, x.exchange].filter(Boolean).join(' · '),
+    }))
+    .slice(0, 8);
+}
+async function yahooHistory(symbol) {
+  const now = Math.floor(Date.now() / 1000);
+  const p1 = Math.floor(now - CONFIG.HISTORY_YEARS * 365.25 * 86400);
+  const j = await yfetch(
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?period1=${p1}&period2=${now}&interval=1d`
+  );
+  const res = j.chart && j.chart.result && j.chart.result[0];
+  if (!res) throw new Error((j.chart && j.chart.error && j.chart.error.description) || '데이터 없음');
+  const ts = res.timestamp || [];
+  const closes = (res.indicators && res.indicators.quote && res.indicators.quote[0] && res.indicators.quote[0].close) || [];
+  const out = [];
+  for (let i = 0; i < ts.length; i++) {
+    const c = closes[i];
+    if (c == null) continue;
+    out.push({ date: new Date(ts[i] * 1000).toISOString().slice(0, 10), close: +c.toFixed(2) });
+  }
+  return out;
+}
+async function yahooTrending() {
+  const j = await yfetch('https://query1.finance.yahoo.com/v1/finance/trending/US?count=12');
+  const quotes = (j.finance && j.finance.result && j.finance.result[0] && j.finance.result[0].quotes) || [];
+  const list = quotes
+    .map((x) => ({ symbol: x.symbol, name: x.symbol, change: null, hot: false }))
+    .filter((x) => x.symbol)
+    .slice(0, 8);
+  if (!list.length) throw new Error('no trending');
+  return list;
+}
+
+// ---------------- twelvedata ----------------
+async function tdSearch(q) {
+  const url = `https://api.twelvedata.com/symbol_search?symbol=${encodeURIComponent(q)}&outputsize=8`;
+  const r = await fetch(url);
+  const j = await r.json();
+  return (j.data || []).map((x) => ({
+    symbol: x.symbol,
+    name: `${x.instrument_name} · ${x.exchange}`,
+  }));
+}
+async function tdTrending() {
+  // Twelve Data market_movers (플랜에 따라 제한될 수 있음) → 실패 시 mock으로 폴백
+  const url = `https://api.twelvedata.com/market_movers/stocks?outputsize=8&apikey=${CONFIG.TWELVEDATA_KEY}`;
+  const r = await fetch(url);
+  const j = await r.json();
+  if (j.status === 'error' || !Array.isArray(j.values)) throw new Error('no movers');
+  return j.values.map((v) => ({
+    symbol: v.symbol,
+    name: v.name || v.symbol,
+    change: parseFloat(v.percent_change),
+    volume: v.volume ? +(v.volume / 1e8).toFixed(1) : null,
+    hot: Math.abs(parseFloat(v.percent_change)) > 5,
+  }));
+}
+async function tdHistory(symbol) {
+  const url =
+    `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}` +
+    `&interval=1day&outputsize=${Math.round(CONFIG.HISTORY_YEARS * 252)}&order=ASC&apikey=${CONFIG.TWELVEDATA_KEY}`;
+  const r = await fetch(url);
+  const j = await r.json();
+  if (j.status === 'error') throw new Error(j.message || 'twelvedata error');
+  return (j.values || []).map((v) => ({ date: v.datetime, close: parseFloat(v.close) }));
+}
+
+// ---------------- proxy ----------------
+async function proxySearch(q) {
+  const r = await fetch(`${CONFIG.PROXY_BASE}/search?q=${encodeURIComponent(q)}`);
+  return await r.json();
+}
+async function proxyHistory(symbol) {
+  const r = await fetch(`${CONFIG.PROXY_BASE}/history?symbol=${encodeURIComponent(symbol)}&years=${CONFIG.HISTORY_YEARS}`);
+  return await r.json();
+}
+async function proxyTrending() {
+  const r = await fetch(`${CONFIG.PROXY_BASE}/trending`);
+  return await r.json();
+}
+
+const PROVIDERS = {
+  yahoo: { search: yahooSearch, history: yahooHistory, trending: yahooTrending, label: '야후 파이낸스 실데이터' },
+  mock: { search: async (q) => mockSearch(q), history: mockHistory, trending: mockTrending, label: '데모 데이터(오프라인) 모드' },
+  twelvedata: { search: tdSearch, history: tdHistory, trending: tdTrending, label: 'Twelve Data 실시간 모드' },
+  proxy: { search: proxySearch, history: proxyHistory, trending: proxyTrending, label: '프록시 서버 모드' },
+};
+
+export function getProvider() {
+  return PROVIDERS[CONFIG.STOCK_PROVIDER] || PROVIDERS.mock;
+}
+
+export async function searchSymbols(q) {
+  try {
+    return await getProvider().search(q);
+  } catch (e) {
+    console.warn('search 실패, mock으로 대체', e);
+    return mockSearch(q);
+  }
+}
+
+export async function getHistory(symbol) {
+  const data = await getProvider().history(symbol);
+  if (!data || data.length < 30) throw new Error('차트 데이터가 부족합니다.');
+  return data;
+}
+
+export async function getTrending() {
+  try {
+    const list = await getProvider().trending();
+    if (list && list.length) return list;
+  } catch (e) {
+    console.warn('trending 실패, mock으로 대체', e);
+  }
+  return getMockTrending();
+}

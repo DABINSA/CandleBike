@@ -1,0 +1,251 @@
+// 앱 흐름(화면 상태머신)을 묶는 진입점.
+// 홈 → (검색/선택) → 로딩 → 플레이 → 리워드광고 → 결과/순위
+
+import { CONFIG } from './config.js';
+import { t, applyStatic, LANG, setLang } from './i18n.js';
+import { searchSymbols, getTrending, getProvider } from './stock/provider.js';
+import { getCourse, getLastCourseSource, currentPeriod } from './courseCache.js';
+import { Game } from './game/game.js';
+import { initPlayBanner, showRewardedAd, renderHouseAd } from './ads/ads.js';
+import { submitScore, topScores, getNick, setNick, isRemote } from './leaderboard/leaderboard.js';
+import { shareResult, saveCard } from './share/share.js';
+import { quickDifficulty } from './difficulty.js';
+
+function diffBadge(symbol) {
+  const d = quickDifficulty(symbol);
+  if (!d) return '';
+  return `<span class="diff-badge" style="color:${d.color}" title="${t.volWord} ${d.volPct}%">${d.stars} ${d.label}</span>`;
+}
+
+const $ = (id) => document.getElementById(id);
+const screens = ['home', 'loading', 'play', 'ad', 'result'];
+function show(name) {
+  screens.forEach((s) => $(`screen-${s}`).classList.toggle('active', s === name));
+}
+
+let selected = null;     // { symbol, name }
+let game = null;
+let lastResult = null;    // { symbol, distance, flips, score }
+
+applyStatic();           // 정적 텍스트를 접속 언어로 채움
+
+// 언어 토글
+$('lang-ko').classList.toggle('active', LANG === 'ko');
+$('lang-en').classList.toggle('active', LANG === 'en');
+$('lang-ko').onclick = () => setLang('ko');
+$('lang-en').onclick = () => setLang('en');
+
+// ---------------- 홈: 검색 ----------------
+const input = $('symbol-input');
+const resultsEl = $('search-results');
+let searchTimer = null;
+
+input.addEventListener('input', () => {
+  selected = null;
+  $('btn-start').disabled = true;
+  $('btn-start').textContent = t.selectStock;
+  clearTimeout(searchTimer);
+  const q = input.value.trim();
+  if (!q) { resultsEl.innerHTML = ''; return; }
+  searchTimer = setTimeout(async () => {
+    const list = await searchSymbols(q);
+    renderSearch(list);
+  }, 220);
+});
+
+function renderSearch(list) {
+  resultsEl.innerHTML = '';
+  list.forEach((item) => {
+    const li = document.createElement('li');
+    li.innerHTML =
+      `<span class="sym">${item.symbol}</span>` +
+      `<span class="name">${item.name || ''} ${diffBadge(item.symbol)}</span>`;
+    li.onclick = () => {
+      selected = item;
+      input.value = item.symbol;
+      resultsEl.innerHTML = '';
+      $('btn-start').disabled = false;
+      $('btn-start').textContent = t.rideChart(item.symbol);
+    };
+    resultsEl.appendChild(li);
+  });
+}
+
+// ---------------- 시작 ----------------
+async function launch(item) {
+  if (!item) return;
+  selected = item;
+  show('loading');
+  $('loading-text').textContent = t.loadingCourse(item.symbol);
+  try {
+    const series = await getCourse(item.symbol);     // DB 캐시 우선, 없으면 최초 1회만 fetch
+    if (getLastCourseSource() === 'demo' && CONFIG.STOCK_PROVIDER !== 'mock' && !demoWarned) {
+      demoWarned = true;
+      alert(t.demoAlert);
+    }
+    startGame(series, item.symbol, item.name);
+  } catch (e) {
+    console.error(e);
+    alert(t.courseFail + '\n' + e.message);
+    show('home');
+  }
+}
+let demoWarned = false;
+$('btn-start').onclick = () => launch(selected);
+
+// ---------------- 실시간 추천 종목 ----------------
+async function renderTrending() {
+  const el = $('trending-list');
+  try {
+    const list = await getTrending();
+    el.innerHTML = '';
+    list.forEach((item) => {
+      const up = (item.change ?? 0) >= 0;
+      const chg = item.change != null ? `${up ? '+' : ''}${item.change}%` : '';
+      const div = document.createElement('div');
+      div.className = 'trend-chip';
+      div.innerHTML =
+        `<div class="tc-main">` +
+        `<div class="tc-sym">${escapeHtml(item.symbol)}${item.hot ? ' <span class="tc-fire">🔥</span>' : ''}</div>` +
+        `<div class="tc-name">${escapeHtml(item.name || '')}</div>` +
+        `<div class="tc-diff">${diffBadge(item.symbol)}</div></div>` +
+        `<div class="tc-chg ${up ? 'up' : 'down'}">${chg}</div>`;
+      div.onclick = () => launch(item);
+      el.appendChild(div);
+    });
+    if (!list.length) el.innerHTML = `<div class="trending-skeleton">${t.noTrending}</div>`;
+  } catch (e) {
+    el.innerHTML = `<div class="trending-skeleton">${t.trendingFail}</div>`;
+  }
+}
+
+function startGame(series, symbol, name) {
+  show('play');
+  initPlayBanner();
+  const canvas = $('game-canvas');
+  game = new Game(canvas);
+  game.start(series, symbol, name, onGameEnd);
+}
+
+// ---------------- 게임 종료 → 리워드 광고 → 결과 ----------------
+async function onGameEnd(result) {
+  lastResult = result;
+  if (CONFIG.AD_MODE !== 'off') {
+    show('ad');
+    await showRewardedAd();    // 결과 보기 전 5초 강제(하우스 광고)
+  }
+  await showResult(result);
+}
+
+async function showResult(result) {
+  show('result');
+  $('rc-symbol').textContent = result.name ? `${result.name} (${result.symbol})` : result.symbol;
+  $('rc-distance').textContent = result.distance.toLocaleString();
+  $('rc-rank-line').textContent = '…';
+  if (result.diff) {
+    $('rc-diff').innerHTML =
+      `<span style="color:${result.diff.color}">${result.diff.stars}</span> ` +
+      `${result.diff.label} · ${t.volWord} ${result.diff.volPct}%`;
+  }
+
+  // 닉네임 확보 후 점수 등록
+  const nick = getNick();
+  if (!nick) {
+    promptNick(async (n) => {
+      setNick(n);
+      await registerAndRender(result, n);
+    });
+  } else {
+    await registerAndRender(result, nick);
+  }
+}
+
+async function registerAndRender(result, nick) {
+  let rankInfo = { rank: '–', total: 0, percentile: '–', id: null };
+  try {
+    rankInfo = await submitScore({ nick, symbol: result.symbol, score: result.score });
+  } catch (e) { console.warn('순위 등록 실패', e); }
+
+  lastResult.rank = rankInfo.rank;
+  lastResult.percentile = rankInfo.percentile;
+  lastResult.myId = rankInfo.id;
+  $('rc-rank-line').innerHTML = t.rankLine(rankInfo.rank, rankInfo.percentile);
+
+  await renderLeaderboard(result.symbol, rankInfo.id);
+}
+
+async function renderLeaderboard(symbol, myId) {
+  $('lb-title').textContent = t.leaderboardTitle(symbol);
+  const list = await topScores(symbol, 20);
+  const ol = $('leaderboard-list');
+  ol.innerHTML = '';
+  list.forEach((row, i) => {
+    const li = document.createElement('li');
+    if (row.id === myId) li.classList.add('me');
+    li.innerHTML =
+      `<span class="lb-rank ${i < 3 ? 'top' : ''}">${i + 1}</span>` +
+      `<span class="lb-nick">${escapeHtml(row.nick)}</span>` +
+      `<span class="lb-sym">${escapeHtml(row.symbol)}</span>` +
+      `<span class="lb-score">${row.score.toLocaleString()}m</span>`;
+    ol.appendChild(li);
+  });
+  if (list.length === 0) ol.innerHTML = `<li style="justify-content:center;color:var(--muted)">${t.noRecords}</li>`;
+}
+
+// ---------------- 닉네임 모달 ----------------
+function promptNick(onSave) {
+  const modal = $('nick-modal');
+  const inp = $('nick-input');
+  modal.classList.add('active');
+  inp.focus();
+  $('nick-save').onclick = () => {
+    const n = inp.value.trim() || t.anon;
+    modal.classList.remove('active');
+    onSave(n);
+  };
+}
+
+// ---------------- 공유 / 저장 ----------------
+$('btn-share').onclick = async () => {
+  if (!lastResult) return;
+  const r = await shareResult(lastResult);
+  if (r === 'downloaded') alert(t.savedAlert);
+};
+$('btn-save-card').onclick = () => { if (lastResult) saveCard(lastResult); };
+
+// ---------------- 네비게이션 ----------------
+$('btn-retry').onclick = () => {
+  if (!selected) return show('home');
+  launch(selected);
+};
+$('btn-home').onclick = () => { show('home'); input.value = ''; selected = null; $('btn-start').disabled = true; };
+$('btn-leaderboard-home').onclick = async () => {
+  show('result');
+  $('result-card').style.display = 'none';
+  document.querySelector('.share-row').style.display = 'none';
+  await renderLeaderboard(null);
+};
+
+// ---------------- 데이터 모드 안내 ----------------
+const PROVIDER_LABELS = { yahoo: t.providerYahoo, mock: t.providerMock, twelvedata: t.providerTd, proxy: t.providerProxy };
+$('data-mode-note').textContent = t.dataNote(
+  PROVIDER_LABELS[CONFIG.STOCK_PROVIDER] || getProvider().label,
+  isRemote(),
+  currentPeriod()
+);
+
+renderTrending();
+
+// 하우스 광고 — 홈/결과 배너 위치
+renderHouseAd($('ad-home'), 'banner');
+renderHouseAd($('ad-result'), 'result');
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// 결과 화면 재진입 시 카드 다시 보이게
+$('btn-retry').addEventListener('click', () => { $('result-card').style.display = ''; document.querySelector('.share-row').style.display = ''; });
+$('btn-home').addEventListener('click', () => { $('result-card').style.display = ''; document.querySelector('.share-row').style.display = ''; });
+
+show('home');

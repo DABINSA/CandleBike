@@ -1,0 +1,333 @@
+:root {
+  --bg: #0a0e14;
+  --bg2: #0d1320;
+  --neon: #2ce6c4;        /* 차트 라인 네온 틸 */
+  --neon-dim: #1b7f6e;
+  --up: #2ce67a;
+  --down: #ff4d6d;
+  --text: #e6f0f0;
+  --muted: #6b7d8a;
+  --gold: #ffd34d;
+  --accent: #5b8cff;
+  --panel: rgba(255,255,255,0.04);
+  --panel-border: rgba(44,230,196,0.18);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: radial-gradient(120% 80% at 50% 0%, #131b2b 0%, var(--bg) 60%);
+  color: var(--text);
+  overflow: hidden;
+  user-select: none;
+}
+
+#app { position: fixed; inset: 0; }
+
+/* ===== 화면 전환 ===== */
+.screen {
+  position: absolute; inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom);
+}
+.screen.active { display: flex; }
+
+/* 홈: 콘텐츠가 길면 위에서부터 + 스크롤 (가운데 정렬은 공간 남을 때만) */
+#screen-home { justify-content: flex-start; overflow-y: auto; }
+#screen-home .home-inner { margin: auto 0; padding: 64px 0 30px; }
+
+/* ===== 버튼 ===== */
+.btn {
+  border: none; border-radius: 14px;
+  padding: 15px 22px; font-size: 16px; font-weight: 700;
+  cursor: pointer; transition: transform .08s, filter .15s, opacity .15s;
+  width: 100%; max-width: 360px; margin: 6px 0;
+}
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-primary {
+  background: linear-gradient(135deg, var(--neon), #1fb6e6);
+  color: #06231f; box-shadow: 0 8px 30px rgba(44,230,196,.35);
+}
+.btn-ghost {
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--panel-border);
+}
+
+/* 언어 토글 */
+.lang-switch {
+  position: absolute; top: calc(env(safe-area-inset-top) + 14px); right: 16px;
+  display: flex; gap: 0; background: var(--panel); border: 1px solid var(--panel-border);
+  border-radius: 10px; overflow: hidden; z-index: 20;
+}
+.lang-switch button {
+  border: none; background: transparent; color: var(--muted);
+  font-size: 12px; font-weight: 800; padding: 7px 11px; cursor: pointer;
+}
+.lang-switch button.active { background: var(--neon); color: #06231f; }
+
+/* ===== 홈 ===== */
+.home-inner { width: 100%; max-width: 420px; text-align: center; }
+.logo {
+  font-size: 34px; letter-spacing: -1px; margin-bottom: 10px;
+  text-shadow: 0 0 24px rgba(44,230,196,.5);
+}
+.tagline { color: var(--muted); line-height: 1.6; margin-bottom: 26px; font-size: 15px; }
+.tagline b { color: var(--neon); }
+
+.search-box { position: relative; margin-bottom: 14px; text-align: left; }
+#symbol-input {
+  width: 100%; padding: 16px; font-size: 16px;
+  background: var(--bg2); border: 1px solid var(--panel-border);
+  border-radius: 14px; color: var(--text); outline: none;
+}
+#symbol-input:focus { border-color: var(--neon); box-shadow: 0 0 0 3px rgba(44,230,196,.15); }
+.search-results {
+  list-style: none; position: absolute; top: 60px; left: 0; right: 0;
+  background: var(--bg2); border: 1px solid var(--panel-border);
+  border-radius: 12px; overflow: hidden; z-index: 10; max-height: 260px; overflow-y: auto;
+}
+.search-results:empty { display: none; }
+.search-results li {
+  padding: 13px 16px; cursor: pointer; display: flex; justify-content: space-between;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.search-results li:hover, .search-results li.active { background: rgba(44,230,196,.1); }
+.search-results .sym { font-weight: 700; }
+.search-results .name { color: var(--muted); font-size: 13px; }
+
+/* 실시간 추천 종목 */
+.trending { margin: 18px 0 8px; text-align: left; }
+.trending-head { font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--down); box-shadow: 0 0 8px var(--down); animation: blink 1.2s ease-in-out infinite; }
+.live { color: var(--down); font-size: 11px; }
+@keyframes blink { 50% { opacity: .3; } }
+.trending-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.trending-skeleton { grid-column: 1 / -1; color: var(--muted); font-size: 13px; padding: 8px; }
+.trend-chip {
+  display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px;
+  transition: transform .08s, border-color .15s, background .15s;
+}
+.trend-chip:active { transform: scale(.97); }
+.trend-chip:hover { border-color: var(--neon); background: rgba(44,230,196,.07); }
+.trend-chip .tc-main { flex: 1; min-width: 0; }
+.trend-chip .tc-sym { font-weight: 800; font-size: 14px; }
+.trend-chip .tc-name { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trend-chip .tc-chg { font-weight: 800; font-size: 13px; white-space: nowrap; }
+.tc-chg.up { color: var(--up); }
+.tc-chg.down { color: var(--down); }
+.trend-chip .tc-fire { font-size: 13px; }
+.trend-chip .tc-diff { margin-top: 2px; }
+.diff-badge { font-size: 10px; font-weight: 800; letter-spacing: -.5px; }
+
+.data-mode-note { margin-top: 18px; color: var(--muted); font-size: 12px; }
+
+/* ===== 로딩 ===== */
+.loader {
+  width: 46px; height: 46px; border-radius: 50%;
+  border: 4px solid rgba(44,230,196,.2); border-top-color: var(--neon);
+  animation: spin 0.8s linear infinite; margin-bottom: 18px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== 플레이 ===== */
+#screen-play { padding: 0; justify-content: flex-start; }
+#game-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* 3년 차트 미니맵 */
+.minimap-wrap {
+  position: absolute; top: calc(env(safe-area-inset-top) + 8px); left: 12px; right: 12px;
+  height: 54px; z-index: 6;
+}
+.minimap {
+  width: 100%; height: 100%; display: block;
+  border: 1px solid var(--panel-border); border-radius: 10px;
+  background: rgba(5,8,13,.55);
+}
+.minimap-label {
+  position: absolute; top: 5px; left: 9px; font-size: 10px; font-weight: 700;
+  color: var(--muted); pointer-events: none;
+}
+.hud-sub { font-size: 11px; color: var(--gold); font-weight: 700; }
+
+.hud {
+  position: absolute; top: calc(env(safe-area-inset-top) + 68px); left: 0; right: 0; z-index: 5;
+  display: flex; justify-content: space-between; gap: 10px;
+  padding: 0 16px 12px;
+}
+.hud-item { display: flex; flex-direction: column; gap: 4px; font-weight: 700; }
+.hud-label { font-size: 11px; color: var(--muted); font-weight: 600; }
+#hud-distance { font-size: 20px; color: var(--neon); }
+#hud-symbol { font-size: 13px; max-width: 150px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fuel-bar { width: 90px; height: 8px; background: rgba(255,255,255,.12); border-radius: 6px; overflow: hidden; }
+.fuel-fill { height: 100%; width: 100%; background: linear-gradient(90deg, var(--up), var(--gold)); transition: width .2s; }
+
+.controls {
+  position: absolute; left: 0; right: 0; z-index: 8;
+  bottom: calc(env(safe-area-inset-bottom) + 64px);  /* 하단 광고 배너 위로 */
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 12px; padding: 0 16px; pointer-events: none;
+}
+.ctrl-btn {
+  pointer-events: auto;
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  flex: 1 1 0; max-width: 160px; height: 96px; border-radius: 20px;
+  font-size: 16px; font-weight: 800; color: var(--text);
+  background: rgba(255,255,255,.07); border: 1.5px solid var(--panel-border);
+  backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.25;
+  box-shadow: 0 6px 18px rgba(0,0,0,.4);
+}
+.ctrl-btn:active { transform: scale(.95); filter: brightness(1.25); }
+.ctrl-gas { background: rgba(44,230,196,.16); border-color: rgba(44,230,196,.5); color: #d7fff6; }
+.ctrl-jump {
+  flex: 0 0 auto; width: 88px; height: 88px; border-radius: 50%; font-size: 15px;
+  background: rgba(91,140,255,.18); border-color: rgba(91,140,255,.5); color: #cdd9ff;
+}
+
+/* 작은 화면(모바일)에서 더 큼직하게, 데스크톱에선 살짝 작게 */
+@media (max-width: 560px) {
+  .ctrl-btn { height: 104px; font-size: 17px; }
+  .ctrl-jump { width: 92px; height: 92px; }
+}
+@media (hover: hover) and (pointer: fine) {
+  .controls { opacity: .85; }
+  .ctrl-btn { max-width: 130px; height: 78px; }
+}
+
+/* 조작 안내 토스트 (게임 시작 시 잠깐) */
+.controls-hint {
+  position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 122px);
+  transform: translateX(-50%); z-index: 8;
+  background: rgba(5,8,13,.82); border: 1px solid var(--panel-border);
+  color: var(--text); font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 12px;
+  white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .4s;
+}
+.controls-hint.show { opacity: 1; }
+
+/* ===== 하우스 광고 (여기에 광고하세요) ===== */
+.ad-slot { margin: 14px 0 4px; }
+.house-ad {
+  position: relative; border: 1.5px dashed rgba(44,230,196,.45); border-radius: 12px;
+  background: rgba(44,230,196,.05); text-align: center;
+}
+.house-tag {
+  position: absolute; top: -8px; left: 12px; font-size: 9px; font-weight: 800;
+  color: #06231f; background: var(--muted); padding: 1px 6px; border-radius: 4px; letter-spacing: .5px;
+}
+.house-title { font-weight: 800; color: var(--text); }
+.house-sub { font-size: 11px; color: var(--muted); }
+.house-cta {
+  display: inline-block; font-size: 12px; font-weight: 800; color: #06231f;
+  background: var(--neon); padding: 6px 14px; border-radius: 8px; text-decoration: none;
+  box-shadow: 0 4px 16px rgba(44,230,196,.3);
+}
+.house-cta:active { transform: scale(.97); }
+/* 배너형(홈/플레이 하단): 한 줄 컴팩트 */
+.house-banner { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 9px 12px; flex-wrap: wrap; }
+.house-banner .house-title { font-size: 13px; }
+.house-banner .house-sub { display: none; }
+/* 박스형(결과/리워드) */
+.house-result { padding: 16px 14px; }
+.house-result .house-title { font-size: 15px; margin-bottom: 4px; }
+.house-result .house-sub { margin-bottom: 10px; }
+.house-reward {
+  width: 100%; height: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 8px; padding: 18px; border: none; background: transparent;
+}
+.house-reward .house-title { font-size: 18px; }
+.house-reward .house-sub { margin-bottom: 8px; font-size: 13px; }
+.house-reward .house-tag { top: 10px; left: 10px; }
+
+/* 플레이 중 광고 배너 */
+.ad-banner {
+  position: absolute; bottom: 0; left: 0; right: 0; z-index: 6;
+  min-height: 52px; display: flex; align-items: center; justify-content: center;
+  background: #05080d; border-top: 1px solid rgba(255,255,255,.08);
+}
+.ad-tag {
+  position: absolute; left: 8px; top: 4px; font-size: 9px; font-weight: 800;
+  color: #06231f; background: var(--muted); padding: 1px 5px; border-radius: 4px;
+}
+.ad-placeholder { color: var(--muted); font-size: 12px; }
+.ad-banner ins { display: none; } /* AdSense 승인 후 표시 전환 */
+
+/* ===== 리워드 광고 ===== */
+.ad-reward-box { width: 100%; max-width: 380px; text-align: center; }
+.ad-reward-title { font-size: 18px; font-weight: 700; margin-bottom: 18px; }
+.ad-reward-video {
+  position: relative; aspect-ratio: 16/10; border-radius: 16px;
+  background: #05080d; border: 1px solid var(--panel-border);
+  display: flex; align-items: center; justify-content: center; margin-bottom: 18px;
+  overflow: hidden;
+}
+.ad-fake-video { color: var(--muted); font-size: 16px; animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .4; } }
+.ad-countdown { color: var(--muted); margin-bottom: 16px; }
+#ad-timer { color: var(--neon); font-weight: 800; font-size: 18px; }
+
+/* ===== 결과 ===== */
+.result-inner { width: 100%; max-width: 420px; text-align: center; overflow-y: auto; max-height: 100vh; padding: 24px 0; }
+.result-card {
+  position: relative; border-radius: 20px; padding: 28px 20px;
+  background: linear-gradient(160deg, #0e1828, #0a0e14);
+  border: 1px solid var(--panel-border); margin-bottom: 16px;
+  box-shadow: 0 0 40px rgba(44,230,196,.12);
+}
+.rc-symbol { font-size: 22px; font-weight: 800; color: var(--neon); letter-spacing: 1px; }
+.rc-distance { font-size: 54px; font-weight: 900; margin: 6px 0; text-shadow: 0 0 30px rgba(44,230,196,.4); }
+.rc-distance span::after { content: ''; }
+.rc-rank { color: var(--muted); font-size: 15px; }
+.rc-rank b { color: var(--gold); }
+.rc-diff { margin-top: 8px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.rc-brand { margin-top: 16px; color: var(--muted); font-size: 13px; font-weight: 700; }
+
+.share-row { display: flex; gap: 10px; margin-bottom: 24px; }
+.share-row .btn { margin: 0; }
+
+.lb-title { text-align: left; margin-bottom: 10px; font-size: 16px; }
+.leaderboard { list-style: none; text-align: left; margin-bottom: 18px; }
+.leaderboard li {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+  background: var(--panel); border: 1px solid rgba(255,255,255,.05);
+  border-radius: 12px; margin-bottom: 6px;
+}
+.leaderboard li.me { border-color: var(--neon); background: rgba(44,230,196,.1); }
+.lb-rank { width: 28px; font-weight: 800; color: var(--muted); }
+.lb-rank.top { color: var(--gold); }
+.lb-nick { flex: 1; font-weight: 700; }
+.lb-sym { color: var(--muted); font-size: 12px; }
+.lb-score { font-weight: 800; color: var(--neon); }
+
+/* ===== 모달 ===== */
+.modal {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; padding: 20px;
+}
+.modal.active { display: flex; }
+.modal-inner {
+  background: var(--bg2); border: 1px solid var(--panel-border);
+  border-radius: 18px; padding: 24px; width: 100%; max-width: 340px; text-align: center;
+}
+.modal-inner p { margin-bottom: 14px; font-weight: 700; }
+.modal-inner input {
+  width: 100%; padding: 14px; font-size: 16px; margin-bottom: 14px;
+  background: var(--bg); border: 1px solid var(--panel-border); border-radius: 12px; color: var(--text); outline: none;
+}
+
+/* 트릭 점수 토스트 (게임 캔버스 위) */
+.trick-toast {
+  position: absolute; z-index: 7; left: 50%; top: 38%; transform: translateX(-50%);
+  font-size: 28px; font-weight: 900; color: var(--accent); pointer-events: none;
+  text-shadow: 0 0 20px rgba(91,140,255,.6); opacity: 0;
+}
+.trick-toast.show { animation: trick 1s ease-out; }
+@keyframes trick {
+  0% { opacity: 0; transform: translateX(-50%) translateY(10px) scale(.8); }
+  20% { opacity: 1; transform: translateX(-50%) translateY(-6px) scale(1.1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-40px) scale(1); }
+}
