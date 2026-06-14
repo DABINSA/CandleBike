@@ -4,3 +4,5 @@ node_modules/
 *.log
 assets/tmp.svg
 assets/_ogsrc.*
+
+.vercel
