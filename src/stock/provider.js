@@ -88,13 +88,17 @@ async function yahooHistory(symbol) {
   return out;
 }
 async function yahooTrending() {
-  const j = await yfetch('https://query1.finance.yahoo.com/v1/finance/trending/US?count=12');
+  // 실제 급등주(당일 상승률 상위) — 주식만, 변동률 포함
+  const j = await yfetch('https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=16&scrIds=day_gainers');
   const quotes = (j.finance && j.finance.result && j.finance.result[0] && j.finance.result[0].quotes) || [];
   const list = quotes
-    .map((x) => ({ symbol: x.symbol, name: x.symbol, change: null, hot: false }))
-    .filter((x) => x.symbol)
+    .filter((x) => x.symbol && x.quoteType === 'EQUITY')
+    .map((x) => {
+      const chg = x.regularMarketChangePercent != null ? +(+x.regularMarketChangePercent).toFixed(1) : null;
+      return { symbol: x.symbol, name: x.shortName || x.longName || x.symbol, change: chg, hot: (chg || 0) >= 5 };
+    })
     .slice(0, 8);
-  if (!list.length) throw new Error('no trending');
+  if (!list.length) throw new Error('no gainers');
   return list;
 }
 
