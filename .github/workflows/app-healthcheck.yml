@@ -1,0 +1,73 @@
+name: app-healthcheck
+
+# 앱(프론트/Vercel) 다운 감시 → 중앙 알림 Relay로 down/recovered 전송 (시크릿 0).
+# DB(Supabase)는 중앙 n8n Supabase Health Monitor가 보므로 여기선 앱만 본다(중복 방지).
+on:
+  schedule:
+    - cron: '*/10 * * * *'      # 10분마다
+  workflow_dispatch:
+    inputs:
+      force_fail:
+        description: '강제 실패(테스트)'
+        required: false
+        default: 'false'
+
+env:
+  APP_URL: https://candlebike.vercel.app
+  RELAY_URL: https://primary-production-956de.up.railway.app/webhook/service-alert
+  FAIL_THRESHOLD: '2'
+  SERVICE_NAME: CandleBike
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restore state
+        uses: actions/cache/restore@v4
+        with:
+          path: hc-state
+          key: hc-state-${{ github.run_id }}
+          restore-keys: |
+            hc-state-
+
+      - name: Check & alert
+        run: |
+          mkdir -p hc-state
+          fails=$(cat hc-state/fails 2>/dev/null || echo 0)
+          alerted=$(cat hc-state/alerted 2>/dev/null || echo 0)
+
+          if [ "${{ github.event.inputs.force_fail }}" = "true" ]; then
+            code=000
+          else
+            code=$(curl -s -o /dev/null -m 25 -w "%{http_code}" "$APP_URL" || echo 000)
+          fi
+          echo "HTTP $code (prev fails=$fails alerted=$alerted)"
+
+          up=0
+          case "$code" in 2*|3*|4*) up=1 ;; esac
+
+          if [ "$up" = "1" ]; then
+            if [ "$alerted" = "1" ]; then
+              printf '{"service":"%s","level":"recovered","reason":"앱 응답 정상 복구 (HTTP %s)","detail":"%s"}' \
+                "$SERVICE_NAME" "$code" "$APP_URL" > payload.json
+              curl -s -H 'Content-Type: application/json' --data-binary @payload.json "$RELAY_URL" || true
+            fi
+            echo 0 > hc-state/fails
+            echo 0 > hc-state/alerted
+          else
+            fails=$((fails + 1))
+            echo "$fails" > hc-state/fails
+            if [ "$fails" -ge "$FAIL_THRESHOLD" ] && [ "$alerted" != "1" ]; then
+              printf '{"service":"%s","level":"down","reason":"앱 응답 없음/오류 (HTTP %s, 연속 %s회)","detail":"%s"}' \
+                "$SERVICE_NAME" "$code" "$fails" "$APP_URL" > payload.json
+              curl -s -H 'Content-Type: application/json' --data-binary @payload.json "$RELAY_URL" || true
+              echo 1 > hc-state/alerted
+            fi
+          fi
+
+      - name: Save state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: hc-state
+          key: hc-state-${{ github.run_id }}
