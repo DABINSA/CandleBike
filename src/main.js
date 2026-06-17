@@ -165,32 +165,39 @@ async function showResult(result) {
   show('result');
   rememberName(result.symbol, result.name);
   $('rc-symbol').textContent = result.name ? `${result.name} (${result.symbol})` : result.symbol;
-  $('rc-distance').textContent = (result.score != null ? result.score : result.distance).toLocaleString();
-  $('rc-rank-line').textContent = '…';
   if (result.diff) {
     $('rc-diff').innerHTML =
       `<span style="color:${result.diff.color}">${result.diff.stars}</span> ` +
       `${result.diff.label} · ${t.volWord} ${result.diff.volPct}%`;
   }
 
-  // 닉네임 확보 후 점수 등록
-  const nick = getNick();
-  if (!nick) {
-    promptNick(async (n) => {
-      setNick(n);
-      regPromise = registerAndRender(result, n);
+  // 완주자만 순위(완주 시간) 등록. 미완주(연료소진/추락)는 기록 X — 거리만 표시.
+  if (result.completed) {
+    $('rc-distance').textContent = (result.timeMs / 1000).toFixed(1);
+    $('rc-unit').textContent = t.timeUnit;
+    $('rc-rank-line').textContent = '…';
+    regPromise = null;
+    const nick = getNick();
+    if (!nick) {
+      promptNick(async (n) => { setNick(n); regPromise = registerAndRender(result, n); await regPromise; });
+    } else {
+      regPromise = registerAndRender(result, nick);
       await regPromise;
-    });
+    }
   } else {
-    regPromise = registerAndRender(result, nick);
-    await regPromise;
+    $('rc-distance').textContent = result.distance.toLocaleString();
+    $('rc-unit').textContent = 'm';
+    $('rc-rank-line').textContent = t.notFinished;
+    regPromise = null;
+    // 순위 등록은 안 하지만, 목표가 되도록 해당 종목 완주 순위는 보여줌
+    await renderLeaderboard(result.symbol, null);
   }
 }
 
 async function registerAndRender(result, nick) {
   let rankInfo = { rank: '–', total: 0, percentile: '–', id: null };
   try {
-    rankInfo = await submitScore({ nick, symbol: result.symbol, score: result.score });
+    rankInfo = await submitScore({ nick, symbol: result.symbol, timeMs: result.timeMs });
   } catch (e) { console.warn('순위 등록 실패', e); }
 
   lastResult.rank = rankInfo.rank;
@@ -217,7 +224,7 @@ async function renderLeaderboard(symbol, myId) {
       `<span class="lb-rank ${i < 3 ? 'top' : ''}">${i + 1}</span>` +
       `<span class="lb-nick">${escapeHtml(row.nick)}</span>` +
       `<span class="lb-sym">${symHtml}</span>` +
-      `<span class="lb-score">${row.score.toLocaleString()}m</span>`;
+      `<span class="lb-score">${t.timeFmt(row.score)}</span>`;
     ol.appendChild(li);
   });
   if (list.length === 0) ol.innerHTML = `<li style="justify-content:center;color:var(--muted)">${t.noRecords}</li>`;

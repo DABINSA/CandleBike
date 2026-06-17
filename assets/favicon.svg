@@ -3,21 +3,25 @@
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#16263d"/><stop offset="1" stop-color="#0a0e14"/>
     </linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff5e6e"/><stop offset="1" stop-color="#e02338"/>
+    </linearGradient>
     <filter id="g" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="7" result="b"/>
+      <feGaussianBlur stdDeviation="6" result="b"/>
       <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
   <rect width="512" height="512" rx="108" fill="url(#bg)"/>
   <!-- 네온 차트 라인 -->
   <path d="M36 396 L150 332 L250 392 L362 248 L476 318" fill="none"
-        stroke="#2ce6c4" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" filter="url(#g)"/>
-  <!-- 바이크 -->
+        stroke="#2ce6c4" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" filter="url(#g)" opacity="0.85"/>
+  <!-- 빨간 오토바이 -->
   <g transform="translate(256 300)" filter="url(#g)">
-    <circle cx="-72" cy="46" r="44" fill="#0c1117" stroke="#2ce6c4" stroke-width="8"/>
-    <circle cx="72" cy="46" r="44" fill="#0c1117" stroke="#2ce6c4" stroke-width="8"/>
-    <path d="M-86 24 L-26 10 Q10 -26 48 -12 L78 0 Q100 6 96 28 L-26 32 Z" fill="#39f0d4"/>
+    <circle cx="-72" cy="46" r="44" fill="#0c1117" stroke="#ff6675" stroke-width="9"/>
+    <circle cx="72" cy="46" r="44" fill="#0c1117" stroke="#ff6675" stroke-width="9"/>
+    <path d="M-86 24 L-26 10 Q10 -26 48 -12 L78 0 Q100 6 96 28 L-26 32 Z" fill="url(#red)"/>
+    <path d="M-26 10 Q10 -26 48 -12" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity="0.7"/>
     <circle cx="12" cy="-46" r="21" fill="#eef3f7"/>
-    <rect x="-1" y="-36" width="15" height="7" rx="3" fill="#2ce6c4"/>
+    <rect x="-1" y="-36" width="15" height="7" rx="3" fill="#ff4d5e"/>
   </g>
 </svg>

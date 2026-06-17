@@ -215,7 +215,8 @@ export class Game {
     this.ended = true;
     this.running = false;
     cancelAnimationFrame(this._raf);
-    const score = this.distanceM + this.flips * FLIP_METERS;
+    const completed = reason === 'finish';
+    const timeMs = Math.round(performance.now() - this.startTime);   // 완주 시간(ms) — 완주자만 순위 기준
     this._cleanupInput();
     window.removeEventListener('resize', this._resizeHandler);
     if (this._onEnd) {
@@ -224,7 +225,8 @@ export class Game {
         name: this.stockName,
         distance: this.distanceM,
         flips: this.flips,
-        score,
+        completed,
+        timeMs,
         reason,
         diff: this.diff,
       });

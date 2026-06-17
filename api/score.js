@@ -5,7 +5,9 @@
 // 주의: 완전한 안티치트(리플레이/서버 시뮬)는 범위 밖 — 캐주얼 게임 기준 위조·스팸·비용폭탄 차단 수준.
 import { sb, supaReady, clientIp } from './_supa.js';
 
-const SCORE_MAX = 1_000_000;       // 비현실적 점수 차단 상한(m). 필요시 튜닝.
+// score = 완주 시간(ms). 작을수록 빠름(상위). 비현실적 값 차단.
+const SCORE_MIN = 3_000;           // 3초 미만 완주는 불가능 → 위조 차단
+const SCORE_MAX = 1_000_000;       // 1000초 상한
 const NICK_MAX = 20;
 const SYMBOL_RE = /^[A-Z0-9.\-]{1,15}$/;
 
@@ -27,7 +29,7 @@ export default async function handler(req, res) {
   if (!SYMBOL_RE.test(symbol)) { res.status(400).json({ error: 'bad symbol' }); return; }
 
   const score = Number(b.score);
-  if (!Number.isFinite(score) || !Number.isInteger(score) || score < 0 || score > SCORE_MAX) {
+  if (!Number.isFinite(score) || !Number.isInteger(score) || score < SCORE_MIN || score > SCORE_MAX) {
     res.status(400).json({ error: 'bad score' }); return;
   }
 

@@ -46,7 +46,11 @@ const DICT = {
     adCountdownSuffix: '초 후 결과를 볼 수 있어요',
     seeResultsLocked: '결과 보기 🔒',
     seeResultsUnlocked: '결과 보기 🔓',
-    rankLine: (r, p) => `전체 <b>${r}</b>위 · 상위 <b>${p}</b>%`,
+    rankLine: (r, p) => `완주 <b>${r}</b>위 · 상위 <b>${p}</b>%`,
+    timeFmt: (ms) => `${(ms / 1000).toFixed(1)}초`,
+    timeUnit: '초',
+    notFinished: '완주 실패 — 끝까지 달려야 순위에 올라요! 🏁',
+    finishToast: '🏁 완주!',
     brand: '📈🏍️ 캔들바이크',
     share: '📲 공유하기',
     saveImg: '🖼️ 결과 이미지 저장',
@@ -76,6 +80,8 @@ const DICT = {
     savedAlert: '이미지를 저장했어요! 인스타에 올리고 캡션을 붙여넣으세요. (캡션 복사됨)',
     shareCaption: (sym, dist, rank) =>
       `${sym} 그래프 위를 달려 ${dist}m! 전체 ${rank}위 🏍️📈\n#캔들바이크 #CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
+    shareCaptionTime: (sym, time, rank) =>
+      `${sym} 그래프를 ${time}만에 완주! 전체 ${rank}위 🏍️📈🏁\n#캔들바이크 #CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
     cardBrand: '📈🏍️ 캔들바이크 — 변동성을 버텨라',
     cardRank: (r, p) => `전체 ${r}위 · 상위 ${p}%`,
     // 하우스 광고 (광고주 유치)
@@ -120,7 +126,11 @@ const DICT = {
     adCountdownSuffix: ' sec until results',
     seeResultsLocked: 'See results 🔒',
     seeResultsUnlocked: 'See results 🔓',
-    rankLine: (r, p) => `Rank <b>#${r}</b> · Top <b>${p}</b>%`,
+    rankLine: (r, p) => `Finish <b>#${r}</b> · Top <b>${p}</b>%`,
+    timeFmt: (ms) => `${(ms / 1000).toFixed(1)}s`,
+    timeUnit: 's',
+    notFinished: "Didn't finish — reach the end to make the leaderboard! 🏁",
+    finishToast: '🏁 Finished!',
     brand: '📈🏍️ CandleBike',
     share: '📲 Share',
     saveImg: '🖼️ Save image',
@@ -150,6 +160,8 @@ const DICT = {
     savedAlert: 'Image saved! Post it and paste the caption. (caption copied)',
     shareCaption: (sym, dist, rank) =>
       `Rode the ${sym} chart for ${dist}m! Rank #${rank} 🏍️📈\n#CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
+    shareCaptionTime: (sym, time, rank) =>
+      `Finished the ${sym} chart in ${time}! Rank #${rank} 🏍️📈🏁\n#CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
     cardBrand: '📈🏍️ CandleBike — Survive the Volatility',
     cardRank: (r, p) => `Rank #${r} · Top ${p}%`,
     // House ad (advertiser acquisition)

@@ -8,8 +8,9 @@ import { t } from '../i18n.js';
 
 const W = 1080, H = 1350;
 
-export function drawResultCard({ symbol, name, distance, score, rank, percentile }) {
-  const record = (score != null ? score : distance) || 0;
+export function drawResultCard({ symbol, name, distance, completed, timeMs, rank, percentile }) {
+  // 완주자: 완주 시간(예 42.3초) / 미완주: 거리(예 1,631m)
+  const recordText = completed ? t.timeFmt(timeMs) : `${(distance || 0).toLocaleString()}m`;
   const cv = document.getElementById('card-canvas');
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
@@ -45,12 +46,13 @@ export function drawResultCard({ symbol, name, distance, score, rank, percentile
   ctx.fillStyle = '#e6f0f0';
   ctx.font = '900 180px sans-serif';
   ctx.shadowColor = 'rgba(44,230,196,0.5)'; ctx.shadowBlur = 40;
-  ctx.fillText(`${record.toLocaleString()}m`, W / 2, 450);
+  ctx.fillText(recordText, W / 2, 450);
   ctx.shadowBlur = 0;
 
   ctx.fillStyle = '#ffd34d';
   ctx.font = '700 52px sans-serif';
-  ctx.fillText(t.cardRank(rank, percentile), W / 2, 540);
+  if (completed && rank != null) ctx.fillText(t.cardRank(rank, percentile), W / 2, 540);
+  else if (!completed) ctx.fillText(t.notFinished, W / 2, 540);
 
   ctx.fillStyle = '#6b7d8a';
   ctx.font = '700 40px sans-serif';
@@ -67,8 +69,9 @@ export async function shareResult(result) {
   const cv = drawResultCard(result);
   const blob = await canvasToBlob(cv);
   const file = new File([blob], 'candlebike.png', { type: 'image/png' });
-  const record = result.score != null ? result.score : result.distance;
-  const caption = t.shareCaption(result.symbol, record, result.rank);
+  const caption = result.completed
+    ? t.shareCaptionTime(result.symbol, t.timeFmt(result.timeMs), result.rank)
+    : t.shareCaption(result.symbol, (result.distance || 0).toLocaleString(), '–');
 
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
@@ -88,7 +91,8 @@ export async function saveCard(result) {
   const blob = await canvasToBlob(cv);
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `candlebike_${result.symbol}_${result.score != null ? result.score : result.distance}m.png`;
+  const tag = result.completed ? `${(result.timeMs / 1000).toFixed(1)}s` : `${result.distance}m`;
+  a.href = url; a.download = `candlebike_${result.symbol}_${tag}.png`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

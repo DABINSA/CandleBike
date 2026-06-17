@@ -42,7 +42,10 @@ alter table app_kv enable row level security;
 
 -- 5) 순위 등록 RPC — 레이트리밋+insert+순위계산을 DB 한 번 왕복으로 처리(지연 단축).
 --    /api/score 가 service_role 로 호출. (anon 직접 호출 차단: 아래 revoke)
-create index if not exists scores_symbol_score_idx on scores (symbol, score desc);
+--    ★ scores.score = '완주 시간(ms)' — 작을수록(빠를수록) 상위. 완주자만 등록됨.
+--    ★ 기존 '거리' 점수가 섞여 있으면 시간 랭킹이 오염되므로 한 번 비운다:
+--         truncate scores;
+create index if not exists scores_symbol_score_idx on scores (symbol, score);
 
 create or replace function submit_score(p_nick text, p_symbol text, p_score int, p_ip text)
 returns jsonb
@@ -74,10 +77,10 @@ begin
     values (v_key, jsonb_build_object('count', v_count + 1, 'resetAt', v_reset), now())
     on conflict (k) do update set v = excluded.v, updated_at = now();
 
-  -- 점수 등록 + 같은 종목 내 순위
+  -- 완주 시간 등록 + 같은 종목 내 순위 (시간이 작을수록 = 빠를수록 상위)
   insert into scores(nick, symbol, score) values (p_nick, p_symbol, p_score) returning id into v_id;
   select count(*) into v_total  from scores where symbol = p_symbol;
-  select count(*) into v_better from scores where symbol = p_symbol and score > p_score;
+  select count(*) into v_better from scores where symbol = p_symbol and score < p_score;
 
   return jsonb_build_object(
     'id', v_id,
