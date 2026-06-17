@@ -1,5 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [{ "path": "/api/warm-courses", "schedule": "0 0 * * *" }],
+  "functions": { "api/warm-courses.js": { "maxDuration": 60 } },
   "headers": [
     {
       "source": "/(.*)",

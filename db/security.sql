@@ -40,6 +40,56 @@ alter table app_kv enable row level security;
 -- 4) (선택) 오래된 레이트리밋 행 정리 — 주기적으로 실행하거나 cron 으로.
 -- delete from app_kv where k like 'rl:%' and updated_at < now() - interval '1 day';
 
+-- 5) 순위 등록 RPC — 레이트리밋+insert+순위계산을 DB 한 번 왕복으로 처리(지연 단축).
+--    /api/score 가 service_role 로 호출. (anon 직접 호출 차단: 아래 revoke)
+create index if not exists scores_symbol_score_idx on scores (symbol, score desc);
+
+create or replace function submit_score(p_nick text, p_symbol text, p_score int, p_ip text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_key    text   := 'rl:score:' || coalesce(p_ip, 'unknown');
+  v_now    bigint := (extract(epoch from now()) * 1000)::bigint;
+  v_window int    := 600000;   -- 10분(ms)
+  v_max    int    := 30;       -- 윈도우당 최대 등록 횟수
+  v_count  int;
+  v_reset  bigint;
+  v_id     bigint;
+  v_total  int;
+  v_better int;
+begin
+  -- 고정윈도우 레이트리밋
+  select (v->>'count')::int, (v->>'resetAt')::bigint into v_count, v_reset
+    from app_kv where k = v_key;
+  if v_reset is null or v_reset <= v_now then
+    v_count := 0; v_reset := v_now + v_window;
+  end if;
+  if v_count >= v_max then
+    return jsonb_build_object('error', 'rate', 'retryAfter', greatest(1, ((v_reset - v_now) / 1000))::int);
+  end if;
+  insert into app_kv(k, v, updated_at)
+    values (v_key, jsonb_build_object('count', v_count + 1, 'resetAt', v_reset), now())
+    on conflict (k) do update set v = excluded.v, updated_at = now();
+
+  -- 점수 등록 + 같은 종목 내 순위
+  insert into scores(nick, symbol, score) values (p_nick, p_symbol, p_score) returning id into v_id;
+  select count(*) into v_total  from scores where symbol = p_symbol;
+  select count(*) into v_better from scores where symbol = p_symbol and score > p_score;
+
+  return jsonb_build_object(
+    'id', v_id,
+    'rank', v_better + 1,
+    'total', v_total,
+    'percentile', greatest(1, round(((v_better + 1)::numeric / greatest(v_total, 1)) * 100))
+  );
+end $$;
+
+-- anon/공개 호출 차단 — service_role(서버 라우트)만 실행 가능
+revoke all on function submit_score(text, text, int, text) from public, anon, authenticated;
+
 -- ============================================================
 --  검증
 --  (a) anon 키로 insert 시도 → 401/403/0행 이어야 함:
