@@ -24,16 +24,21 @@ export function getNick() { return localStorage.getItem('candlebike_nick') || ''
 export function setNick(n) { localStorage.setItem('candlebike_nick', n); }
 
 // 점수 등록 → { rank, total, percentile, id } — 같은 '종목' 안에서의 순위
+// 쓰기는 반드시 서버 라우트(/api/score, service_role)를 경유 — 클라 anon 직접 insert 금지.
+// (anon 키는 클라 번들에 노출되므로 직접 쓰기를 열면 점수 위조·스팸이 가능)
 export async function submitScore({ nick, symbol, score }) {
-  const client = await getClient();
-  if (client) {
-    const { data, error } = await client.from('scores').insert({ nick, symbol, score }).select().single();
-    if (error) { console.warn('supabase insert 실패, 로컬로 대체', error); return submitLocal({ nick, symbol, score }); }
-    const { count } = await client.from('scores').select('*', { count: 'exact', head: true }).eq('symbol', symbol);
-    const { count: better } = await client.from('scores').select('*', { count: 'exact', head: true }).eq('symbol', symbol).gt('score', score);
-    const total = count || 1;
-    const rank = (better || 0) + 1;
-    return { rank, total, percentile: Math.max(1, Math.round((rank / total) * 100)), id: data.id };
+  if (isConfigured()) {
+    try {
+      const r = await fetch('/api/score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nick, symbol, score }),
+      });
+      if (r.ok) return await r.json();
+      console.warn('score API 실패, 로컬로 대체', r.status);
+    } catch (e) {
+      console.warn('score API 오류, 로컬로 대체', e);
+    }
   }
   return submitLocal({ nick, symbol, score });
 }

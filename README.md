@@ -63,7 +63,7 @@ COURSE_UPDATE: 'week',   // 'week' | 'month' — 이 기간 동안 같은 코스
 ### 3) 순위(종목별) + 코스 캐시 테이블 (Supabase)
 1. supabase.com 무료 프로젝트 생성 → SQL 에디터에서 실행:
 ```sql
--- 순위 (종목별로 집계됨)
+-- 순위 (종목별로 집계됨) — 읽기만 공개, 쓰기는 서버 라우트(/api/score)로만
 create table scores (
   id bigint generated always as identity primary key,
   nick text not null,
@@ -72,10 +72,9 @@ create table scores (
   created_at timestamptz default now()
 );
 alter table scores enable row level security;
-create policy "s_read"   on scores for select using (true);
-create policy "s_insert" on scores for insert with check (true);
+create policy "s_read" on scores for select using (true);
 
--- 코스 캐시 (최초 1회 fetch → 공유)
+-- 코스 캐시 (최초 1회 fetch → 공유) — 읽기만 공개, 쓰기는 /api/save-course 로만
 create table courses (
   symbol text primary key,
   period text,
@@ -83,11 +82,17 @@ create table courses (
   updated_at timestamptz default now()
 );
 alter table courses enable row level security;
-create policy "c_read"   on courses for select using (true);
-create policy "c_insert" on courses for insert with check (true);
-create policy "c_update" on courses for update using (true);
+create policy "c_read" on courses for select using (true);
 ```
-2. `config.js`에 `SUPABASE_URL` / `SUPABASE_ANON_KEY` 입력 → 전역 순위 + 코스 DB 공유 자동 활성화
+> ⚠ **보안:** anon 키는 클라 번들에 노출되므로 `insert/update using(true)` 같은 공개 쓰기
+>   정책을 절대 만들지 마세요(점수 위조·캐시 오염). 쓰기는 service_role 서버 라우트만 수행합니다.
+>   전체 잠금 + 레이트리밋 KV 테이블(`app_kv`)은 **`db/security.sql`** 한 번 실행으로 적용됩니다.
+
+2. `config.js`에 `SUPABASE_URL` / `SUPABASE_ANON_KEY` 입력(읽기·공유용)
+3. **Vercel 환경변수**에 서버 쓰기용 키 등록 (클라엔 노출 안 됨):
+   - `SUPABASE_URL` = `https://<ref>.supabase.co`
+   - `SUPABASE_SERVICE_ROLE_KEY` = Supabase Settings → API → **service_role** 키 (절대 `NEXT_PUBLIC_` 금지)
+   - 이게 있어야 `/api/score`·`/api/save-course` 가 동작하고 IP 레이트리밋이 켜집니다.
 
 > 순위는 **해당 종목 안에서의 순위**로 표시됩니다(전체 혼합 아님).
 

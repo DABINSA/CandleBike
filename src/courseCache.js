@@ -70,8 +70,13 @@ export async function getCourse(symbol) {
       local[symbol] = { period, series };
       lsSet(local);
       if (client) {
+        // 쓰기는 서버 라우트(service_role) 경유 — 클라 anon 직접 upsert 금지(캐시 오염 방지)
         try {
-          await client.from('courses').upsert({ symbol, period, series, updated_at: new Date().toISOString() });
+          await fetch('/api/save-course', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ symbol, period, series }),
+          });
         } catch (e) { console.warn('courses 저장 실패', e); }
       }
       lastSource = 'real-fetch';

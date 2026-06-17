@@ -20,6 +20,8 @@ export const CONFIG = {
   COURSE_UPDATE: 'week',
 
   // twelvedata 모드에서 사용 (무료 800 req/day)
+  // ⚠ 보안: 이 키는 클라이언트 번들에 그대로 노출됩니다. 실서비스에서 twelvedata 모드를
+  //    쓰려면 야후처럼 서버 라우트(/api/*)로 키를 숨겨 프록시하세요. (현재는 yahoo 모드라 미사용)
   TWELVEDATA_KEY: 'YOUR_TWELVEDATA_KEY',
 
   // proxy 모드에서 사용 — /search?q=, /history?symbol= 를 제공하는 엔드포인트

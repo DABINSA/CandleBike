@@ -74,8 +74,8 @@ function renderSearch(list) {
     rememberName(item.symbol, item.name);
     const li = document.createElement('li');
     li.innerHTML =
-      `<span class="sym">${item.symbol}</span>` +
-      `<span class="name">${item.name || ''} ${diffBadge(item.symbol)}</span>`;
+      `<span class="sym">${escapeHtml(item.symbol)}</span>` +
+      `<span class="name">${escapeHtml(item.name || '')} ${diffBadge(item.symbol)}</span>`;
     li.onclick = () => {
       selected = item;
       input.value = item.symbol;
