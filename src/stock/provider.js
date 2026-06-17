@@ -6,6 +6,10 @@
 import { CONFIG } from '../config.js';
 import { t, LANG } from '../i18n.js';
 import { generateMockHistory, getMockTrending, MOCK_SYMBOLS } from './mockData.js';
+import { searchKr, loadSymbols } from './symbols.js';
+
+// 검색창이 뜨기 전에 한국 종목 데이터 미리 로드(첫 검색도 즉시)
+loadSymbols();
 
 // ---------------- mock ----------------
 function mockSearch(q) {
@@ -102,17 +106,20 @@ async function yahooTrending() {
   return list;
 }
 
-// 현재 '열린 장' 판별 (UTC 기준). 한국장 열리면 kr, 미국장 열리면 us.
+// 현재 '열린 장' 판별 (UTC 기준). 한국장 열리면 kr, 미국장(프리/애프터 포함) 열리면 us.
 export function activeMarket() {
   const now = new Date();
   const day = now.getUTCDay();                      // 0 일 ~ 6 토
   const h = now.getUTCHours() + now.getUTCMinutes() / 60;
   const weekday = day >= 1 && day <= 5;
-  const krOpen = weekday && h >= 0 && h < 6.5;       // 09:00–15:30 KST
-  const usOpen = weekday && h >= 13.5 && h < 21;     // ~09:30–16:00 ET (DST 근사 포함)
+  // 한국장: 09:00–15:30 KST = 00:00–06:30 UTC
+  const krOpen = weekday && h >= 0 && h < 6.5;
+  // 미국장: 정규장(09:30–16:00 ET)뿐 아니라 프리마켓(04:00 ET)·애프터마켓(~20:00 ET)까지 포함.
+  //   EDT 기준 대략 08:00–24:00 UTC(프리 17:00 KST ~ 애프터 익09:00 KST). DST 근사.
+  const usOpen = weekday && h >= 8 && h < 24;
+  if (usOpen) return 'us';   // 미국 확장장(프리/정규/애프터)이 열려있으면 우선
   if (krOpen) return 'kr';
-  if (usOpen) return 'us';
-  // 둘 다 닫힘(주말/장외): 접속 지역 기준 — 한국어 사용자는 한국, 그 외는 미국 (가장 최근 거래일 급등주)
+  // 둘 다 닫힘(주말/장외 공백): 접속 지역 기준 — 한국어 사용자는 한국, 그 외는 미국
   return LANG === 'ko' ? 'kr' : 'us';
 }
 
@@ -195,6 +202,13 @@ export function getProvider() {
 }
 
 export async function searchSymbols(q) {
+  // 1) 한국 전 종목 로컬 즉시 검색(코드/한글명) — 네트워크 없이 바로 결과
+  try {
+    const kr = await searchKr(q);
+    if (kr.length) return kr;
+  } catch (e) { /* 데이터 미로드 등 → 공급자 검색으로 폴백 */ }
+
+  // 2) 폴백: 공급자(야후 등) 검색 — 미국/해외 영문 종목 등
   try {
     return await getProvider().search(q);
   } catch (e) {
