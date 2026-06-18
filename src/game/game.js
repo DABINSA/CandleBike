@@ -13,6 +13,8 @@ const FLIP_METERS = CONFIG.GAME.flipMeters ?? 50;
 const FLIP_TIME = CONFIG.GAME.flipTimeBonus ?? 2;
 const CP_TIME = CONFIG.GAME.checkpointTime ?? 3;
 const CHECKPOINTS = CONFIG.GAME.checkpoints ?? [0.2, 0.5, 0.8];
+const EVENT_WARN_DIST = 760;    // 폭락 이벤트 '사전 경고' 토스트가 뜨는 거리(px) — 미리 대비
+const EVENT_SPAWN_DIST = 440;   // 폭락 캔들 장애물이 생성·노출되는 거리(px) — 화면에 보이며 다가옴
 
 export class Game {
   constructor(canvas) {
@@ -168,17 +170,23 @@ export class Game {
       }
     }
 
-    // 폭락 이벤트(보스) — 지점 직전 도달 시 폭락 캔들이 튀어나옴 (1회성)
+    // 폭락 이벤트(보스) — ① 사전 경고 토스트 → ② 화면에 보이게 장애물 생성 (피할 시간 확보)
     const bx = this.bike.position.x;
     for (const ev of this._events) {
-      if (!ev.done && bx >= ev.x - 70) { ev.done = true; this._triggerEvent(ev); }
+      if (ev.done) continue;
+      const dist = ev.x - bx;
+      if (!ev.warned && dist <= EVENT_WARN_DIST && dist > 0) {
+        ev.warned = true;
+        this._toast(`${ev.event.emoji} ${t.eventWarn(eventName(ev.event))}`, '#ffd34d');
+      }
+      if (dist <= EVENT_SPAWN_DIST) { ev.done = true; this._triggerEvent(ev); }
     }
     // 효과 감쇠 / 지나간 장애물 제거
     this._flash = Math.max(0, this._flash - dt * 1.4);
     this._shake = Math.max(0, this._shake - dt * 1.8);
     const tnow = performance.now();
     this._eventBodies = this._eventBodies.filter((eb) => {
-      if (bx > eb.x + 95 || tnow - eb.born > 6500) {
+      if (bx > eb.x + 95 || tnow - eb.born > 14000) {
         Matter.Composite.remove(this.world, eb.body);
         return false;
       }

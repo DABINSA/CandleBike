@@ -69,6 +69,7 @@ const DICT = {
     backflip: '백플립',
     flipN: (n) => `${n}x 플립`,
     checkpoint: '체크포인트',
+    eventWarn: (name) => `${name} 곧 등장! 점프 준비! ⚠️`,
     dataNote: (data, remote, period) =>
       `데이터: ${data} · 순위: ${remote ? '전체(클라우드)' : '내 기기'} · 코스 캐시: ${remote ? 'DB 공유' : '내 기기'}(${period})`,
     providerYahoo: '야후 파이낸스 실데이터',
@@ -151,6 +152,7 @@ const DICT = {
     backflip: 'Backflip',
     flipN: (n) => `${n}x Flip`,
     checkpoint: 'Checkpoint',
+    eventWarn: (name) => `${name} incoming! Get ready to jump! ⚠️`,
     dataNote: (data, remote, period) =>
       `Data: ${data} · Ranking: ${remote ? 'Global (cloud)' : 'This device'} · Course cache: ${remote ? 'Shared DB' : 'Local'} (${period})`,
     providerYahoo: 'Yahoo Finance (live)',
