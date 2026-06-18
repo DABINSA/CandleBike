@@ -78,10 +78,12 @@ const DICT = {
     demoAlert: '실시간 데이터를 불러오지 못해 데모 차트로 진행합니다.',
     courseFail: '코스를 불러오지 못했습니다. 다른 종목을 시도해 주세요.',
     savedAlert: '이미지를 저장했어요! 인스타에 올리고 캡션을 붙여넣으세요. (캡션 복사됨)',
-    shareCaption: (sym, dist, rank) =>
-      `${sym} 그래프 위를 달려 ${dist}m! 전체 ${rank}위 🏍️📈\n#캔들바이크 #CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
-    shareCaptionTime: (sym, time, rank) =>
-      `${sym} 그래프를 ${time}만에 완주! 전체 ${rank}위 🏍️📈🏁\n#캔들바이크 #CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
+    shareCaption: (sym, dist, rank, url) =>
+      `🏍️ ${sym} 차트를 달려 ${dist}m! 너도 같이 달려보자 — 누가 더 멀리 가나 🔥\n👉 ${url}\n#캔들바이크 #CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
+    shareCaptionTime: (sym, time, rank, url) =>
+      `🏍️ 나 ${sym} 차트 ${time} 완주, 전체 ${rank}위! 🏁\n이 기록 깰 수 있어? 친구들아 덤벼 😎\n👉 ${url}\n#캔들바이크 #CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
+    cardChallenge: '🏁 이 기록, 깰 수 있어?',
+    cardCta: '👉 지금 같이 도전',
     cardBrand: '📈🏍️ 캔들바이크 — 변동성을 버텨라',
     cardRank: (r, p) => `전체 ${r}위 · 상위 ${p}%`,
     // 하우스 광고 (광고주 유치)
@@ -158,10 +160,12 @@ const DICT = {
     demoAlert: 'Live data unavailable — running a demo chart instead.',
     courseFail: "Couldn't load the course. Please try another stock.",
     savedAlert: 'Image saved! Post it and paste the caption. (caption copied)',
-    shareCaption: (sym, dist, rank) =>
-      `Rode the ${sym} chart for ${dist}m! Rank #${rank} 🏍️📈\n#CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
-    shareCaptionTime: (sym, time, rank) =>
-      `Finished the ${sym} chart in ${time}! Rank #${rank} 🏍️📈🏁\n#CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
+    shareCaption: (sym, dist, rank, url) =>
+      `🏍️ Rode the ${sym} chart for ${dist}m! Come race me — who goes farther? 🔥\n👉 ${url}\n#CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
+    shareCaptionTime: (sym, time, rank, url) =>
+      `🏍️ I finished the ${sym} chart in ${time} — rank #${rank}! 🏁\nThink you can beat it? Bring it on 😎\n👉 ${url}\n#CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
+    cardChallenge: '🏁 Can you beat this?',
+    cardCta: '👉 Play & race me',
     cardBrand: '📈🏍️ CandleBike — Survive the Volatility',
     cardRank: (r, p) => `Rank #${r} · Top ${p}%`,
     // House ad (advertiser acquisition)

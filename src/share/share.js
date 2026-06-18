@@ -7,6 +7,19 @@
 import { t } from '../i18n.js';
 
 const W = 1080, H = 1350;
+const SITE_HOST = (typeof location !== 'undefined' && location.host) ? location.host : 'candlebike.vercel.app';
+const SITE_URL = (typeof location !== 'undefined' && location.origin && location.origin.startsWith('http'))
+  ? location.origin : 'https://candlebike.vercel.app';
+
+function roundRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
 
 export function drawResultCard({ symbol, name, distance, completed, timeMs, rank, percentile }) {
   // 완주자: 완주 시간(예 42.3초) / 미완주: 거리(예 1,631m)
@@ -54,9 +67,28 @@ export function drawResultCard({ symbol, name, distance, completed, timeMs, rank
   if (completed && rank != null) ctx.fillText(t.cardRank(rank, percentile), W / 2, 540);
   else if (!completed) ctx.fillText(t.notFinished, W / 2, 540);
 
-  ctx.fillStyle = '#6b7d8a';
-  ctx.font = '700 40px sans-serif';
-  ctx.fillText(t.cardBrand, W / 2, H - 90);
+  // ---- 도전장 후크: "이 기록 깰 수 있어?" ----
+  ctx.font = '800 50px sans-serif';
+  const chText = t.cardChallenge;
+  const chW = ctx.measureText(chText).width + 90;
+  const chY = 660;
+  ctx.fillStyle = 'rgba(255,77,109,0.16)';
+  roundRectPath(ctx, W / 2 - chW / 2, chY - 56, chW, 84, 42);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,77,109,0.65)'; ctx.lineWidth = 2.5;
+  roundRectPath(ctx, W / 2 - chW / 2, chY - 56, chW, 84, 42); ctx.stroke();
+  ctx.fillStyle = '#ff8da0';
+  ctx.fillText(chText, W / 2, chY);
+
+  // ---- CTA + 도메인 (같이 도전하러 오게) ----
+  ctx.fillStyle = '#2ce6c4';
+  ctx.font = '800 56px sans-serif';
+  ctx.shadowColor = 'rgba(44,230,196,0.5)'; ctx.shadowBlur = 24;
+  ctx.fillText(t.cardCta, W / 2, H - 156);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#cfe9e2';
+  ctx.font = '800 46px sans-serif';
+  ctx.fillText(SITE_HOST, W / 2, H - 92);
 
   return cv;
 }
@@ -70,8 +102,8 @@ export async function shareResult(result) {
   const blob = await canvasToBlob(cv);
   const file = new File([blob], 'candlebike.png', { type: 'image/png' });
   const caption = result.completed
-    ? t.shareCaptionTime(result.symbol, t.timeFmt(result.timeMs), result.rank)
-    : t.shareCaption(result.symbol, (result.distance || 0).toLocaleString(), '–');
+    ? t.shareCaptionTime(result.symbol, t.timeFmt(result.timeMs), result.rank, SITE_URL)
+    : t.shareCaption(result.symbol, (result.distance || 0).toLocaleString(), '–', SITE_URL);
 
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
