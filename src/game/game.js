@@ -7,6 +7,7 @@ import { difficulty } from '../difficulty.js';
 import { eventName } from '../events.js';
 import { buildTerrain } from './terrain.js';
 import { createBike } from './bike.js';
+import * as audio from '../audio.js';
 
 const PX_PER_METER = 9;
 const FLIP_METERS = CONFIG.GAME.flipMeters ?? 50;
@@ -80,6 +81,8 @@ export class Game {
 
     this._bindInput();
     this._showControlsHint();
+    audio.startBgm();
+    audio.startEngine();
     this.running = true;
     this._loop();
   }
@@ -144,14 +147,16 @@ export class Game {
     this._lastGrounded = grounded;
 
     // 점프 (누른 순간 1회, 지상에서만)
-    if (this.bike.input.jump && !this._prevJump && grounded) this.bike.jump();
+    if (this.bike.input.jump && !this._prevJump && grounded) { this.bike.jump(); audio.sfx.jump(); }
     this._prevJump = this.bike.input.jump;
+    audio.setThrottle(!!this.bike.input.gas);
 
     // 트릭
     const flips = this.bike.trackTrick(grounded);
     if (flips > 0) {
       this.flips += flips;              // 플립 = 거리/점수 보너스 (시간은 X — farming 방지)
       this._showTrick(flips);
+      audio.sfx.flip();
     }
 
     // 거리 / 연료
@@ -167,6 +172,7 @@ export class Game {
         this._cpHit.add(cp);
         this.fuel += CP_TIME;
         this._toast(`🚩 ${t.checkpoint} ${Math.round(cp * 100)}%  +${CP_TIME}s`, '#2ce6c4');
+        audio.sfx.checkpoint();
       }
     }
 
@@ -225,6 +231,9 @@ export class Game {
     cancelAnimationFrame(this._raf);
     const completed = reason === 'finish';
     const timeMs = Math.round(performance.now() - this.startTime);   // 완주 시간(ms) — 완주자만 순위 기준
+    audio.stopEngine();
+    audio.stopBgm();
+    audio.sfx[completed ? 'finish' : 'gameover']();
     this._cleanupInput();
     window.removeEventListener('resize', this._resizeHandler);
     if (this._onEnd) {
@@ -244,6 +253,8 @@ export class Game {
   stop() {
     this.running = false;
     cancelAnimationFrame(this._raf);
+    audio.stopEngine();
+    audio.stopBgm();
     this._cleanupInput();
     window.removeEventListener('resize', this._resizeHandler);
   }
@@ -357,6 +368,7 @@ export class Game {
     this._flash = 0.85;
     this._shake = 1;
     this._toast(`${ev.event.emoji} ${eventName(ev.event)}`, '#ff4d6d');
+    audio.sfx.crash();
     // 폭락 캔들 장애물 (점프로 넘어야 함, 6.5초 후 자동 제거)
     const h = 50;
     const wall = Matter.Bodies.rectangle(ev.x, ev.y - h / 2, 26, h, {

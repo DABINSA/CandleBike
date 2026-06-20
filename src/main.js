@@ -11,6 +11,7 @@ import { submitScore, topScores, getNick, setNick, isRemote } from './leaderboar
 import { shareResult, saveCard } from './share/share.js';
 import { quickDifficulty } from './difficulty.js';
 import { MOCK_SYMBOLS } from './stock/mockData.js';
+import * as audio from './audio.js';
 
 // 종목명 캐시 (코드→기업명): 검색·추천·플레이에서 본 이름을 저장해 순위에 표시
 const NAME_LS = 'candlebike_names';
@@ -43,6 +44,16 @@ let game = null;
 let lastResult = null;    // { symbol, distance, flips, score }
 
 applyStatic();           // 정적 텍스트를 접속 언어로 채움
+
+// ---------------- 사운드 ----------------
+// 자동재생 정책: 첫 사용자 제스처에서 오디오 컨텍스트 깨우기
+window.addEventListener('pointerdown', () => audio.unlock(), { once: true });
+const soundBtn = $('btn-sound');
+function renderSound() { if (soundBtn) soundBtn.textContent = audio.isMuted() ? '🔇' : '🔊'; }
+if (soundBtn) {
+  renderSound();
+  soundBtn.onclick = () => { audio.unlock(); audio.toggleMuted(); renderSound(); };
+}
 
 // 언어 토글
 $('lang-ko').classList.toggle('active', LANG === 'ko');
