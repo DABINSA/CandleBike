@@ -20,6 +20,7 @@ const DICT = {
   ko: {
     docTitle: '캔들바이크 — 변동성을 버텨라',
     logo: '📈🏍️ 캔들바이크',
+    privacy: '개인정보처리방침',
     tagline: '검색한 주식의 <b>3년 등락 그래프</b>가 코스가 됩니다.<br/>변동성을 버티고 <b>최고 거리</b>에 도전하세요!',
     searchPh: '종목 검색 (예: AAPL, TSLA, 삼성전자)',
     selectStock: '종목을 선택하세요',
@@ -102,6 +103,7 @@ const DICT = {
   },
   en: {
     docTitle: 'CandleBike — Survive the Volatility',
+    privacy: 'Privacy Policy',
     logo: '📈🏍️ CandleBike',
     tagline: "A stock's <b>3-year price chart</b> becomes your course.<br/>Survive the volatility and chase the <b>longest distance</b>!",
     searchPh: 'Search a stock (e.g. AAPL, TSLA, Samsung)',
