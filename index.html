@@ -36,6 +36,15 @@
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/favicon-192.png" />
   <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
 
+  <!-- PWA (원스토어 등 스토어 패키징 + 설치 가능) -->
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#0a0e14" />
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+    }
+  </script>
+
   <link rel="stylesheet" href="./styles.css" />
 
   <!-- Google AdSense (게시 후 ca-pub-XXXX 교체) -->
