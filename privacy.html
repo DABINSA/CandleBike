@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="index,follow" />
+  <title>개인정보처리방침 · 캔들바이크/캔들라이더</title>
+  <style>
+    :root { --bg:#0a0e14; --bg2:#0d1320; --neon:#2ce6c4; --text:#e6f0f0; --muted:#9fb0bd; --border:#1d2735; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--text);
+      font-family: Pretendard, 'Apple SD Gothic Neo', 'Segoe UI', system-ui, sans-serif;
+      line-height:1.7; -webkit-text-size-adjust:100%; }
+    .wrap { max-width:760px; margin:0 auto; padding:40px 20px 80px; }
+    h1 { font-size:26px; margin:0 0 6px; }
+    h2 { font-size:18px; margin:34px 0 10px; color:var(--neon); }
+    .sub { color:var(--muted); font-size:14px; margin-bottom:8px; }
+    p, li { color:#cdd9e1; font-size:15px; }
+    a { color:var(--neon); }
+    table { width:100%; border-collapse:collapse; margin:10px 0; font-size:14px; }
+    th, td { border:1px solid var(--border); padding:9px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--bg2); color:var(--text); }
+    code { background:var(--bg2); padding:1px 6px; border-radius:5px; color:var(--neon); }
+    .home { display:inline-block; margin-bottom:24px; color:var(--muted); text-decoration:none; font-size:14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="home" href="/">← 캔들바이크</a>
+    <h1>개인정보처리방침</h1>
+    <p class="sub">캔들바이크(CandleBike) · 토스 인앱 명칭 캔들라이더(CandleRider) — 이하 “서비스”</p>
+    <p class="sub">시행일: 2026-06-24</p>
+
+    <p>서비스는 별도의 회원가입·로그인 없이 즐기는 캐주얼 게임입니다. 서비스는 이용자의 실명·이메일·전화번호 등
+       <strong>신원을 식별하는 개인정보를 수집하지 않으며</strong>, 게임 순위 기능에 필요한 최소한의 정보만 처리합니다.</p>
+
+    <h2>1. 수집하는 정보와 목적</h2>
+    <table>
+      <tr><th>항목</th><th>수집 시점</th><th>목적</th></tr>
+      <tr><td>닉네임(자유 입력·가명, 선택)</td><td>순위 등록 시</td><td>전체 순위에 표시</td></tr>
+      <tr><td>게임 점수·완주 기록·플레이한 종목 코드</td><td>완주(순위 등록) 시</td><td>종목별/전체 순위 산정·표시</td></tr>
+      <tr><td>접속 IP 주소</td><td>순위·데이터 요청 시(서버)</td><td>도배·부정 등록 방지(레이트리밋) 등 보안 목적</td></tr>
+      <tr><td>설정값(언어·사운드·내 기기 기록)</td><td>이용 중</td><td>이용자 기기(localStorage)에 저장 — 환경 유지</td></tr>
+    </table>
+    <p>닉네임은 이용자가 자유롭게 입력하는 표시명으로 실명을 요구하지 않으며, 입력하지 않으면 “익명”으로 표시됩니다.</p>
+
+    <h2>2. 수집하지 않는 정보</h2>
+    <p>서비스는 위치정보, 금융·결제정보, 건강정보, 사진·동영상·오디오, 연락처·메시지, 광고 식별자(기기 광고 ID)
+       등을 수집하지 않습니다. 별도의 결제(인앱결제 포함)나 외부 광고 추적도 사용하지 않습니다.</p>
+
+    <h2>3. 보관 및 파기</h2>
+    <p>순위 정보(닉네임·점수·종목)는 순위 서비스 제공을 위해 보관되며, 보안용 IP 기반 기록은 단기 보관 후
+       자동 정리됩니다. 이용자가 삭제를 요청하면 해당 순위 기록을 지체 없이 파기합니다.</p>
+
+    <h2>4. 처리 위탁 및 제3자 제공</h2>
+    <p>서비스는 수집한 정보를 <strong>판매하거나 마케팅 목적으로 제3자에게 제공하지 않습니다.</strong>
+       서비스 운영을 위해 아래 인프라(클라우드)에 데이터 처리(저장·전송)를 위탁합니다.</p>
+    <ul>
+      <li>Supabase — 순위 데이터(닉네임·점수·종목) 저장</li>
+      <li>Vercel — 웹/서버리스 호스팅</li>
+      <li>Cloudflare — 네트워크/프록시(주가 차트 데이터 중계)</li>
+    </ul>
+    <p>주가 차트는 공개된 시세 데이터(예: Yahoo Finance)를 게임 코스 생성에 참고하며, 이는 이용자 개인정보가 아닙니다.</p>
+
+    <h2>5. 이용자의 권리</h2>
+    <p>이용자는 본인 순위 기록의 열람·삭제를 요청할 수 있습니다. 기기에 저장된 설정·기록은 브라우저
+       저장소(localStorage) 삭제로 직접 지울 수 있습니다.</p>
+
+    <h2>6. 만 14세 미만 아동</h2>
+    <p>서비스는 식별 개인정보를 수집하지 않으며, 전체 이용가 캐주얼 게임입니다.</p>
+
+    <h2>7. 광고</h2>
+    <p>토스 인앱(앱인토스) 환경에서는 외부 광고를 노출하지 않습니다. 웹 버전에는 광고 영역이 있을 수 있으나
+       현재 외부 광고 네트워크의 추적성 광고는 사용하지 않습니다.</p>
+
+    <h2>8. 문의처</h2>
+    <p>개인정보 관련 문의: <a href="mailto:withusts@gmail.com">withusts@gmail.com</a></p>
+
+    <h2>9. 고지</h2>
+    <p>본 방침은 관련 법령·서비스 변경에 따라 개정될 수 있으며, 변경 시 본 페이지를 통해 공지합니다.</p>
+  </div>
+</body>
+</html>
