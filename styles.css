@@ -145,6 +145,9 @@ body {
   opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+/* 상단 변형 — 플레이 중 하단 조작 버튼과 겹치지 않게 */
+.toast.toast--top { top: max(14px, env(safe-area-inset-top)); bottom: auto; transform: translate(-50%, -20px); }
+.toast.toast--top.show { transform: translate(-50%, 0); }
 .site-foot { margin-top: 14px; text-align: center; }
 .site-foot a { color: var(--muted); font-size: 12px; text-decoration: none; border-bottom: 1px solid transparent; }
 .site-foot a:hover { color: var(--neon); border-bottom-color: var(--neon); }

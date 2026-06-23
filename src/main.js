@@ -111,18 +111,17 @@ async function launch(item) {
   $('loading-text').textContent = t.loadingCourse(item.symbol);
   try {
     const series = await getCourse(item.symbol);     // DB 캐시 우선, 없으면 최초 1회만 fetch
-    if (getLastCourseSource() === 'demo' && CONFIG.STOCK_PROVIDER !== 'mock' && !demoWarned) {
-      demoWarned = true;
-      alert(t.demoAlert);
-    }
+    // 게임은 즉시 시작하고, 실데이터 실패 시 차단 alert 대신 상단에 비차단 토스트로 알린다.
     startGame(series, item.symbol, item.name);
+    if (getLastCourseSource() === 'demo' && CONFIG.STOCK_PROVIDER !== 'mock') {
+      showToast(t.demoAlert, { top: true });
+    }
   } catch (e) {
     console.error(e);
     alert(t.courseFail + '\n' + e.message);
     show('home');
   }
 }
-let demoWarned = false;
 $('btn-start').onclick = () => launch(selected);
 
 // ---------------- 실시간 추천 종목 ----------------
@@ -267,10 +266,11 @@ $('btn-share').onclick = async () => {
   else if (r === 'shared-copied') showToast(t.shareLinkCopied);
 };
 
-// 가벼운 토스트(결과 화면 공유 안내 등)
-function showToast(msg) {
+// 가벼운 비차단 토스트(공유 안내·데모 알림 등). top:true 면 상단(플레이 중 하단 조작버튼 회피).
+function showToast(msg, { top = false } = {}) {
   let el = document.getElementById('toast');
   if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; document.body.appendChild(el); }
+  el.classList.toggle('toast--top', !!top);
   el.textContent = msg;
   el.classList.add('show');
   clearTimeout(el._t);
