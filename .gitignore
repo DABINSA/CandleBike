@@ -6,3 +6,10 @@ assets/tmp.svg
 assets/_ogsrc.*
 
 .vercel
+
+# 스토어 패키지(서명키/비밀번호 포함) — 공개 레포에 절대 커밋 금지
+download/
+*.keystore
+*.aab
+*.apk
+signing-key-info.txt

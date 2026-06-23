@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "app.vercel.candlebike.twa",
+    "sha256_cert_fingerprints": ["33:25:F3:E4:E0:56:CE:BF:8D:FE:16:4C:45:C7:62:92:83:5F:08:45:54:4C:69:54:8C:4E:B9:24:5B:9E:73:51"]
+  }
+}]
