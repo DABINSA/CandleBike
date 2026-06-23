@@ -102,6 +102,16 @@ if(mode==='logo'){
   const chart=[[0,470],[110,435],[194,380],[300,374],[406,380],[500,300],[600,330]];
   scene(ctx,W,H,chart,150);
   ctx.save(); ctx.translate(300,260); ctx.scale(2.4,2.4); drawBike(ctx); ctx.restore();
+}else if(mode==='feature'){ // 원스토어 그래픽 이미지 1024x578
+  const W=1024,H=578; setup(W,H);
+  const chart=[[0,470],[200,430],[420,452],[560,360],[660,354],[770,360],[880,288],[1024,320]];
+  scene(ctx,W,H,chart,128);
+  ctx.save(); ctx.translate(660,250); ctx.scale(2.2,2.2); drawBike(ctx); ctx.restore();
+  ctx.shadowColor='rgba(44,230,196,0.5)'; ctx.shadowBlur=12;
+  ctx.fillStyle='#e6f0f0'; ctx.textAlign='left';
+  ctx.font='900 70px "Segoe UI", Arial, sans-serif'; ctx.fillText('CandleRider',64,128);
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#2ce6c4'; ctx.font='800 30px "Segoe UI", Arial, sans-serif'; ctx.fillText('RIDE THE CHART',68,176);
 }else{ // thumb
   const W=1932,H=828; setup(W,H);
   const chart=[[0,620],[300,560],[600,590],[870,470],[1020,462],[1170,470],[1500,360],[1700,420],[1932,330]];

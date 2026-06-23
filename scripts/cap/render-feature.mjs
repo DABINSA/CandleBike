@@ -1,0 +1,12 @@
+import puppeteer from 'puppeteer-core';
+import { pathToFileURL } from 'node:url';
+const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+const ART = pathToFileURL('d:/Project/Stock Game/scripts/cap/art.html').href;
+const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--hide-scrollbars'] });
+const page = await browser.newPage();
+await page.setViewport({ width: 1024, height: 578, deviceScaleFactor: 1 });
+await page.goto(`${ART}?mode=feature`, { waitUntil: 'load' });
+await page.waitForFunction(() => window.__done === true, { timeout: 10000 });
+await page.screenshot({ path: 'd:/Project/Stock Game/assets/toss/feature-1024x578.png' });
+await browser.close();
+console.log('saved feature-1024x578.png');
