@@ -21,63 +21,169 @@
     th, td { border:1px solid var(--border); padding:9px 10px; text-align:left; vertical-align:top; }
     th { background:var(--bg2); color:var(--text); }
     code { background:var(--bg2); padding:1px 6px; border-radius:5px; color:var(--neon); }
-    .home { display:inline-block; margin-bottom:24px; color:var(--muted); text-decoration:none; font-size:14px; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+    .home { color:var(--muted); text-decoration:none; font-size:14px; }
+    .lang { display:flex; background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+    .lang button { border:none; background:transparent; color:var(--muted); font-size:12px; font-weight:800; padding:7px 11px; cursor:pointer; }
+    .lang button.active { background:var(--neon); color:#06231f; }
+    [hidden] { display:none !important; }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <a class="home" href="/">← 캔들바이크</a>
-    <h1>개인정보처리방침</h1>
-    <p class="sub">캔들바이크(CandleBike) · 토스 인앱 명칭 캔들라이더(CandleRider) — 이하 “서비스”</p>
-    <p class="sub">시행일: 2026-06-24</p>
+    <div class="topbar">
+      <a class="home" href="/" id="home-link">← 캔들바이크</a>
+      <div class="lang">
+        <button data-l="ko">한국어</button>
+        <button data-l="en">EN</button>
+      </div>
+    </div>
 
-    <p>서비스는 별도의 회원가입·로그인 없이 즐기는 캐주얼 게임입니다. 서비스는 이용자의 실명·이메일·전화번호 등
-       <strong>신원을 식별하는 개인정보를 수집하지 않으며</strong>, 게임 순위 기능에 필요한 최소한의 정보만 처리합니다.</p>
+    <!-- ===== 한국어 ===== -->
+    <div id="doc-ko">
+      <h1>개인정보처리방침</h1>
+      <p class="sub">캔들바이크(CandleBike) · 토스 인앱 명칭 캔들라이더(CandleRider) — 이하 “서비스”</p>
+      <p class="sub">시행일: 2026-06-24</p>
 
-    <h2>1. 수집하는 정보와 목적</h2>
-    <table>
-      <tr><th>항목</th><th>수집 시점</th><th>목적</th></tr>
-      <tr><td>닉네임(자유 입력·가명, 선택)</td><td>순위 등록 시</td><td>전체 순위에 표시</td></tr>
-      <tr><td>게임 점수·완주 기록·플레이한 종목 코드</td><td>완주(순위 등록) 시</td><td>종목별/전체 순위 산정·표시</td></tr>
-      <tr><td>접속 IP 주소</td><td>순위·데이터 요청 시(서버)</td><td>도배·부정 등록 방지(레이트리밋) 등 보안 목적</td></tr>
-      <tr><td>설정값(언어·사운드·내 기기 기록)</td><td>이용 중</td><td>이용자 기기(localStorage)에 저장 — 환경 유지</td></tr>
-    </table>
-    <p>닉네임은 이용자가 자유롭게 입력하는 표시명으로 실명을 요구하지 않으며, 입력하지 않으면 “익명”으로 표시됩니다.</p>
+      <p>서비스는 별도의 회원가입·로그인 없이 즐기는 캐주얼 게임입니다. 서비스는 이용자의 실명·이메일·전화번호 등
+         <strong>신원을 식별하는 개인정보를 수집하지 않으며</strong>, 게임 순위 기능에 필요한 최소한의 정보만 처리합니다.</p>
 
-    <h2>2. 수집하지 않는 정보</h2>
-    <p>서비스는 위치정보, 금융·결제정보, 건강정보, 사진·동영상·오디오, 연락처·메시지, 광고 식별자(기기 광고 ID)
-       등을 수집하지 않습니다. 별도의 결제(인앱결제 포함)나 외부 광고 추적도 사용하지 않습니다.</p>
+      <h2>1. 수집하는 정보와 목적</h2>
+      <table>
+        <tr><th>항목</th><th>수집 시점</th><th>목적</th></tr>
+        <tr><td>닉네임(자유 입력·가명, 선택)</td><td>순위 등록 시</td><td>전체 순위에 표시</td></tr>
+        <tr><td>게임 점수·완주 기록·플레이한 종목 코드</td><td>완주(순위 등록) 시</td><td>종목별/전체 순위 산정·표시</td></tr>
+        <tr><td>접속 IP 주소</td><td>순위·데이터 요청 시(서버)</td><td>도배·부정 등록 방지(레이트리밋) 등 보안 목적</td></tr>
+        <tr><td>설정값(언어·사운드·내 기기 기록)</td><td>이용 중</td><td>이용자 기기(localStorage)에 저장 — 환경 유지</td></tr>
+      </table>
+      <p>닉네임은 이용자가 자유롭게 입력하는 표시명으로 실명을 요구하지 않으며, 입력하지 않으면 “익명”으로 표시됩니다.</p>
 
-    <h2>3. 보관 및 파기</h2>
-    <p>순위 정보(닉네임·점수·종목)는 순위 서비스 제공을 위해 보관되며, 보안용 IP 기반 기록은 단기 보관 후
-       자동 정리됩니다. 이용자가 삭제를 요청하면 해당 순위 기록을 지체 없이 파기합니다.</p>
+      <h2>2. 수집하지 않는 정보</h2>
+      <p>서비스는 위치정보, 금융·결제정보, 건강정보, 사진·동영상·오디오, 연락처·메시지, 광고 식별자(기기 광고 ID)
+         등을 수집하지 않습니다. 별도의 결제(인앱결제 포함)나 외부 광고 추적도 사용하지 않습니다.</p>
 
-    <h2>4. 처리 위탁 및 제3자 제공</h2>
-    <p>서비스는 수집한 정보를 <strong>판매하거나 마케팅 목적으로 제3자에게 제공하지 않습니다.</strong>
-       서비스 운영을 위해 아래 인프라(클라우드)에 데이터 처리(저장·전송)를 위탁합니다.</p>
-    <ul>
-      <li>Supabase — 순위 데이터(닉네임·점수·종목) 저장</li>
-      <li>Vercel — 웹/서버리스 호스팅</li>
-      <li>Cloudflare — 네트워크/프록시(주가 차트 데이터 중계)</li>
-    </ul>
-    <p>주가 차트는 공개된 시세 데이터(예: Yahoo Finance)를 게임 코스 생성에 참고하며, 이는 이용자 개인정보가 아닙니다.</p>
+      <h2>3. 보관 및 파기</h2>
+      <p>순위 정보(닉네임·점수·종목)는 순위 서비스 제공을 위해 보관되며, 보안용 IP 기반 기록은 단기 보관 후
+         자동 정리됩니다. 이용자가 삭제를 요청하면 해당 순위 기록을 지체 없이 파기합니다.</p>
 
-    <h2>5. 이용자의 권리</h2>
-    <p>이용자는 본인 순위 기록의 열람·삭제를 요청할 수 있습니다. 기기에 저장된 설정·기록은 브라우저
-       저장소(localStorage) 삭제로 직접 지울 수 있습니다.</p>
+      <h2>4. 처리 위탁 및 제3자 제공</h2>
+      <p>서비스는 수집한 정보를 <strong>판매하거나 마케팅 목적으로 제3자에게 제공하지 않습니다.</strong>
+         서비스 운영을 위해 아래 인프라(클라우드)에 데이터 처리(저장·전송)를 위탁합니다.</p>
+      <ul>
+        <li>Supabase — 순위 데이터(닉네임·점수·종목) 저장</li>
+        <li>Vercel — 웹/서버리스 호스팅</li>
+        <li>Cloudflare — 네트워크/프록시(주가 차트 데이터 중계)</li>
+      </ul>
+      <p>주가 차트는 공개된 시세 데이터(예: Yahoo Finance)를 게임 코스 생성에 참고하며, 이는 이용자 개인정보가 아닙니다.</p>
 
-    <h2>6. 만 14세 미만 아동</h2>
-    <p>서비스는 식별 개인정보를 수집하지 않으며, 전체 이용가 캐주얼 게임입니다.</p>
+      <h2>5. 이용자의 권리</h2>
+      <p>이용자는 본인 순위 기록의 열람·삭제를 요청할 수 있습니다. 기기에 저장된 설정·기록은 브라우저
+         저장소(localStorage) 삭제로 직접 지울 수 있습니다.</p>
 
-    <h2>7. 광고</h2>
-    <p>토스 인앱(앱인토스) 환경에서는 외부 광고를 노출하지 않습니다. 웹 버전에는 광고 영역이 있을 수 있으나
-       현재 외부 광고 네트워크의 추적성 광고는 사용하지 않습니다.</p>
+      <h2>6. 만 14세 미만 아동</h2>
+      <p>서비스는 식별 개인정보를 수집하지 않으며, 전체 이용가 캐주얼 게임입니다.</p>
 
-    <h2>8. 문의처</h2>
-    <p>개인정보 관련 문의: <a href="mailto:withusts@gmail.com">withusts@gmail.com</a></p>
+      <h2>7. 광고</h2>
+      <p>토스 인앱(앱인토스) 환경에서는 외부 광고를 노출하지 않습니다. 웹 버전에는 광고 영역이 있을 수 있으나
+         현재 외부 광고 네트워크의 추적성 광고는 사용하지 않습니다.</p>
 
-    <h2>9. 고지</h2>
-    <p>본 방침은 관련 법령·서비스 변경에 따라 개정될 수 있으며, 변경 시 본 페이지를 통해 공지합니다.</p>
+      <h2>8. 문의처</h2>
+      <p>개인정보 관련 문의: <a href="mailto:withusts@gmail.com">withusts@gmail.com</a></p>
+
+      <h2>9. 고지</h2>
+      <p>본 방침은 관련 법령·서비스 변경에 따라 개정될 수 있으며, 변경 시 본 페이지를 통해 공지합니다.</p>
+    </div>
+
+    <!-- ===== English ===== -->
+    <div id="doc-en" hidden>
+      <h1>Privacy Policy</h1>
+      <p class="sub">CandleBike · Toss in-app name CandleRider — the “Service”</p>
+      <p class="sub">Effective date: 2026-06-24</p>
+
+      <p>The Service is a casual game you play without any sign-up or login. The Service
+         <strong>does not collect personally identifying information</strong> such as your real name, email, or phone number,
+         and processes only the minimum information needed for the leaderboard feature.</p>
+
+      <h2>1. Information we collect &amp; why</h2>
+      <table>
+        <tr><th>Item</th><th>When collected</th><th>Purpose</th></tr>
+        <tr><td>Nickname (free text / pseudonym, optional)</td><td>When submitting a score</td><td>Shown on the leaderboard</td></tr>
+        <tr><td>Game score, finish record, played stock symbol</td><td>On finish (score submission)</td><td>Ranking per symbol / overall</td></tr>
+        <tr><td>Access IP address</td><td>On ranking/data requests (server)</td><td>Security — rate limiting &amp; abuse prevention</td></tr>
+        <tr><td>Settings (language, sound, local records)</td><td>During use</td><td>Stored on your device (localStorage) to keep preferences</td></tr>
+      </table>
+      <p>The nickname is a display name you enter freely; no real name is required. If left blank, “Anonymous” is shown.</p>
+
+      <h2>2. Information we do NOT collect</h2>
+      <p>The Service does not collect location, financial/payment information, health information, photos/videos/audio,
+         contacts/messages, or advertising identifiers (device ad ID). It uses no payments (including in-app purchases)
+         and no external ad tracking.</p>
+
+      <h2>3. Retention &amp; deletion</h2>
+      <p>Ranking data (nickname, score, symbol) is retained to provide the leaderboard; security-related IP records are
+         kept briefly and cleaned up automatically. If you request deletion, we delete the relevant ranking record without delay.</p>
+
+      <h2>4. Processing &amp; third parties</h2>
+      <p>We <strong>do not sell collected information or share it with third parties for marketing.</strong>
+         To operate the Service, we entrust data processing (storage/transfer) to the following cloud infrastructure:</p>
+      <ul>
+        <li>Supabase — stores ranking data (nickname, score, symbol)</li>
+        <li>Vercel — web / serverless hosting</li>
+        <li>Cloudflare — network / proxy (relaying stock chart data)</li>
+      </ul>
+      <p>Stock charts use public market data (e.g., Yahoo Finance) to generate game courses; this is not your personal information.</p>
+
+      <h2>5. Your rights</h2>
+      <p>You may request to view or delete your own ranking records. Settings and records stored on your device can be
+         removed directly by clearing your browser storage (localStorage).</p>
+
+      <h2>6. Children under 14</h2>
+      <p>The Service does not collect identifying personal information and is an all-ages casual game.</p>
+
+      <h2>7. Advertising</h2>
+      <p>In the Toss in-app (Apps in Toss) environment, no external ads are shown. The web version may include ad areas,
+         but we currently do not use tracking ads from external ad networks.</p>
+
+      <h2>8. Contact</h2>
+      <p>Privacy inquiries: <a href="mailto:withusts@gmail.com">withusts@gmail.com</a></p>
+
+      <h2>9. Notice</h2>
+      <p>This policy may be revised in line with applicable laws and service changes; any change will be announced on this page.</p>
+    </div>
   </div>
+
+  <script>
+    (function () {
+      var LS = 'candlebike_lang';
+      function detect() {
+        try {
+          var u = new URLSearchParams(location.search).get('lang');
+          if (u === 'ko' || u === 'en') return u;
+          var s = localStorage.getItem(LS);
+          if (s === 'ko' || s === 'en') return s;
+        } catch (e) {}
+        var langs = navigator.languages || [navigator.language || 'en'];
+        return langs.some(function (l) { return /^ko/i.test(l); }) ? 'ko' : 'en';
+      }
+      function apply(l) {
+        document.getElementById('doc-ko').hidden = (l !== 'ko');
+        document.getElementById('doc-en').hidden = (l !== 'en');
+        document.documentElement.lang = l;
+        document.title = (l === 'ko') ? '개인정보처리방침 · 캔들바이크/캔들라이더' : 'Privacy Policy · CandleBike/CandleRider';
+        document.getElementById('home-link').textContent = (l === 'ko') ? '← 캔들바이크' : '← CandleBike';
+        var btns = document.querySelectorAll('.lang button');
+        for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('active', btns[i].getAttribute('data-l') === l);
+      }
+      apply(detect());
+      var btns = document.querySelectorAll('.lang button');
+      for (var i = 0; i < btns.length; i++) {
+        btns[i].onclick = function () {
+          var l = this.getAttribute('data-l');
+          try { localStorage.setItem(LS, l); } catch (e) {}
+          apply(l);
+        };
+      }
+    })();
+  </script>
 </body>
 </html>
