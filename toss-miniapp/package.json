@@ -1,0 +1,31 @@
+{
+  "name": "candlebike-toss-miniapp",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "granite dev",
+    "build": "granite build",
+    "deploy": "ait deploy",
+    "postinstall": "patch-package"
+  },
+  "dependencies": {
+    "@apps-in-toss/framework": "2.9.0",
+    "@granite-js/native": "1.0.32",
+    "@granite-js/react-native": "1.0.32",
+    "@toss/tds-react-native": "2.0.3",
+    "brick-module": "0.5.1",
+    "react": "19.2.3",
+    "react-native": "0.84.0",
+    "react-native-webview": "13.16.0"
+  },
+  "devDependencies": {
+    "@babel/core": "7.28.5",
+    "@babel/runtime": "7.28.4",
+    "@granite-js/plugin-hermes": "1.0.32",
+    "@granite-js/plugin-router": "1.0.32",
+    "@types/react": "19.2.0",
+    "babel-preset-granite": "1.0.32",
+    "patch-package": "^8.0.1",
+    "typescript": "^5.8.3"
+  }
+}

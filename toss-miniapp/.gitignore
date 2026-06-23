@@ -1,0 +1,11 @@
+node_modules/
+dist/
+_tmpl/
+_fresh/
+*.ait
+.ait/
+.granite/
+src/router.gen.ts
+src/env.d.ts
+build.log
+_canon/

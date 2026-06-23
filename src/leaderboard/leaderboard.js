@@ -1,6 +1,10 @@
 // 리더보드 — Supabase 설정이 있으면 전역 순위, 없으면 localStorage(기기 내) 순위.
 //
-// Supabase 사용 시 SQL:
+// 🔴 보안: anon 키는 클라 번들에 노출된다. scores 에 anon 'insert' 정책을 절대 열지 말 것
+//    (점수 위조·스팸 가능). 읽기만 공개하고, 쓰기는 service_role 서버 라우트(/api/score)로만.
+//    전체 잠금/레이트리밋은 db/security.sql 한 번 실행으로 적용된다.
+//
+// Supabase 사용 시 SQL(읽기 공개 / 쓰기는 서버 라우트만):
 //   create table scores (
 //     id bigint generated always as identity primary key,
 //     nick text not null,
@@ -9,8 +13,9 @@
 //     created_at timestamptz default now()
 //   );
 //   alter table scores enable row level security;
-//   create policy "read"   on scores for select using (true);
-//   create policy "insert" on scores for insert with check (true);
+//   create policy "s_read" on scores for select using (true);
+//   -- ❌ insert 정책은 만들지 않는다. /api/score 가 service_role(RLS 우회)로 수행.
+//   -- 이어서 반드시 db/security.sql 도 실행(잠금 검증 + app_kv 레이트리밋 + submit_score RPC).
 
 import { getClient, isConfigured } from '../supabaseClient.js';
 

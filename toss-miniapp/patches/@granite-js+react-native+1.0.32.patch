@@ -1,0 +1,9 @@
+diff --git a/node_modules/@granite-js/react-native/src/use-back-event/index.ts b/node_modules/@granite-js/react-native/src/use-back-event/index.ts
+index ab702a2..82b8fc8 100644
+--- a/node_modules/@granite-js/react-native/src/use-back-event/index.ts
++++ b/node_modules/@granite-js/react-native/src/use-back-event/index.ts
+@@ -1,2 +1,4 @@
+ export * from './useBackEvent';
+ export * from './useBackHandler';
++export * from './useBackEventContext';
++export * from './useBackEventActionsContext';

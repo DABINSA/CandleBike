@@ -7,6 +7,10 @@
 
 import { CONFIG } from '../config.js';
 import { t } from '../i18n.js';
+import { effectiveAdMode } from '../toss.js';
+
+// 토스 인앱에서는 외부광고 금지 → 'off' 로 강제. 그 외엔 CONFIG.AD_MODE 그대로.
+const AD_MODE = effectiveAdMode(CONFIG.AD_MODE);
 
 // 하우스 광고 마크업 (variant: 'banner' | 'reward' | 'result')
 export function houseAdMarkup(variant = 'banner') {
@@ -28,7 +32,7 @@ export function houseAdMarkup(variant = 'banner') {
 
 export function renderHouseAd(el, variant) {
   if (!el) return;
-  if (CONFIG.AD_MODE === 'off') { el.style.display = 'none'; return; }
+  if (AD_MODE === 'off') { el.style.display = 'none'; return; }
   el.style.display = '';
   el.innerHTML = houseAdMarkup(variant);
 }
@@ -37,10 +41,10 @@ export function renderHouseAd(el, variant) {
 export function initPlayBanner() {
   const banner = document.getElementById('ad-banner');
   if (!banner) return;
-  if (CONFIG.AD_MODE === 'off') { banner.style.display = 'none'; return; }
+  if (AD_MODE === 'off') { banner.style.display = 'none'; return; }
   banner.style.display = 'flex';
 
-  if (CONFIG.AD_MODE === 'adsense' && window.adsbygoogle) {
+  if (AD_MODE === 'adsense' && window.adsbygoogle) {
     const ins = banner.querySelector('ins.adsbygoogle');
     const ph = banner.querySelector('.ad-placeholder');
     if (ins) {
@@ -62,7 +66,7 @@ export function showRewardedAd() {
     const btn = document.getElementById('btn-skip-ad');
     const video = screen.querySelector('.ad-reward-video');
 
-    if (video && CONFIG.AD_MODE !== 'adsense') {
+    if (video && AD_MODE !== 'adsense') {
       video.innerHTML = `<span class="ad-tag">AD</span>` + houseAdMarkup('reward');
     }
 

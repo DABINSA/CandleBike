@@ -1,0 +1,56 @@
+name: Toss Miniapp Build (.ait)
+
+# 앱인토스 미니앱(toss-miniapp/)을 리눅스에서 빌드해 .ait 아티팩트를 만든다.
+# Windows의 granite 경로 버그(백슬래시 소실)를 피하려고 CI(리눅스)에서 빌드.
+# 산출 .ait 를 다운로드 → 콘솔 "앱 출시"에 업로드 → 토스앱 QR로 테스트/출시.
+# 수동 실행: Actions 탭 → 이 워크플로 → Run workflow.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: toss-miniapp
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install deps
+        run: npm install --legacy-peer-deps
+
+      - name: Build (.ait)
+        run: |
+          set -o pipefail
+          npx ait build 2>&1 | tee build.log
+          echo "=== 빌드 산출물 탐색 ==="
+          find . -not -path './node_modules/*' -not -path './.git/*' \
+            \( -name '*.ait' -o -name '*.hbc' -o -name '*.zip' -o -name '*.bundle' \) 2>/dev/null | head -40
+          echo "=== .granite/build, dist 디렉터리 ==="
+          ls -laR .granite 2>/dev/null | head -60 || true
+          ls -laR dist 2>/dev/null | head -40 || true
+
+      - name: Stage artifacts
+        if: always()
+        run: |
+          mkdir -p _artifact
+          # 빌드 산출물(.ait/.hbc/.zip/번들)을 모은다
+          find . -not -path './node_modules/*' -not -path './_artifact/*' \
+            \( -name '*.ait' -o -name '*.hbc' -o -name '*.zip' \) -exec cp {} _artifact/ \; 2>/dev/null || true
+          cp -r .granite _artifact/granite-build 2>/dev/null || true
+          ls -la _artifact || true
+
+      - name: Upload .ait artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: candlebike-toss-build
+          path: |
+            toss-miniapp/_artifact/**
+            toss-miniapp/build.log
+          if-no-files-found: warn

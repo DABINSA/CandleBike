@@ -12,6 +12,10 @@ import { shareResult, saveCard } from './share/share.js';
 import { quickDifficulty } from './difficulty.js';
 import { MOCK_SYMBOLS } from './stock/mockData.js';
 import * as audio from './audio.js';
+import { effectiveAdMode } from './toss.js';
+
+// 토스 인앱에서는 외부광고 금지 → 광고/결과 게이트 'off'(결과 즉시 공개).
+const AD_MODE = effectiveAdMode(CONFIG.AD_MODE);
 
 // 종목명 캐시 (코드→기업명): 검색·추천·플레이에서 본 이름을 저장해 순위에 표시
 const NAME_LS = 'candlebike_names';
@@ -164,7 +168,7 @@ function startGame(series, symbol, name) {
 // ---------------- 게임 종료 → 리워드 광고 → 결과 ----------------
 async function onGameEnd(result) {
   lastResult = result;
-  if (CONFIG.AD_MODE !== 'off') {
+  if (AD_MODE !== 'off') {
     show('ad');
     await showRewardedAd();    // 결과 보기 전 5초 강제(하우스 광고)
   }
