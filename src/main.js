@@ -264,7 +264,18 @@ $('btn-share').onclick = async () => {
   if (regPromise) { try { await regPromise; } catch {} }   // 순위 등록 완료 후 공유 (기록 정확히 반영)
   const r = await shareResult(lastResult);
   if (r === 'downloaded') alert(t.savedAlert);
+  else if (r === 'shared-copied') showToast(t.shareLinkCopied);
 };
+
+// 가벼운 토스트(결과 화면 공유 안내 등)
+function showToast(msg) {
+  let el = document.getElementById('toast');
+  if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; document.body.appendChild(el); }
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 3800);
+}
 $('btn-save-card').onclick = async () => {
   if (!lastResult) return;
   if (regPromise) { try { await regPromise; } catch {} }

@@ -105,16 +105,27 @@ export async function shareResult(result) {
     ? t.shareCaptionTime(result.symbol, t.timeFmt(result.timeMs), result.rank, SITE_URL)
     : t.shareCaption(result.symbol, (result.distance || 0).toLocaleString(), '–', SITE_URL);
 
+  // 🔴 카카오톡 등은 이미지(파일) 첨부 시 본문 텍스트/URL을 버려서 '사진만' 공유된다.
+  //    → 공유 직전에 링크(캡션)를 클립보드에 복사해 두면, 채팅에 붙여넣어 링크도 함께 보낼 수 있다.
+  let copied = false;
+  try { await navigator.clipboard.writeText(caption); copied = true; } catch {}
+
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], text: caption, title: 'CandleBike' });
-      return 'shared';
+      // url 필드도 함께 전달 — 링크를 인식하는 공유 대상에선 클릭 가능한 링크로 붙는다.
+      await navigator.share({ files: [file], text: caption, url: SITE_URL, title: 'CandleBike' });
+      return copied ? 'shared-copied' : 'shared';
     } catch (e) { if (e.name === 'AbortError') return 'cancelled'; }
   }
 
-  // 폴백: 다운로드 + 캡션 클립보드 복사
+  // 파일 공유 불가(주로 데스크톱) → 링크만이라도 공유 시도, 안 되면 이미지 다운로드 + 캡션 복사
+  if (navigator.share) {
+    try {
+      await navigator.share({ text: caption, url: SITE_URL, title: 'CandleBike' });
+      return 'shared';
+    } catch (e) { if (e.name === 'AbortError') return 'cancelled'; }
+  }
   saveCard(result);
-  try { await navigator.clipboard.writeText(caption); } catch {}
   return 'downloaded';
 }
 

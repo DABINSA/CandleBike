@@ -136,6 +136,15 @@ body {
 .diff-badge { font-size: 10px; font-weight: 800; letter-spacing: -.5px; }
 
 .data-mode-note { margin-top: 18px; color: var(--muted); font-size: 12px; }
+.toast {
+  position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px);
+  max-width: min(92vw, 420px); padding: 13px 18px; border-radius: 12px;
+  background: rgba(13,19,32,.97); border: 1px solid var(--neon); color: var(--text);
+  font-size: 14px; line-height: 1.5; text-align: center; z-index: 9999;
+  box-shadow: 0 8px 28px rgba(0,0,0,.5), 0 0 0 3px rgba(44,230,196,.12);
+  opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
 .site-foot { margin-top: 14px; text-align: center; }
 .site-foot a { color: var(--muted); font-size: 12px; text-decoration: none; border-bottom: 1px solid transparent; }
 .site-foot a:hover { color: var(--neon); border-bottom-color: var(--neon); }

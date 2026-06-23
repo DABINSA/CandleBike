@@ -82,6 +82,7 @@ const DICT = {
     demoAlert: '실시간 데이터를 불러오지 못해 데모 차트로 진행합니다.',
     courseFail: '코스를 불러오지 못했습니다. 다른 종목을 시도해 주세요.',
     savedAlert: '이미지를 저장했어요! 인스타에 올리고 캡션을 붙여넣으세요. (캡션 복사됨)',
+    shareLinkCopied: '🔗 링크도 복사했어요 — 채팅에 붙여넣으면 친구가 바로 플레이할 수 있어요!',
     shareCaption: (sym, dist, rank, url) =>
       `🏍️ ${sym} 차트를 달려 ${dist}m! 너도 같이 달려보자 — 누가 더 멀리 가나 🔥\n👉 ${url}\n#캔들바이크 #CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
     shareCaptionTime: (sym, time, rank, url) =>
@@ -166,6 +167,7 @@ const DICT = {
     demoAlert: 'Live data unavailable — running a demo chart instead.',
     courseFail: "Couldn't load the course. Please try another stock.",
     savedAlert: 'Image saved! Post it and paste the caption. (caption copied)',
+    shareLinkCopied: '🔗 Link copied too — paste it in the chat so friends can play right away!',
     shareCaption: (sym, dist, rank, url) =>
       `🏍️ Rode the ${sym} chart for ${dist}m! Come race me — who goes farther? 🔥\n👉 ${url}\n#CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
     shareCaptionTime: (sym, time, rank, url) =>
