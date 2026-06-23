@@ -1,4 +1,6 @@
-# 캔들바이크 — 앱인토스(토스 인앱) 미니앱
+# 캔들라이더 — 앱인토스(토스 인앱) 미니앱
+
+> 토스 미니앱 이름/정체성은 **캔들라이더(appName `candlerider`)**. 웹사이트는 그대로 **CandleBike(candlebike.vercel.app)** — 셸이 이 사이트를 로딩한다.
 
 기존 사이트(`https://candlebike.vercel.app`)를 **granite(RN) 셸이 WebView로 로딩**하는 방식.
 사이트를 다시 만들지 않는다. 셸은 얇게 — WebView + 뒤로가기 + 토스환경 마커만.
@@ -15,7 +17,7 @@
 ## 구조
 ```
 toss-miniapp/                      granite 셸 (RN, .ait 빌드)
-  granite.config.ts                appName=candlebike, scheme=intoss, brand
+  granite.config.ts                appName=candlerider, displayName=캔들라이더, scheme=intoss
   src/WebShell.tsx                 WebView + 뒤로가기 + 마커주입 (브리지 없음)
   pages/index.tsx                  '/' → WebShell path="/"
   patches/                         🔴 granite 1.0.32 버그 패치 (없으면 빌드 실패)
@@ -25,15 +27,15 @@ src/toss.js                        사이트측 토스 감지 + effectiveAdMode
 
 ## 빌드 (🔴 Windows 불가 — GitHub Actions에서만)
 1. 커밋/푸시 → GitHub **Actions 탭 → "Toss Miniapp Build (.ait)" → Run workflow**
-2. 끝나면 아티팩트 `candlebike-toss-build` 다운로드 → `candlebike.ait`
-   - 또는 `gh run download <id> -n candlebike-toss-build`
+2. 끝나면 아티팩트 `candlerider-toss-build` 다운로드 → `candlerider.ait`
+   - 또는 `gh run download <id> -n candlerider-toss-build`
 
 ## 콘솔 작업 (사용자가 직접 — 앱인토스 콘솔)
-1. **앱 정보**: appName `candlebike`, 소개/카테고리 → 제출(앱 정보 승인)
+1. **앱 정보**: appName `candlerider`(표시이름 `캔들라이더`), 소개/카테고리 → 제출(앱 정보 승인)
 2. **디자인**: 앱 아이콘 **512 PNG**, 브랜드 컬러 `#2ce6c4`, 스플래시
 3. (로그인/결제 없음 → 토스 로그인·mTLS·인앱결제 섹션 건너뜀)
-4. **앱 출시**: 버전 추가 → `candlebike.ait` 업로드 → 콘솔 빌드(~10분)
-5. **테스트 QR**(`intoss-private://candlebike`)을 **진짜 토스앱**으로 스캔 → 동작 확인
+4. **앱 출시**: 버전 추가 → `candlerider.ait` 업로드 → 콘솔 빌드(~10분)
+5. **테스트 QR**(`intoss-private://candlerider`)을 **진짜 토스앱**으로 스캔 → 동작 확인
 6. **검토 요청** → 승인 메일 → **출시하기**(즉시 100% 공개, 롤백 가능)
 
 ## 심사 체크리스트

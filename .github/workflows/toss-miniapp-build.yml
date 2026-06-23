@@ -49,7 +49,7 @@ jobs:
       - name: Upload .ait artifact
         uses: actions/upload-artifact@v4
         with:
-          name: candlebike-toss-build
+          name: candlerider-toss-build
           path: |
             toss-miniapp/_artifact/**
             toss-miniapp/build.log
