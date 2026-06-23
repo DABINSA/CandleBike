@@ -1,0 +1,118 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+  html,body{margin:0;padding:0;background:transparent}
+  canvas{display:block}
+</style></head><body>
+<canvas id="c"></canvas>
+<script>
+// 게임(src/game/game.js _drawBike)의 바이크 드로잉을 그대로 복제 → 마케팅 아트가 실제 플레이와 일치.
+function roundRect(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+// 업라이트(angle=0) 바이크. 호출자가 transform으로 위치/스케일 지정. 차체 원점 = (0,0).
+function drawBike(ctx){
+  const WR=24, rx=-44, fx=44, wy=26;
+  const wheels=[{x:rx,y:wy},{x:fx,y:wy}];
+  for(const w of wheels){
+    ctx.save(); ctx.translate(w.x,w.y);
+    ctx.fillStyle='#161d27';
+    for(let i=0;i<14;i++){ctx.save();ctx.rotate((i/14)*Math.PI*2);ctx.beginPath();ctx.roundRect(WR-4,-2.6,7,5.2,2);ctx.fill();ctx.restore();}
+    ctx.fillStyle='#0c1117';ctx.beginPath();ctx.arc(0,0,WR,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#2ce6c4';ctx.lineWidth=2.5;ctx.shadowColor='rgba(44,230,196,0.7)';ctx.shadowBlur=8;
+    ctx.beginPath();ctx.arc(0,0,WR-8,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;
+    ctx.strokeStyle='rgba(160,180,200,0.5)';ctx.lineWidth=1.5;
+    for(let i=0;i<6;i++){const a=(i*2*Math.PI)/6;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(a)*(WR-8),Math.sin(a)*(WR-8));ctx.stroke();}
+    ctx.fillStyle='#cfe9e2';ctx.beginPath();ctx.arc(0,0,4,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+  ctx.save();
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.strokeStyle='#8693a6';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(2,2);ctx.quadraticCurveTo(-26,0,-44,8);ctx.stroke();
+  ctx.strokeStyle='#3a4a5e';ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(-12,6);ctx.lineTo(rx,wy);ctx.stroke();
+  ctx.strokeStyle='#ffd34d';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-10,-6);ctx.lineTo(-26,12);ctx.stroke();
+  ctx.strokeStyle='#c4d0dc';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(28,-8);ctx.lineTo(fx+2,wy);ctx.stroke();
+  ctx.strokeStyle='#7d8ba0';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(24,-8);ctx.lineTo(fx-4,wy);ctx.stroke();
+  ctx.fillStyle='#2a3645';roundRect(ctx,-16,-2,30,16,4);ctx.fill();
+  ctx.strokeStyle='#46586e';ctx.lineWidth=1;for(let i=-12;i<12;i+=4){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,12);ctx.stroke();}
+  ctx.fillStyle='#eef3f7';ctx.beginPath();ctx.moveTo(30,-18);ctx.quadraticCurveTo(48,-22,58,-12);ctx.lineTo(54,-8);ctx.quadraticCurveTo(46,-16,32,-13);ctx.closePath();ctx.fill();
+  ctx.shadowColor='rgba(44,230,196,0.5)';ctx.shadowBlur=14;
+  const body=ctx.createLinearGradient(0,-24,0,8);body.addColorStop(0,'#39f0d4');body.addColorStop(1,'#10b89c');
+  ctx.fillStyle=body;ctx.beginPath();
+  ctx.moveTo(-46,-8);ctx.quadraticCurveTo(-44,-20,-30,-19);ctx.lineTo(-8,-17);ctx.quadraticCurveTo(6,-26,20,-18);ctx.lineTo(30,-14);ctx.quadraticCurveTo(40,-12,40,-4);ctx.lineTo(20,-6);ctx.lineTo(-12,-8);ctx.closePath();ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#eef3f7';roundRect(ctx,-30,-20,26,6,3);ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.65)';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(-6,-15);ctx.quadraticCurveTo(8,-22,26,-13);ctx.stroke();
+  ctx.fillStyle='#ffd34d';ctx.beginPath();ctx.moveTo(36,-16);ctx.lineTo(50,-12);ctx.lineTo(48,0);ctx.lineTo(36,-2);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#1a1208';ctx.font='800 11px sans-serif';ctx.textAlign='center';ctx.fillText('7',43,-5);
+  ctx.strokeStyle='#39485c';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(26,-16);ctx.lineTo(33,-28);ctx.stroke();
+  ctx.fillStyle='#1d2735';ctx.beginPath();ctx.arc(34,-29,3,0,Math.PI*2);ctx.fill();
+  const hipX=-10,hipY=-18,shX=14,shY=-34,handX=33,handY=-27;
+  ctx.strokeStyle='#1c2740';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(hipX,hipY);ctx.lineTo(-2,-4);ctx.lineTo(8,6);ctx.stroke();
+  ctx.strokeStyle='#e8edf2';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(8,6);ctx.lineTo(16,8);ctx.stroke();
+  ctx.strokeStyle='#22406e';ctx.lineWidth=12;ctx.beginPath();ctx.moveTo(hipX,hipY);ctx.lineTo(shX,shY);ctx.stroke();
+  ctx.strokeStyle='#2ce6c4';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(hipX+4,hipY-5);ctx.lineTo(shX-2,shY+3);ctx.stroke();
+  ctx.strokeStyle='#2c4a78';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(shX,shY);ctx.lineTo(handX,handY);ctx.stroke();
+  ctx.fillStyle='#eef3f7';ctx.beginPath();ctx.arc(shX+5,shY-7,9.5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#1d2735';ctx.beginPath();ctx.moveTo(shX+12,shY-12);ctx.lineTo(shX+19,shY-11);ctx.lineTo(shX+13,shY-7);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#2ce6c4';roundRect(ctx,shX+7,shY-9,8,4,2);ctx.fill();
+  ctx.restore();
+}
+
+function scene(ctx, W, H, chart, grid){
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#0e1828'); bg.addColorStop(1,'#070a10');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(44,230,196,0.06)'; ctx.lineWidth=1;
+  for(let x=grid;x<W;x+=grid){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=grid;y<H;y+=grid){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  // under-fill
+  ctx.beginPath();
+  chart.forEach((p,i)=> i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
+  ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath();
+  const uf=ctx.createLinearGradient(0,0,0,H);
+  uf.addColorStop(0,'rgba(44,230,196,0.20)'); uf.addColorStop(1,'rgba(44,230,196,0)');
+  ctx.fillStyle=uf; ctx.fill();
+  // line (glow)
+  ctx.beginPath();
+  chart.forEach((p,i)=> i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
+  ctx.strokeStyle='#2ce6c4'; ctx.lineWidth=Math.max(5,W/240); ctx.lineJoin='round'; ctx.lineCap='round';
+  ctx.shadowColor='rgba(44,230,196,0.9)'; ctx.shadowBlur=W/90;
+  ctx.stroke(); ctx.shadowBlur=0;
+}
+
+const params=new URLSearchParams(location.search);
+const mode=params.get('mode')||'logo';
+const cv=document.getElementById('c');
+const ctx=cv.getContext('2d');
+
+function setup(W,H){
+  cv.style.width=W+'px'; cv.style.height=H+'px';
+  cv.width=W*2; cv.height=H*2;
+  ctx.setTransform(2,0,0,2,0,0);
+}
+
+if(mode==='logo'){
+  const W=600,H=600; setup(W,H);
+  const chart=[[0,470],[110,435],[194,380],[300,374],[406,380],[500,300],[600,330]];
+  scene(ctx,W,H,chart,150);
+  ctx.save(); ctx.translate(300,260); ctx.scale(2.4,2.4); drawBike(ctx); ctx.restore();
+}else{ // thumb
+  const W=1932,H=828; setup(W,H);
+  const chart=[[0,620],[300,560],[600,590],[870,470],[1020,462],[1170,470],[1500,360],[1700,420],[1932,330]];
+  scene(ctx,W,H,chart,322);
+  ctx.save(); ctx.translate(1020,300); ctx.scale(3.4,3.4); drawBike(ctx); ctx.restore();
+  // wordmark
+  ctx.shadowColor='rgba(44,230,196,0.5)'; ctx.shadowBlur=18;
+  ctx.fillStyle='#e6f0f0'; ctx.textAlign='left';
+  ctx.font='900 104px "Segoe UI", Arial, sans-serif'; ctx.fillText('CandleRider',110,180);
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#2ce6c4'; ctx.font='800 44px "Segoe UI", Arial, sans-serif'; ctx.fillText('RIDE THE CHART',116,248);
+}
+document.fonts.ready.then(()=>{ window.__done=true; });
+</script></body></html>
