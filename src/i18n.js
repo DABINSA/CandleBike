@@ -1,4 +1,6 @@
 // 다국어 — 저장된 선택이 있으면 우선, 없으면 접속 브라우저 언어(한국어→ko, 그 외→en).
+import { IS_TOSS } from './toss.js';
+
 const LS_LANG = 'candlebike_lang';
 const isKo = (navigator.languages || [navigator.language || 'en'])
   .some((l) => (l || '').toLowerCase().startsWith('ko'));
@@ -182,6 +184,15 @@ const DICT = {
     mailSubject: '[CandleBike] Advertising inquiry',
   },
 };
+
+// 앱인토스(토스 인앱)에서는 앱 이름이 '캔들라이더' → 사이트 표시도 일치시킨다.
+// (웹 버전은 '캔들바이크' 그대로. setLang은 새로고침이라 한 번 덮으면 충분.)
+if (IS_TOSS) {
+  DICT.ko.logo = '📈🏍️ 캔들라이더';
+  DICT.ko.docTitle = '캔들라이더 — 변동성을 버텨라';
+  DICT.en.logo = '📈🏍️ CandleRider';
+  DICT.en.docTitle = 'CandleRider — Ride the Chart';
+}
 
 export const t = DICT[LANG];
 
