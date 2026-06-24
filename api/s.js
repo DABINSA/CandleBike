@@ -27,8 +27,10 @@ export default async function handler(req, res) {
     ? `${rank ? '전체 ' + rank + ' — ' : ''}이 기록 깰 수 있어? 캔들바이크에서 ${c} 차트를 오토바이로 달려봐! 👉 지금 도전`
     : '검색한 주식의 3년 차트가 코스! 변동성을 버티고 순위에 도전.';
 
-  // OG 미리보기 이미지 (2단계에서 결과별 동적 이미지 /api/og 로 교체)
-  const img = `${SITE}/assets/og.png`;
+  // OG 미리보기 이미지 — 결과별 동적 카드(/api/og). 종목 없으면 기본 og.png.
+  const img = c
+    ? `${SITE}/api/og?${new URLSearchParams({ c, n: name, r: rec, rank }).toString()}`
+    : `${SITE}/assets/og.png`;
   const playUrl = c ? `${SITE}/?c=${encodeURIComponent(c)}` : SITE;
   const shareUrl = `${SITE}/api/s?${new URLSearchParams(q).toString()}`;
 
