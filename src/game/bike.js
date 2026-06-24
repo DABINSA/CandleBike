@@ -65,8 +65,13 @@ export function createBike(world, x, y) {
       const reverse = 0.32;
 
       if (grounded) {
-        // 구동(가속/브레이크) — AWD
-        if (gas) { rear.torque += torque; front.torque += torque; }
+        // 구동: 바퀴가 '구동 상한' 미만일 때만 가속 토크 추가 → 그 이상 속도는 모멘텀에 맡긴다.
+        //       (가속이 빠른 내리막 속도를 깎지 않음 → 하락 구간에서 탄력↑ → 다음 램프에서 점프)
+        const driveCap = T.maxAv + b * T.boostAv;
+        if (gas) {
+          if (rear.angularVelocity < driveCap) rear.torque += torque;
+          if (front.angularVelocity < driveCap) front.torque += torque;
+        }
         if (brake) { rear.torque -= reverse; front.torque -= reverse * 0.9; }
 
         // ── 분리된 자세 제어(Stock Rider식): 윌리=앞들기, 앞숙임 ──
@@ -74,10 +79,10 @@ export function createBike(world, x, y) {
         if (leanBack) chassis.torque -= T.leanBack;
         if (leanFwd) chassis.torque += T.leanFwd;
 
-        // 전/후진 바퀴 속도 상한
-        const maxAv = T.maxAv + b * T.boostAv;
-        if (rear.angularVelocity > maxAv) Matter.Body.setAngularVelocity(rear, maxAv);
-        if (front.angularVelocity > maxAv) Matter.Body.setAngularVelocity(front, maxAv);
+        // 절대 상한만(전복/무한 가속 방지) — 내리막 모멘텀은 rollCap 까지 허용해 램프 점프 탄력 확보
+        const rollCap = driveCap * T.rollCapMult;
+        if (rear.angularVelocity > rollCap) Matter.Body.setAngularVelocity(rear, rollCap);
+        if (front.angularVelocity > rollCap) Matter.Body.setAngularVelocity(front, rollCap);
         if (rear.angularVelocity < -T.maxRev) Matter.Body.setAngularVelocity(rear, -T.maxRev);
         if (front.angularVelocity < -T.maxRev) Matter.Body.setAngularVelocity(front, -T.maxRev);
 

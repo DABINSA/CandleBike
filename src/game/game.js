@@ -149,8 +149,16 @@ export class Game {
     const grounded = this.groundedThisStep;
     this._lastGrounded = grounded;
 
-    // 점프 (누른 순간 1회, 지상에서만)
-    if (this.bike.input.jump && !this._prevJump && grounded) { this.bike.jump(); audio.sfx.jump(); }
+    // 점프 — 버퍼(누른 직후 잠깐 기억) + 코요테(땅 떠난 직후 잠깐 허용)로 씹힘 방지.
+    //   가속 중 범프로 바퀴가 잠깐 떠도, 상승 램프 끝에서 눌러도 점프가 확실히 발동한다.
+    const jumpEdge = this.bike.input.jump && !this._prevJump;
+    if (jumpEdge) this._jumpBuf = 0.16;
+    else this._jumpBuf = Math.max(0, (this._jumpBuf || 0) - dt);
+    this._coyote = grounded ? 0.12 : Math.max(0, (this._coyote || 0) - dt);
+    if (this._jumpBuf > 0 && this._coyote > 0) {
+      this.bike.jump(); audio.sfx.jump();
+      this._jumpBuf = 0; this._coyote = 0;
+    }
     this._prevJump = this.bike.input.jump;
     audio.setThrottle(!!this.bike.input.gas);
 

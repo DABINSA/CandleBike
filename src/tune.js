@@ -17,8 +17,9 @@ if (typeof location !== 'undefined' && new URLSearchParams(location.search).get(
     ['recoverCap', 0.2, 1.2, 0.05, '복원 상한'],
     ['maxSpin', 0.1, 1.0, 0.02, '회전 상한(작을수록 안정)'],
     ['boostSpin', 0, 0.3, 0.01, '부스트 회전 가산'],
-    ['maxAv', 0.8, 4, 0.1, '전진 속도'],
+    ['maxAv', 0.8, 4, 0.1, '전진 속도(구동 상한)'],
     ['boostAv', 0, 4, 0.1, '부스트 속도'],
+    ['rollCapMult', 1, 4, 0.1, '내리막 모멘텀(램프 점프 탄력)'],
     ['maxRev', 0.3, 2, 0.05, '후진 속도'],
     ['jump', 6, 18, 0.5, '점프 힘'],
   ];
