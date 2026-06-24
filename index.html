@@ -134,16 +134,15 @@
       <!-- 조작 안내 (시작 시 잠깐) -->
       <div id="controls-hint" class="controls-hint"></div>
 
-      <!-- 게임 컨트롤 (모바일 터치 / 데스크톱 클릭) — 좌:자세, 우:가속/점프 -->
+      <!-- 게임 컨트롤 — 왼손: 십자 방향패드(↑점프 ←앞들기 →앞숙임 ↓뒤로), 오른손: 큰 가속 -->
       <div class="controls">
-        <div class="ctrl-cluster ctrl-left">
-          <button id="btn-wheelie" class="ctrl-btn" data-i18n-html="wheelieBtn">⤺<br/>앞들기</button>
-          <button id="btn-nose" class="ctrl-btn" data-i18n-html="noseBtn">⤹<br/>앞숙임</button>
+        <div class="dpad">
+          <button id="btn-jump" class="ctrl-btn ctrl-jump dp-up" data-i18n-html="jumpBtn">⤴<br/>점프</button>
+          <button id="btn-wheelie" class="ctrl-btn dp-left" data-i18n-html="wheelieBtn">⤺<br/>앞들기</button>
+          <button id="btn-nose" class="ctrl-btn dp-right" data-i18n-html="noseBtn">⤹<br/>앞숙임</button>
+          <button id="btn-reverse" class="ctrl-btn dp-down" data-i18n-html="reverseBtn">◀<br/>뒤로</button>
         </div>
-        <div class="ctrl-cluster ctrl-right">
-          <button id="btn-jump" class="ctrl-btn ctrl-jump" data-i18n-html="jumpBtn">⤴<br/>점프</button>
-          <button id="btn-gas" class="ctrl-btn ctrl-gas" data-i18n-html="gasBtn">가속<br/>▶</button>
-        </div>
+        <button id="btn-gas" class="ctrl-btn ctrl-gas" data-i18n-html="gasBtn">가속<br/>▶</button>
       </div>
 
       <!-- 플레이 중 AdSense 배너 (하단 고정) -->
