@@ -59,7 +59,17 @@ export class Game {
     this._crashTimer = 0;
     this._cpHit = new Set();   // 통과한 체크포인트
     this._events = (CONFIG.GAME.crashEvents === false ? [] : (this.terrain.events || [])).map((e) => ({ ...e, done: false }));
-    this._eventBodies = [];    // 활성 폭락 캔들 장애물
+    // 테스트 모드: 실제 코스 이벤트 대신 일정 간격마다 점프 장애물 배치
+    if (this.testMode) {
+      const pts = this.terrain.points;
+      this._events = [];
+      for (let x = 1200; x < this.terrain.worldWidth - 500; x += 820) {
+        let y = pts[pts.length - 1].y;
+        for (let i = 1; i < pts.length; i++) { if (pts[i].x >= x) { y = pts[i].y; break; } }
+        this._events.push({ x, y, event: { emoji: '🚧', test: true }, done: false });
+      }
+    }
+    this._eventBodies = [];    // 활성 장애물
     this._flash = 0;           // 붉은 화면 효과
     this._shake = 0;           // 화면 흔들림
     this.ended = false;
@@ -76,6 +86,10 @@ export class Game {
         // 머리(차체)가 지면에 닿으면 크래시 타이머
         if (labels.includes('ground') && labels.includes('chassis')) {
           this._chassisTouching = true;
+        }
+        // 장애물에 부딪힘 표시 → 깔끔히 넘은 보너스 판정에 사용
+        if (labels.includes('event-wall')) {
+          (p.bodyA.label === 'event-wall' ? p.bodyA : p.bodyB)._hit = true;
         }
       }
     });
@@ -163,13 +177,25 @@ export class Game {
     this._prevJump = this.bike.input.jump;
     audio.setThrottle(!!this.bike.input.gas);
 
-    // 트릭
+    // 트릭 / 착지 판정 — 깨끗이(바퀴로) 착지하면 보너스, 등·머리로 착지하면 패널티
     const flips = this.bike.trackTrick(grounded);
-    if (flips > 0) {
-      this.flips += flips;              // 플립 = 거리/점수 보너스 (시간은 X — farming 방지)
+    const justLanded = grounded && this._wasAir;
+    let badLand = false;
+    if (justLanded) {
+      let a = this.bike.chassis.angle % (2 * Math.PI);
+      if (a > Math.PI) a -= 2 * Math.PI; else if (a < -Math.PI) a += 2 * Math.PI;
+      badLand = Math.abs(a) > 2.0;     // ~115°+ 기울어진 채 착지 = 등/머리로 떨어짐
+    }
+    if (badLand) {
+      this.fuel = Math.max(0, this.fuel - 3);   // 착지 실패 패널티: -3초 (트릭 보너스 없음)
+      this._toast(`🙃 ${t.badLand} -3s`, '#ff5d6e');
+      audio.sfx.crash();
+    } else if (flips > 0) {
+      this.flips += flips;             // 플립 성공(깨끗한 착지) = 거리/점수 보너스
       this._showTrick(flips);
       audio.sfx.flip();
     }
+    this._wasAir = !grounded;
 
     // 거리 / 연료
     this.maxX = Math.max(this.maxX, this.bike.position.x);
@@ -188,23 +214,35 @@ export class Game {
       }
     }
 
-    // 폭락 이벤트(보스) — ① 사전 경고 토스트 → ② 화면에 보이게 장애물 생성 (피할 시간 확보)
+    // 장애물 — ① 사전 경고 토스트 → ② 화면에 보이게 점프 장애물 생성 (피할 시간 확보)
+    const evLabel = (ev) => (ev.event && ev.event.test ? t.obstacle : eventName(ev.event));
     const bx = this.bike.position.x;
     for (const ev of this._events) {
       if (ev.done) continue;
       const dist = ev.x - bx;
       if (!ev.warned && dist <= EVENT_WARN_DIST && dist > 0) {
         ev.warned = true;
-        this._toast(`${ev.event.emoji} ${t.eventWarn(eventName(ev.event))}`, '#ffd34d');
+        this._toast(`${ev.event.emoji} ${t.eventWarn(evLabel(ev))}`, '#ffd34d');
       }
       if (dist <= EVENT_SPAWN_DIST) { ev.done = true; this._triggerEvent(ev); }
     }
-    // 효과 감쇠 / 지나간 장애물 제거
+    // 효과 감쇠 / 지나간 장애물 제거 (+ 깔끔히 넘으면 보너스)
     this._flash = Math.max(0, this._flash - dt * 1.4);
     this._shake = Math.max(0, this._shake - dt * 1.8);
     const tnow = performance.now();
     this._eventBodies = this._eventBodies.filter((eb) => {
-      if (bx > eb.x + 95 || tnow - eb.born > 14000) {
+      // 벽 중심을 지나는 순간, 차체가 벽 위로 넘어갔는지 기록(터널링/관통은 보너스 제외)
+      if (!eb._crossed && bx >= eb.x) {
+        eb._crossed = true;
+        eb._over = this.bike.position.y < eb.y - eb.h * 0.4;
+      }
+      const passed = bx > eb.x + 95;
+      if (passed || tnow - eb.born > 14000) {
+        if (passed && eb._over && !eb.body._hit) {   // 부딪힘 없이 '점프로 깔끔히' 넘음 → +2초 보너스
+          this.fuel = Math.min(CONFIG.GAME.fuelSeconds, this.fuel + 2);
+          this._toast(`✨ ${t.cleared} +2s`, '#2ce6c4');
+          audio.sfx.checkpoint();
+        }
         Matter.Composite.remove(this.world, eb.body);
         return false;
       }
@@ -378,13 +416,12 @@ export class Game {
   }
 
   _triggerEvent(ev) {
-    this._flash = 0.85;
-    this._shake = 1;
-    this._toast(`${ev.event.emoji} ${eventName(ev.event)}`, '#ff4d6d');
-    audio.sfx.crash();
-    // 폭락 캔들 장애물 (점프로 넘어야 함, 6.5초 후 자동 제거)
-    const h = 50;
-    const wall = Matter.Bodies.rectangle(ev.x, ev.y - h / 2, 26, h, {
+    const isTest = ev.event && ev.event.test;
+    if (!isTest) { this._flash = 0.85; this._shake = 1; audio.sfx.crash(); }   // 실제 폭락만 충격 효과
+    this._toast(`${ev.event.emoji} ${isTest ? t.obstacle : eventName(ev.event)}`, isTest ? '#ffd34d' : '#ff4d6d');
+    // 점프로 넘어야 하는 장애물 — 높고(점프 강제) 넓게(고속 터널링 방지)
+    const h = 74, w = 46;
+    const wall = Matter.Bodies.rectangle(ev.x, ev.y - h / 2, w, h, {
       isStatic: true, friction: 1, label: 'event-wall', render: { visible: false },
     });
     Matter.Composite.add(this.world, wall);
@@ -465,20 +502,19 @@ export class Game {
   _drawEvents(ctx) {
     for (const eb of this._eventBodies) {
       const x = eb.x, top = eb.y - eb.h;
-      // 폭락 캔들(빨강)
-      ctx.fillStyle = '#ff4d6d';
-      ctx.shadowColor = 'rgba(255,77,109,0.85)'; ctx.shadowBlur = 16;
-      this._roundRect(ctx, x - 13, top, 26, eb.h, 5); ctx.fill();
+      const isTest = eb.event && eb.event.test;
+      const col = isTest ? '#ffd34d' : '#ff4d6d';                 // 실제=폭락 빨강 / 테스트=장애물 노랑
+      ctx.fillStyle = col;
+      ctx.shadowColor = isTest ? 'rgba(255,211,77,0.8)' : 'rgba(255,77,109,0.85)'; ctx.shadowBlur = 16;
+      this._roundRect(ctx, x - 23, top, 46, eb.h, 6); ctx.fill();   // 벽 폭(46)에 맞춤
       ctx.shadowBlur = 0;
-      // 위 꼬리(wick)
-      ctx.strokeStyle = '#ff4d6d'; ctx.lineWidth = 3;
+      ctx.strokeStyle = col; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.moveTo(x, top - 14); ctx.lineTo(x, top); ctx.stroke();
-      // 이모지 + 이벤트명
       ctx.textAlign = 'center';
       ctx.font = '26px sans-serif';
       ctx.fillText(eb.event.emoji, x, top - 22);
-      ctx.font = '800 13px sans-serif'; ctx.fillStyle = '#ff8da0';
-      ctx.fillText(eventName(eb.event), x, top - 48);
+      ctx.font = '800 13px sans-serif'; ctx.fillStyle = isTest ? '#ffe9a8' : '#ff8da0';
+      ctx.fillText(isTest ? t.obstacle : eventName(eb.event), x, top - 48);
     }
   }
 
