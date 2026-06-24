@@ -119,9 +119,9 @@ export function createBike(world, x, y) {
       }
     },
 
-    // grounded 변화에 따라 공중 회전 누적 → 착지 시 회전수 반환
+    // grounded 변화에 따라 공중 회전 누적 → 착지 시 { n: 회전수, back: 뒷구르기(백플립) 여부 } 반환
     trackTrick(grounded) {
-      let completedFlips = 0;
+      let n = 0, back = false;
       if (!grounded) {
         if (this._wasGrounded) { this._airAngleStart = chassis.angle; this._airAccum = 0; this._lastAngle = chassis.angle; }
         // 각도 연속 누적 (래핑 보정)
@@ -131,12 +131,13 @@ export function createBike(world, x, y) {
         this._airAccum += d;
         this._lastAngle = chassis.angle;
       } else if (this._wasGrounded === false) {
-        // 방금 착지
-        completedFlips = Math.floor(Math.abs(this._airAccum) / (2 * Math.PI));
+        // 방금 착지 — 음수 누적 = 뒤로 돈 것(백플립/뒷구르기)
+        n = Math.floor(Math.abs(this._airAccum) / (2 * Math.PI));
+        back = this._airAccum < 0;
         this._airAccum = 0;
       }
       this._wasGrounded = grounded;
-      return completedFlips;
+      return { n, back };
     },
 
     get position() { return chassis.position; },

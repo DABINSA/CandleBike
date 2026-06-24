@@ -53,6 +53,7 @@ export class Game {
     // 상태
     this.distanceM = 0;
     this.flips = 0;
+    this.flipBonusM = 0;   // 플립 거리 보너스(백플립 가중) 누적
     this.fuel = CONFIG.GAME.fuelSeconds;
     this.lastTs = performance.now();
     this.groundedThisStep = false;
@@ -178,7 +179,8 @@ export class Game {
     audio.setThrottle(!!this.bike.input.gas);
 
     // 트릭 / 착지 판정 — 깨끗이(바퀴로) 착지하면 보너스, 등·머리로 착지하면 패널티
-    const flips = this.bike.trackTrick(grounded);
+    const trick = this.bike.trackTrick(grounded);
+    const flips = trick.n;
     const justLanded = grounded && this._wasAir;
     let badLand = false;
     if (justLanded) {
@@ -195,15 +197,17 @@ export class Game {
         this._badLandCd = 2.5;
       }
     } else if (flips > 0) {
-      this.flips += flips;             // 플립 성공(깨끗한 착지) = 거리/점수 보너스
-      this._showTrick(flips);
+      // 플립 성공(깨끗한 착지) = 거리 보너스. 뒷구르기(백플립)는 더 어려우니 1.6배.
+      this.flips += flips;
+      this.flipBonusM = (this.flipBonusM || 0) + Math.round(flips * FLIP_METERS * (trick.back ? 1.6 : 1));
+      this._showTrick(flips, trick.back);
       audio.sfx.flip();
     }
     this._wasAir = !grounded;
 
     // 거리 / 연료
     this.maxX = Math.max(this.maxX, this.bike.position.x);
-    this.distanceM = Math.max(0, Math.floor((this.maxX - this.startX) / PX_PER_METER));
+    this.distanceM = Math.max(0, Math.floor((this.maxX - this.startX) / PX_PER_METER)) + (this.flipBonusM || 0);
     if (!this.testMode) this.fuel -= dt;   // 테스트 모드: 연료 무제한
 
     // 체크포인트(20/50/80%) 통과 시 +시간
@@ -414,9 +418,11 @@ export class Game {
     ctx.shadowBlur = 0;
   }
 
-  _showTrick(n) {
-    const label = n >= 2 ? t.flipN(n) : t.backflip;
-    this._toast(`${label}! +${n * FLIP_METERS}m`, '#5b8cff');
+  _showTrick(n, back) {
+    const name = back ? t.backflip : t.frontflip;
+    const label = n >= 2 ? `${n}x ${name}` : name;
+    const m = Math.round(n * FLIP_METERS * (back ? 1.6 : 1));
+    this._toast(`${back ? '🔄 ' : ''}${label}! +${m}m`, back ? '#ffd34d' : '#5b8cff');
   }
 
   _triggerEvent(ev) {
