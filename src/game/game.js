@@ -282,7 +282,7 @@ export class Game {
     if (inverted && speed < 1.6 && (grounded || this._chassisTouching)) this._crashTimer += dt;
     else this._crashTimer = Math.max(0, this._crashTimer - dt * 2);
 
-    if (this.multi) updateGhosts(this.ghosts, dt, (now - this.startTime) / 1000);
+    if (this.multi) { updateGhosts(this.ghosts, dt, (now - this.startTime) / 1000); this._updateGhostFx(dt); }
 
     this._updateHud();
     this._render();
@@ -655,19 +655,50 @@ export class Game {
     }
   }
 
+  // 고스트 점프/트릭 연출 — 장애물 앞에서 점프(가끔 백플립), 평지선 가끔 플립. 페이스엔 영향 없음.
+  _updateGhostFx(dt) {
+    const L = this.finishX - this.startX;
+    for (const g of this.ghosts) {
+      if (g.finished) { g.hop = 0; continue; }
+      g._cool = Math.max(0, (g._cool || 0) - dt);
+      if (g.hop > 0) {                       // 점프 진행 중
+        g.hop += g.hopSpeed * dt;
+        if (g.hop >= 1) { g.hop = 0; g.flipDir = 0; }
+        continue;
+      }
+      if (g._cool > 0) continue;
+      const x = this.startX + g.progress * L;
+      const nearObstacle = this._events && this._events.some((ev) => ev.x > x && ev.x - x < 90);
+      const wantFlip = nearObstacle ? Math.random() < 0.6 : Math.random() < dt * 0.06;
+      if (nearObstacle || wantFlip) {
+        g.hop = 0.0001;
+        g.hopSpeed = 1 / (0.55 + Math.random() * 0.3);          // 점프 지속(약 0.55~0.85s)
+        if (wantFlip) {
+          g.flipDir = Math.random() < 0.72 ? -1 : 1;            // 백플립 위주
+          g.flipTurns = 1 + (Math.random() < 0.22 ? 1 : 0);     // 가끔 2바퀴
+        } else { g.flipDir = 0; g.flipTurns = 0; }
+        g._cool = 1.1 + Math.random() * 0.6;
+      }
+    }
+  }
+
   // 멀티 — AI 고스트 라이더들(플레이어와 동일한 디테일 바이크, 색상만 다르게 + 닉네임)
   _drawGhosts(ctx, camX, vw) {
     const L = this.finishX - this.startX;
     for (const g of this.ghosts) {
       const x = this.startX + g.progress * L;
       if (x < camX - 200 || x > camX + vw + 200) continue;   // 화면 밖은 스킵
-      const slope = Math.atan2(this._terrainYAt(x + 30) - this._terrainYAt(x - 30), 60);
-      const py = this._terrainYAt(x) - 50;                   // 바퀴가 지면에 닿도록(플레이어와 동일 기준)
-      const cA = Math.cos(slope), sA = Math.sin(slope);
+      let py = this._terrainYAt(x) - 50;                     // 바퀴가 지면에 닿도록(플레이어와 동일 기준)
+      let ang = Math.atan2(this._terrainYAt(x + 30) - this._terrainYAt(x - 30), 60);
+      if (g.hop > 0) {                                        // 점프 아치 + (있으면) 플립 회전
+        py -= Math.sin(g.hop * Math.PI) * 72;
+        if (g.flipDir) ang += g.flipDir * g.flipTurns * 2 * Math.PI * g.hop;
+      }
+      const cA = Math.cos(ang), sA = Math.sin(ang);
       const toW = (lx, ly) => ({ x: x + lx * cA - ly * sA, y: py + lx * sA + ly * cA });
       const spin = x / 24;                                   // 이동거리 기반 바퀴 회전(굴러가는 느낌)
       const pose = {
-        px: x, py, ang: slope,
+        px: x, py, ang,
         wheels: [{ pos: toW(-44, 26), ang: spin }, { pos: toW(44, 26), ang: spin }],
       };
       this._renderBike(ctx, pose, g.color, 0.92);

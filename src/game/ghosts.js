@@ -31,24 +31,23 @@ export function createGhosts(count, parTime, names) {
   return names.map((name, i) => ({
     name,
     color: colors[i] || '#ff6b6b',
-    // 목표 완주시간 — par 중심으로 편차(빠른 놈/느린 놈 섞여 순위 다툼)
-    targetTime: parTime * (0.86 + Math.random() * 0.3),   // ≈ par×0.86~1.16
+    // 목표 완주시간 — par보다 빠르게(중간 이상 실력). 편차로 순위 다툼.
+    targetTime: parTime * (0.8 + Math.random() * 0.3),    // ≈ par×0.80~1.10 (평균 ~0.95)
     progress: 0,
     finished: false,
     finishTime: null,
     _phase: Math.random() * Math.PI * 2,
-    _wob: 0.7 + Math.random() * 0.8,     // 흔들림 주기
-    _stumble: 0,                          // 주춤(잠깐 느려짐) 잔여시간
+    _wob: 0.7 + Math.random() * 0.8,     // 완만한 흔들림 주기
+    // 점프/트릭 연출 상태(시각용 — 페이스에는 영향 없음)
+    hop: 0, hopSpeed: 0, flipDir: 0, flipTurns: 0, _cool: 0,
   }));
 }
 
-// 고스트 전진. dt=프레임시간(초), elapsed=시작 후 경과(초).
+// 고스트 전진 — 플레이어와 무관한 일정한 독립 페이스(완만한 흔들림만, 주춤 없음).
 export function updateGhosts(ghosts, dt, elapsed) {
   for (const g of ghosts) {
     if (g.finished) continue;
-    let mul = 1 + 0.18 * Math.sin(elapsed * g._wob + g._phase);   // ±18% 속도 흔들림
-    if (g._stumble > 0) { g._stumble -= dt; mul *= 0.4; }          // 주춤 중엔 느림
-    else if (Math.random() < dt * 0.12) { g._stumble = 0.4 + Math.random() * 0.6; } // 가끔 주춤
+    const mul = 1 + 0.1 * Math.sin(elapsed * g._wob + g._phase);   // ±10% 완만한 흔들림
     g.progress += (mul / g.targetTime) * dt;
     if (g.progress >= 1) { g.progress = 1; g.finished = true; g.finishTime = elapsed; }
   }

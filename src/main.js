@@ -49,6 +49,7 @@ let selected = null;     // { symbol, name }
 let gameMode = 'single'; // 'single' | 'multi'(가짜 AI 경쟁)
 let game = null;
 let lastResult = null;    // { symbol, distance, flips, score }
+let multiGhostRows = [];  // 멀티 결과 순위표에 표시용으로 합칠 고스트 기록(완주자) — DB엔 저장 안 함
 
 applyStatic();           // 정적 텍스트를 접속 언어로 채움
 
@@ -409,6 +410,11 @@ async function showResult(result) {
   show('result');
   renderHouseAd($('ad-result'), 'result');   // 결과 화면 배너(토스: 토스 배너 / 웹: 하우스·애드센스)
   renderMultiResult(result);                 // 멀티면 등수 표시
+  // 멀티: 완주한 고스트를 순위표에 함께 표시(진짜 같이 한 것처럼). DB엔 저장 안 함.
+  multiGhostRows = (result.multi && result.standings)
+    ? result.standings.filter((e) => !e.isPlayer && e.finished)
+        .map((e) => ({ nick: e.name, symbol: result.symbol, score: Math.round(e.finishTime * 1000), id: null }))
+    : [];
   rememberName(result.symbol, result.name);
   $('rc-symbol').textContent = result.name ? `${result.name} (${result.symbol})` : result.symbol;
   if (result.diff) {
@@ -456,7 +462,11 @@ async function registerAndRender(result, nick) {
 
 async function renderLeaderboard(symbol, myId) {
   $('lb-title').textContent = t.leaderboardTitle(symbol);
-  const list = await topScores(symbol, 20);
+  let list = await topScores(symbol, 20);
+  // 멀티: 완주한 고스트 기록을 합쳐 같은 순위표에 보이게(표시 전용)
+  if (symbol && multiGhostRows.length) {
+    list = [...list, ...multiGhostRows].sort((a, b) => a.score - b.score).slice(0, 20);
+  }
   const ol = $('leaderboard-list');
   ol.innerHTML = '';
   list.forEach((row, i) => {
