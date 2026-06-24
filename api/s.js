@@ -8,12 +8,21 @@
 //
 // 쿼리: c=종목코드  n=종목명  r=기록("562m"·"42.3초")  rank="3위"(완주 시)
 
-const SITE = 'https://candlebike.vercel.app';
+// 도메인 확정(예: candlebike.2nt4soft.com) 시 CANONICAL 만 바꾸면 된다.
+// 평소엔 요청이 들어온 호스트를 그대로 사용 → 어떤 도메인에서 열려도 OG/링크가 그 도메인을 따라간다.
+const CANONICAL = 'https://candlebike.vercel.app';
+function baseUrl(req) {
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  if (!host) return CANONICAL;
+  const proto = req.headers['x-forwarded-proto'] || 'https';
+  return `${proto}://${host}`;
+}
 const SYMBOL_RE = /^[A-Za-z0-9.\-]{1,15}$/;
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 export default async function handler(req, res) {
+  const SITE = baseUrl(req);
   const q = req.query || {};
   const c = SYMBOL_RE.test(q.c || '') ? q.c : '';
   const name = String(q.n || '').slice(0, 40);

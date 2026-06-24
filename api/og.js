@@ -29,7 +29,9 @@ async function loadKoreanFont(text) {
 }
 
 export default async function handler(req) {
-  const { searchParams } = new URL(req.url);
+  const u = new URL(req.url);
+  const { searchParams } = u;
+  const host = u.host || 'candlebike.vercel.app';   // 이미지 하단 도메인 — 요청 호스트 따라감
   const c = (searchParams.get('c') || 'STOCK').slice(0, 15);
   const r = String(searchParams.get('r') || '').slice(0, 16) || '—';       // "35.9초" · "1,128m"
   const n = String(searchParams.get('n') || '').slice(0, 40);              // 종목명(한글 가능)
@@ -79,7 +81,7 @@ export default async function handler(req) {
       background: 'rgba(255,77,109,0.16)', border: '2px solid rgba(255,77,109,0.6)',
     }),
   );
-  children.push(txt('candlebike.vercel.app', { position: 'absolute', bottom: 38, fontSize: 32, fontWeight: 700, color: '#cfe9e2' }));
+  children.push(txt(host, { position: 'absolute', bottom: 38, fontSize: 32, fontWeight: 700, color: '#cfe9e2' }));
 
   return new ImageResponse(
     el('div', {
