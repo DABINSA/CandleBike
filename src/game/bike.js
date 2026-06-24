@@ -70,9 +70,9 @@ export function createBike(world, x, y) {
         // ── 2페달 밸런스(힐클라임식): 가속=뒤로 젖힘(윌리), 뒤로=앞코 숙임 ──
         // 별도 버튼 없이 가속↔뒤로를 조절하며 차체 자세를 직접 잡는 '조작하는 맛'.
         // (Matter: 양의 토크 = 앞코 내림, 음의 토크 = 앞들림)
-        const lean = 0.05;
-        if (gas) chassis.torque -= lean;          // 앞들림(윌리)
-        if (brake) chassis.torque += lean * 1.15; // 앞코 숙임(윌리 카운터)
+        const lean = 0.03;
+        if (gas) chassis.torque -= lean;         // 앞들림(윌리) — 과하지 않게
+        if (brake) chassis.torque += lean * 1.3; // 앞코 숙임(윌리 카운터, 좀 더 잘 듣게)
 
         // 전진 속도 상한 — 부스트가 차오를수록 점점 빨라짐 (1.5 → 3.7)
         const maxAv = 1.5 + b * 2.2;
@@ -90,18 +90,18 @@ export function createBike(world, x, y) {
         let pitch = chassis.angle - wheelAngle;       // 음수 = 앞들림(윌리)
         while (pitch > Math.PI) pitch -= 2 * Math.PI;
         while (pitch < -Math.PI) pitch += 2 * Math.PI;
-        const NEUTRAL = 0.30;     // ±~17°: 자유 제어 구간(간섭 없음)
-        const FLIP = 0.95;        // ±~54°: 거의 전복 → 더 강하게 복원
+        const NEUTRAL = 0.22;     // ±~13°: 자유 제어 구간(좁혀서 더 빨리 복원 → 잘 안 뒤집힘)
+        const FLIP = 0.8;         // ±~46°: 거의 전복 → 강하게 복원
         if (pitch < -NEUTRAL) {
-          const k = pitch < -FLIP ? 0.9 : 0.4;        // 전복 직전이면 강하게
-          Matter.Body.setAngularVelocity(chassis, chassis.angularVelocity + Math.min(0.4, (-NEUTRAL - pitch) * k));
+          const k = pitch < -FLIP ? 1.2 : 0.7;        // 윌리(앞들림) 쪽을 더 강하게 잡아줌
+          Matter.Body.setAngularVelocity(chassis, chassis.angularVelocity + Math.min(0.6, (-NEUTRAL - pitch) * k));
         } else if (pitch > NEUTRAL) {
-          const k = pitch > FLIP ? 0.9 : 0.4;
-          Matter.Body.setAngularVelocity(chassis, chassis.angularVelocity - Math.min(0.4, (pitch - NEUTRAL) * k));
+          const k = pitch > FLIP ? 1.0 : 0.5;
+          Matter.Body.setAngularVelocity(chassis, chassis.angularVelocity - Math.min(0.5, (pitch - NEUTRAL) * k));
         }
 
-        // 각속도 상한(부드러움) — 자세 제어가 가능하도록 여유 있게
-        const maxSpin = 0.42 + b * 0.1;
+        // 각속도 상한 — 낮춰서 급회전(전복) 억제, 자세 제어는 여전히 가능
+        const maxSpin = 0.30 + b * 0.06;
         if (chassis.angularVelocity > maxSpin) Matter.Body.setAngularVelocity(chassis, maxSpin);
         if (chassis.angularVelocity < -maxSpin) Matter.Body.setAngularVelocity(chassis, -maxSpin);
       } else {
