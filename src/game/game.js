@@ -202,7 +202,12 @@ export class Game {
       // 플립 성공(깨끗한 착지) = 거리 보너스. 뒷구르기(백플립)는 더 어려우니 1.6배.
       this.flips += flips;
       this.flipBonusM = (this.flipBonusM || 0) + Math.round(flips * FLIP_METERS * (trick.back ? 1.6 : 1));
-      this._showTrick(flips, trick.back);
+      // 연료 보상: 한 번에 여러 바퀴일수록 회당 가산(콤보). 1회 +2, 2회 +5, 3회 +9초 …
+      let secs = 0;
+      for (let i = 1; i <= flips; i++) secs += FLIP_TIME + (i - 1);
+      if (trick.back) secs = Math.round(secs * 1.6);   // 백플립 가산(거리와 동일 정책)
+      this.fuel += secs;
+      this._showTrick(flips, trick.back, secs);
       audio.sfx.flip();
     }
     this._wasAir = !grounded;
@@ -495,11 +500,9 @@ export class Game {
     ctx.shadowBlur = 0;
   }
 
-  _showTrick(n, back) {
+  _showTrick(n, back, secs) {
     const name = back ? t.backflip : t.frontflip;
-    const label = n >= 2 ? `${n}x ${name}` : name;
-    const m = Math.round(n * FLIP_METERS * (back ? 1.6 : 1));
-    this._toast(`${back ? '🔄 ' : ''}${label}! +${m}m`, back ? '#ffd34d' : '#5b8cff');
+    this._toast(`${back ? '🔄 ' : ''}${t.flipCombo(n, name)}! +${secs}s`, back ? '#ffd34d' : '#5b8cff');
   }
 
   _triggerEvent(ev) {
