@@ -514,16 +514,28 @@ export class Game {
     ctx.stroke();
     ctx.restore();
 
-    // 현재 위치 마커
-    let yAt = scaled[0].y;
-    for (let i = 1; i < scaled.length; i++) {
-      if (scaled[i].x >= markerX) {
-        const a = scaled[i - 1], b = scaled[i];
-        const t = (markerX - a.x) / (b.x - a.x || 1);
-        yAt = a.y + (b.y - a.y) * t;
-        break;
+    // 차트 위 특정 x의 y 보간
+    const yOf = (mx) => {
+      let y = scaled[0].y;
+      for (let i = 1; i < scaled.length; i++) {
+        if (scaled[i].x >= mx) { const a = scaled[i - 1], b = scaled[i]; y = a.y + (b.y - a.y) * ((mx - a.x) / (b.x - a.x || 1)); break; }
+      }
+      return y;
+    };
+
+    // 멀티 — 다른 라이더(고스트) 위치 점
+    if (this.multi) {
+      for (const g of this.ghosts) {
+        const gx = padX + Math.max(0, Math.min(1, g.progress)) * (w - 2 * padX);
+        ctx.fillStyle = g.color;
+        ctx.shadowColor = g.color; ctx.shadowBlur = 5;
+        ctx.beginPath(); ctx.arc(gx, yOf(gx), 2.8, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
       }
     }
+
+    // 현재 위치 마커(플레이어)
+    const yAt = yOf(markerX);
     ctx.strokeStyle = 'rgba(255,211,77,0.5)';
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(markerX, 4); ctx.lineTo(markerX, h - 4); ctx.stroke();
@@ -643,40 +655,37 @@ export class Game {
     }
   }
 
-  // 멀티 — AI 고스트 라이더들(코스 위, 색상 바이크 + 닉네임)
+  // 멀티 — AI 고스트 라이더들(플레이어와 동일한 디테일 바이크, 색상만 다르게 + 닉네임)
   _drawGhosts(ctx, camX, vw) {
     const L = this.finishX - this.startX;
     for (const g of this.ghosts) {
       const x = this.startX + g.progress * L;
-      if (x < camX - 160 || x > camX + vw + 160) continue;   // 화면 밖은 스킵
-      const y = this._terrainYAt(x);
+      if (x < camX - 200 || x > camX + vw + 200) continue;   // 화면 밖은 스킵
       const slope = Math.atan2(this._terrainYAt(x + 30) - this._terrainYAt(x - 30), 60);
-      this._drawGhostBike(ctx, x, y, slope, g);
-      this._drawNameTag(ctx, x, y - 52, g.name, g.color);
+      const py = this._terrainYAt(x) - 50;                   // 바퀴가 지면에 닿도록(플레이어와 동일 기준)
+      const cA = Math.cos(slope), sA = Math.sin(slope);
+      const toW = (lx, ly) => ({ x: x + lx * cA - ly * sA, y: py + lx * sA + ly * cA });
+      const spin = x / 24;                                   // 이동거리 기반 바퀴 회전(굴러가는 느낌)
+      const pose = {
+        px: x, py, ang: slope,
+        wheels: [{ pos: toW(-44, 26), ang: spin }, { pos: toW(44, 26), ang: spin }],
+      };
+      this._renderBike(ctx, pose, g.color, 0.92);
+      this._drawNameTag(ctx, x, py - 38, g.name, g.color);
     }
   }
 
-  _drawGhostBike(ctx, x, y, slope, g) {
-    ctx.save();
-    ctx.translate(x, y - 16);
-    ctx.rotate(slope);
-    ctx.globalAlpha = 0.9;
-    const col = g.color;
-    const WR = 15, wb = 25;   // 바퀴 반지름 / 휠베이스 반
-    for (const wx of [-wb, wb]) {
-      ctx.fillStyle = '#0c1117';
-      ctx.beginPath(); ctx.arc(wx, 0, WR, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = col; ctx.lineWidth = 2.4;
-      ctx.shadowColor = col; ctx.shadowBlur = 6;
-      ctx.beginPath(); ctx.arc(wx, 0, WR - 5, 0, Math.PI * 2); ctx.stroke();
-      ctx.shadowBlur = 0;
-    }
-    ctx.strokeStyle = col; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.beginPath(); ctx.moveTo(-wb, -3); ctx.lineTo(0, -13); ctx.lineTo(wb, -3); ctx.stroke();   // 프레임
-    ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(4, -24); ctx.stroke();                          // 라이더 몸
-    ctx.fillStyle = col;
-    ctx.beginPath(); ctx.arc(5, -29, 5.5, 0, Math.PI * 2); ctx.fill();                               // 머리
-    ctx.restore();
+  // 색상 유틸 — accent 에서 밝게/어둡게(gradient용), rgba(glow용)
+  _shade(hex, pct) {
+    const n = parseInt(hex.slice(1), 16);
+    let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    const t = pct < 0 ? 0 : 255, p = Math.abs(pct) / 100;
+    r = Math.round((t - r) * p) + r; g = Math.round((t - g) * p) + g; b = Math.round((t - b) * p) + b;
+    return `rgb(${r},${g},${b})`;
+  }
+  _rgba(hex, a) {
+    const n = parseInt(hex.slice(1), 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
   }
 
   // 바이크 위 닉네임 라벨 (회전 없이 수평)
@@ -768,10 +777,7 @@ export class Game {
 
   _drawBike(ctx) {
     const { chassis, rear, front } = this.bike;
-    const WR = 24;
-    const rx = -44, fx = 44, wy = 26;  // 로컬 바퀴 위치
-
-    // 부스트 스피드 라인 (뒤로 흐르는 잔상)
+    // 부스트 스피드 라인 (뒤로 흐르는 잔상) — 플레이어만
     const boost = this.bike._boost || 0;
     if (boost > 0.4) {
       ctx.strokeStyle = `rgba(44,230,196,${(boost - 0.4) * 0.7})`;
@@ -786,17 +792,21 @@ export class Game {
         ctx.stroke();
       }
     }
-
-    // 바퀴는 프레임 고정 위치에 그려 항상 붙어 보이게 (회전각만 물리에서 가져옴)
     const c = Math.cos(chassis.angle), s = Math.sin(chassis.angle);
-    const toWorld = (lx, ly) => ({
-      x: chassis.position.x + lx * c - ly * s,
-      y: chassis.position.y + lx * s + ly * c,
-    });
-    const wheels = [
-      { pos: toWorld(rx, wy), ang: rear.angle },
-      { pos: toWorld(fx, wy), ang: front.angle },
-    ];
+    const toWorld = (lx, ly) => ({ x: chassis.position.x + lx * c - ly * s, y: chassis.position.y + lx * s + ly * c });
+    this._renderBike(ctx, {
+      px: chassis.position.x, py: chassis.position.y, ang: chassis.angle,
+      wheels: [{ pos: toWorld(-44, 26), ang: rear.angle }, { pos: toWorld(44, 26), ang: front.angle }],
+    }, '#2ce6c4', 1);
+  }
+
+  // 플레이어/고스트 공용 — 포즈(px,py,ang,wheels[rear,front]) + accent 색으로 디테일 바이크를 그린다.
+  _renderBike(ctx, pose, accent, alpha = 1) {
+    const { px, py, ang, wheels } = pose;
+    const WR = 24;
+    const rx = -44, fx = 44, wy = 26;  // 로컬 바퀴 위치
+    ctx.save();
+    ctx.globalAlpha = alpha;
 
     // ---- 바퀴 — 오프로드 너클 타이어 ----
     for (const w of wheels) {
@@ -816,8 +826,8 @@ export class Game {
       ctx.fillStyle = '#0c1117';
       ctx.beginPath(); ctx.arc(0, 0, WR, 0, Math.PI * 2); ctx.fill();
       // 림(네온)
-      ctx.strokeStyle = '#2ce6c4'; ctx.lineWidth = 2.5;
-      ctx.shadowColor = 'rgba(44,230,196,0.7)'; ctx.shadowBlur = 8;
+      ctx.strokeStyle = accent; ctx.lineWidth = 2.5;
+      ctx.shadowColor = this._rgba(accent, 0.7); ctx.shadowBlur = 8;
       ctx.beginPath(); ctx.arc(0, 0, WR - 8, 0, Math.PI * 2); ctx.stroke();
       ctx.shadowBlur = 0;
       // 스포크 + 허브
@@ -834,8 +844,8 @@ export class Game {
 
     // ---- 프레임 + 플라스틱 + 라이더 (차체 로컬 좌표) ----
     ctx.save();
-    ctx.translate(chassis.position.x, chassis.position.y);
-    ctx.rotate(chassis.angle);
+    ctx.translate(px, py);
+    ctx.rotate(ang);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -870,9 +880,9 @@ export class Game {
     ctx.closePath(); ctx.fill();
 
     // 메인 플라스틱 (샤우드+탱크+시트) — 네온 틸 투톤
-    ctx.shadowColor = 'rgba(44,230,196,0.5)'; ctx.shadowBlur = 14;
+    ctx.shadowColor = this._rgba(accent, 0.5); ctx.shadowBlur = 14;
     const body = ctx.createLinearGradient(0, -24, 0, 8);
-    body.addColorStop(0, '#39f0d4'); body.addColorStop(1, '#10b89c');
+    body.addColorStop(0, this._shade(accent, 20)); body.addColorStop(1, this._shade(accent, -28));
     ctx.fillStyle = body;
     ctx.beginPath();
     ctx.moveTo(-46, -8);                     // 리어 펜더 끝
@@ -918,7 +928,7 @@ export class Game {
     ctx.strokeStyle = '#22406e'; ctx.lineWidth = 12;
     ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo(shX, shY); ctx.stroke();
     // 어깨 패드 하이라이트
-    ctx.strokeStyle = '#2ce6c4'; ctx.lineWidth = 4;
+    ctx.strokeStyle = accent; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.moveTo(hipX + 4, hipY - 5); ctx.lineTo(shX - 2, shY + 3); ctx.stroke();
     // 팔
     ctx.strokeStyle = '#2c4a78'; ctx.lineWidth = 6;
@@ -930,10 +940,11 @@ export class Game {
     ctx.fillStyle = '#1d2735';
     ctx.beginPath(); ctx.moveTo(shX + 12, shY - 12); ctx.lineTo(shX + 19, shY - 11); ctx.lineTo(shX + 13, shY - 7); ctx.closePath(); ctx.fill();
     // 고글
-    ctx.fillStyle = '#2ce6c4';
+    ctx.fillStyle = accent;
     this._roundRect(ctx, shX + 7, shY - 9, 8, 4, 2); ctx.fill();
 
-    ctx.restore();
+    ctx.restore();   // 프레임 변환 종료
+    ctx.restore();   // alpha 종료
   }
 
   _roundRect(ctx, x, y, w, h, r) {

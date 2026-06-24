@@ -145,7 +145,7 @@ function launchMode(item) {
 async function launchMulti(item) {
   if (!item) return;
   selected = item;
-  const count = 2 + Math.floor(Math.random() * 3);     // 2~4명
+  const count = 3 + Math.floor(Math.random() * 4);     // 3~6명(사람 많아 보이게)
   const ghostNames = pickGhostNames(count);
   const myNick = getNick() || t.anon;
   await runMatchmaking(myNick, ghostNames);            // '다른 라이더 찾는 중' 연출
