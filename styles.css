@@ -204,9 +204,10 @@ body {
   display: flex; align-items: center; justify-content: space-between;
   gap: 10px; padding: 0 14px; pointer-events: none;
 }
-/* 왼손 컨트롤 — 앞들기/뒤로 · 점프 · 앞숙임 한 줄(빈공간 없음) */
-.dpad-row { display: flex; gap: 6px; flex: 1 1 0; max-width: 252px; }
-.dpad-row .ctrl-btn { flex: 1 1 0; min-width: 0; height: min(24vw, 94px); }
+/* 왼손 컨트롤 — 위: 앞들기/뒤로 · 앞숙임 / 아래: 점프(가로) */
+.dpad-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; flex: 1 1 0; max-width: 220px; }
+.dpad-grid .ctrl-btn { min-width: 0; height: min(20vw, 80px); }
+.dpad-grid .dp-jump-wide { grid-column: 1 / 3; height: min(15vw, 60px); }
 .ctrl-btn {
   pointer-events: auto;
   touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
@@ -227,8 +228,9 @@ body {
 
 @media (hover: hover) and (pointer: fine) {
   .controls { opacity: .9; }
-  .dpad-row { max-width: 220px; }
-  .dpad-row .ctrl-btn { height: 76px; }
+  .dpad-grid { max-width: 188px; }
+  .dpad-grid .ctrl-btn { height: 66px; }
+  .dpad-grid .dp-jump-wide { height: 50px; }
   .ctrl-gas { width: 96px; height: 92px; }
 }
 
