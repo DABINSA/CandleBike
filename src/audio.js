@@ -25,6 +25,17 @@ export function unlock() {
   if (c && c.state === 'suspended') c.resume();
 }
 
+// 다른 앱/탭으로 전환하면 오디오 정지(백그라운드에서 BGM이 계속 나는 것 방지), 돌아오면 재개.
+// AudioContext 를 suspend 하면 BGM·엔진음이 모두 멈추고 currentTime 도 멈춰 음표 누적이 없다.
+function _onVisibility() {
+  if (!ctx) return;
+  if (document.hidden) { try { ctx.suspend(); } catch {} }
+  else if (!muted) { try { ctx.resume(); } catch {} }
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', _onVisibility);
+}
+
 export function isMuted() { return muted; }
 export function setMuted(m) {
   muted = !!m;

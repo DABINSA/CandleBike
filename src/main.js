@@ -13,6 +13,7 @@ import { quickDifficulty } from './difficulty.js';
 import { MOCK_SYMBOLS } from './stock/mockData.js';
 import * as audio from './audio.js';
 import { effectiveAdMode } from './toss.js';
+import './tune.js';   // ?tune=1 일 때만 물리 튜닝 패널 표시
 
 // 토스 인앱에서는 외부광고 금지 → 광고/결과 게이트 'off'(결과 즉시 공개).
 const AD_MODE = effectiveAdMode(CONFIG.AD_MODE);
@@ -175,13 +176,23 @@ function setTrendingTab(mode) {
 document.getElementById('tab-gainers')?.addEventListener('click', () => setTrendingTab('gainers'));
 document.getElementById('tab-volume')?.addEventListener('click', () => setTrendingTab('volume'));
 
+let playCtx = null;   // 재시작용 — 현재 플레이 중인 코스
 function startGame(series, symbol, name) {
+  playCtx = { series, symbol, name };
   show('play');
   initPlayBanner();
   const canvas = $('game-canvas');
+  if (game) { try { game.stop(); } catch {} }   // 이전 게임 정리(재시작 시)
   game = new Game(canvas);
   game.start(series, symbol, name, onGameEnd);
 }
+
+// 플레이 중 재시작 — 결과까지 안 기다리고 같은 코스를 즉시 다시
+function restartPlay() {
+  if (!playCtx) return;
+  startGame(playCtx.series, playCtx.symbol, playCtx.name);
+}
+$('btn-restart-play')?.addEventListener('click', restartPlay);
 
 // ---------------- 게임 종료 → 리워드 광고 → 결과 ----------------
 async function onGameEnd(result) {

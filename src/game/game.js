@@ -99,11 +99,10 @@ export class Game {
 
   // ---------- 입력 ----------
   _bindInput() {
-    const gasBtn = document.getElementById('btn-gas');
-    const brakeBtn = document.getElementById('btn-brake');
     const set = (k, v) => { if (this.bike) this.bike.input[k] = v; };
 
     this._press = (el, k) => {
+      if (!el) return;
       const down = (e) => { e.preventDefault(); el.setPointerCapture?.(e.pointerId); set(k, true); };
       const up = (e) => { e.preventDefault(); set(k, false); };
       const ctx = (e) => e.preventDefault();   // 모바일 롱프레스 메뉴 차단
@@ -114,17 +113,21 @@ export class Game {
       el.addEventListener('contextmenu', ctx);
       el._handlers = { down, up, ctx };
     };
-    const jumpBtn = document.getElementById('btn-jump');
-    this._press(gasBtn, 'gas');
-    this._press(brakeBtn, 'brake');
-    this._press(jumpBtn, 'jump');
+    // 모바일 4버튼: 윌리(앞들기) · 앞숙임 · 점프 · 가속
+    this._press(document.getElementById('btn-wheelie'), 'leanBack');
+    this._press(document.getElementById('btn-nose'), 'leanFwd');
+    this._press(document.getElementById('btn-jump'), 'jump');
+    this._press(document.getElementById('btn-gas'), 'gas');
 
+    // 키보드: Up/W=가속, Left/A=앞들기(윌리), Right/D=앞숙임, Space=점프, Down/S=브레이크
     this._key = (e) => {
       const down = e.type === 'keydown';
       const k = e.key.toLowerCase();
-      if (e.key === 'ArrowRight' || k === 'd') set('gas', down);
-      if (e.key === 'ArrowLeft' || k === 'a') set('brake', down);
-      if (e.key === ' ' || e.key === 'ArrowUp' || k === 'w') { e.preventDefault(); set('jump', down); }
+      if (e.key === 'ArrowUp' || k === 'w') { e.preventDefault(); set('gas', down); }
+      if (e.key === 'ArrowLeft' || k === 'a') set('leanBack', down);
+      if (e.key === 'ArrowRight' || k === 'd') set('leanFwd', down);
+      if (e.key === ' ') { e.preventDefault(); set('jump', down); }
+      if (e.key === 'ArrowDown' || k === 's') set('brake', down);
     };
     window.addEventListener('keydown', this._key);
     window.addEventListener('keyup', this._key);
@@ -264,7 +267,7 @@ export class Game {
       window.removeEventListener('keydown', this._key);
       window.removeEventListener('keyup', this._key);
     }
-    ['btn-gas', 'btn-brake', 'btn-jump'].forEach((id) => {
+    ['btn-gas', 'btn-wheelie', 'btn-nose', 'btn-jump'].forEach((id) => {
       const el = document.getElementById(id);
       if (el && el._handlers) {
         el.removeEventListener('pointerdown', el._handlers.down);

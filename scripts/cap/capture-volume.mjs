@@ -1,0 +1,14 @@
+import puppeteer from 'puppeteer-core';
+const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+const OUT = 'C:\\Users\\David\\AppData\\Local\\Temp\\claude\\d--Project-Stock-Game\\1fb0636e-f7cf-4ca4-bcb8-3248f3ca07ef\\scratchpad';
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--hide-scrollbars'] });
+const page = await browser.newPage();
+await page.setViewport({ width: 636, height: 1048, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+await page.goto('https://candlebike.vercel.app/', { waitUntil: 'networkidle2', timeout: 60000 });
+await sleep(2500);
+await page.click('#tab-volume');
+await sleep(3000);
+await page.screenshot({ path: `${OUT}\\volume-tab.png` });
+console.log('saved volume-tab.png');
+await browser.close();

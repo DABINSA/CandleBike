@@ -202,34 +202,55 @@ body {
   position: absolute; left: 0; right: 0; z-index: 8;
   bottom: calc(env(safe-area-inset-bottom) + 64px);  /* 하단 광고 배너 위로 */
   display: flex; align-items: flex-end; justify-content: space-between;
-  gap: 12px; padding: 0 16px; pointer-events: none;
+  gap: 10px; padding: 0 10px; pointer-events: none;
 }
+.ctrl-cluster { display: flex; gap: 6px; flex: 1 1 0; }
+.ctrl-right { justify-content: flex-end; }
 .ctrl-btn {
   pointer-events: auto;
   touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-  flex: 1 1 0; max-width: 160px; height: 96px; border-radius: 20px;
-  font-size: 16px; font-weight: 800; color: var(--text);
+  flex: 1 1 0; min-width: 0; max-width: 110px; height: 92px; border-radius: 18px;
+  font-size: 14px; font-weight: 800; color: var(--text);
   background: rgba(255,255,255,.07); border: 1.5px solid var(--panel-border);
   backdrop-filter: blur(6px);
   display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.25;
   box-shadow: 0 6px 18px rgba(0,0,0,.4);
 }
 .ctrl-btn:active { transform: scale(.95); filter: brightness(1.25); }
+#btn-wheelie, #btn-nose { background: rgba(255,211,77,.12); border-color: rgba(255,211,77,.42); color: #ffe9a8; }
 .ctrl-gas { background: rgba(44,230,196,.16); border-color: rgba(44,230,196,.5); color: #d7fff6; }
-.ctrl-jump {
-  flex: 0 0 auto; width: 88px; height: 88px; border-radius: 50%; font-size: 15px;
-  background: rgba(91,140,255,.18); border-color: rgba(91,140,255,.5); color: #cdd9ff;
-}
+.ctrl-jump { background: rgba(91,140,255,.18); border-color: rgba(91,140,255,.5); color: #cdd9ff; }
 
-/* 작은 화면(모바일)에서 더 큼직하게, 데스크톱에선 살짝 작게 */
-@media (max-width: 560px) {
-  .ctrl-btn { height: 104px; font-size: 17px; }
-  .ctrl-jump { width: 92px; height: 92px; }
-}
 @media (hover: hover) and (pointer: fine) {
   .controls { opacity: .85; }
-  .ctrl-btn { max-width: 130px; height: 78px; }
+  .ctrl-btn { height: 72px; }
 }
+
+/* 플레이 중 재시작 버튼 */
+.restart-btn {
+  position: absolute; top: calc(env(safe-area-inset-top) + 10px); right: 12px; z-index: 9;
+  background: rgba(13,19,32,.82); border: 1px solid var(--panel-border); color: var(--muted);
+  font-size: 12px; font-weight: 800; padding: 7px 12px; border-radius: 999px; cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+.restart-btn:active { transform: scale(.94); filter: brightness(1.2); }
+
+/* 물리 튜닝 패널 (?tune=1) */
+#tune-panel {
+  position: fixed; top: 8px; right: 8px; z-index: 99999; width: 248px; max-height: 88vh; overflow-y: auto;
+  background: rgba(8,12,20,.95); border: 1px solid var(--neon); border-radius: 12px; padding: 8px 10px;
+  font-size: 11px; color: var(--text); box-shadow: 0 8px 30px rgba(0,0,0,.6);
+}
+#tune-panel.min #tp-body, #tune-panel.min .tp-foot { display: none; }
+.tp-head { display: flex; justify-content: space-between; align-items: center; }
+.tp-head button { background: none; border: 1px solid var(--panel-border); color: var(--muted); border-radius: 6px; cursor: pointer; padding: 0 9px; }
+.tp-row { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "k v" "s s"; gap: 1px 6px; margin: 8px 0; }
+.tp-k { grid-area: k; color: var(--neon); font-weight: 700; display: flex; flex-direction: column; }
+.tp-k em { color: var(--muted); font-weight: 500; font-style: normal; font-size: 9px; }
+.tp-v { grid-area: v; font-weight: 800; align-self: center; }
+.tp-row input[type=range] { grid-area: s; width: 100%; accent-color: var(--neon); }
+.tp-foot { display: flex; gap: 6px; margin-top: 8px; }
+.tp-foot button { flex: 1; background: var(--bg2); border: 1px solid var(--panel-border); color: var(--text); border-radius: 8px; padding: 6px; font-weight: 700; cursor: pointer; }
 
 /* 조작 안내 토스트 (게임 시작 시 잠깐) — 화면 중하단 빈 공간(상단 연료바·하단 버튼 모두 안 가림) */
 .controls-hint {
