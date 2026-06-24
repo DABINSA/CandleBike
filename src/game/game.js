@@ -717,6 +717,8 @@ export class Game {
       let scale = 1 + Math.max(-0.35, Math.min(0.5, slope * 0.8));   // 지형 반응
       g._stumble = Math.max(0, (g._stumble || 0) - dt);
       if (g._stumble > 0) scale *= 0.3;                              // 걸림 중엔 확 느려짐(시간 손해)
+      g._boost = Math.max(0, (g._boost || 0) - dt / 1.2);           // 트릭 부스트 감쇠
+      if (g._boost > 0) scale *= 1 + g._boost * 0.6;                 // 부스트 중 가속(최대 +60%)
       g._speedScale = scale;
 
       // 장애물 — 플레이어가 보는 실제 벽(_eventBodies)만 기준. 진입 시 한 번 판단: 넘김/걸림.
@@ -739,15 +741,15 @@ export class Game {
       }
       g.obAir = lift;
 
-      // 평지 플레어 백플립 — 가끔, 0.8s/바퀴(플레이어 수준). 장애물/경사/걸림 중엔 안 함.
+      // 백플립 — 자주(과하지 않게), 경사여도 OK. 착지 시 부스트. 장애물/걸림 중엔 안 함.
       g._cool = Math.max(0, (g._cool || 0) - dt);
       if (g.flip > 0) {
         g.flip += dt / g.flipDur;
-        if (g.flip >= 1) g.flip = 0;
-      } else if (g._cool <= 0 && lift < 2 && g._stumble <= 0 && Math.abs(slope) < 0.22 && Math.random() < dt * 0.05) {
-        const turns = Math.random() < 0.25 ? 2 : 1;
+        if (g.flip >= 1) { g.flip = 0; g._boost = 1; }              // 착지 → 부스트 발동
+      } else if (g._cool <= 0 && lift < 2 && g._stumble <= 0 && Math.abs(slope) < 0.5 && Math.random() < dt * 0.3) {
+        const turns = Math.random() < 0.22 ? 2 : 1;
         g.flip = 0.0001; g.flipTurns = turns; g.flipDur = turns * 0.8; g.flipDir = -1;
-        g._cool = 3 + Math.random() * 3;
+        g._cool = 1.6 + Math.random() * 2;                          // 다음 트릭까지 텀(너무 자주 X)
       }
     }
   }
@@ -772,6 +774,16 @@ export class Game {
         px: x, py, ang,
         wheels: [{ pos: toW(-44, 26), ang: spin }, { pos: toW(44, 26), ang: spin }],
       };
+      if (g._boost > 0.25) {                                 // 부스트 스피드 라인(뒤로 흐름)
+        ctx.save();
+        ctx.strokeStyle = this._rgba(g.color, (g._boost - 0.25) * 0.85);
+        ctx.lineWidth = 2; ctx.lineCap = 'round';
+        for (let i = 0; i < 4; i++) {
+          const yy = py - 30 + i * 12;
+          ctx.beginPath(); ctx.moveTo(x - 48 - i * 5, yy); ctx.lineTo(x - 92 - g._boost * 70 - i * 5, yy); ctx.stroke();
+        }
+        ctx.restore();
+      }
       this._renderBike(ctx, pose, g.color, 0.92);
       this._drawNameTag(ctx, x, py - 38, g.name, g.color);
     }
