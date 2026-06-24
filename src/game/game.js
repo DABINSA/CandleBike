@@ -7,6 +7,7 @@ import { difficulty } from '../difficulty.js';
 import { eventName } from '../events.js';
 import { buildTerrain } from './terrain.js';
 import { createBike } from './bike.js';
+import { createGhosts, updateGhosts } from './ghosts.js';
 import * as audio from '../audio.js';
 
 const PX_PER_METER = 9;
@@ -78,6 +79,17 @@ export class Game {
     this.graceSec = 1.8;          // 시작 직후 종료 판정 유예(착지 대기)
     this._revivesLeft = this.testMode ? 0 : 1;   // 광고 보고 '이어가기' 1회
     this._reviveGraceUntil = 0;   // 부활 직후 종료 판정 유예
+
+    // 멀티(가짜 AI 경쟁) — 중간 실력의 고스트 2~4명. par = 연료예산 × 계수.
+    this.multi = !!opts.multi && !this.testMode;
+    this.playerNick = opts.nick || '나';
+    if (this.multi) {
+      const parTime = CONFIG.GAME.fuelSeconds * (CONFIG.MULTI?.aiParFactor ?? 0.9);
+      this.ghosts = createGhosts(opts.ghostCount || 3, parTime, opts.ghostNames);
+    } else {
+      this.ghosts = [];
+    }
+    this.finishX = this.terrain.worldWidth - 120;   // 완주선(플레이어 종료 조건과 동일)
 
     // 지면 접촉 감지
     Matter.Events.on(this.engine, 'collisionActive', (ev) => {
@@ -270,6 +282,8 @@ export class Game {
     if (inverted && speed < 1.6 && (grounded || this._chassisTouching)) this._crashTimer += dt;
     else this._crashTimer = Math.max(0, this._crashTimer - dt * 2);
 
+    if (this.multi) updateGhosts(this.ghosts, dt, (now - this.startTime) / 1000);
+
     this._updateHud();
     this._render();
     this._checkEnd();
@@ -377,18 +391,37 @@ export class Game {
     audio.sfx[completed ? 'finish' : 'gameover']();
     this._cleanupInput();
     window.removeEventListener('resize', this._resizeHandler);
-    if (this._onEnd) {
-      this._onEnd({
-        symbol: this.symbol,
-        name: this.stockName,
-        distance: this.distanceM,
-        flips: this.flips,
-        completed,
-        timeMs,
-        reason,
-        diff: this.diff,
-      });
-    }
+    const payload = {
+      symbol: this.symbol,
+      name: this.stockName,
+      distance: this.distanceM,
+      flips: this.flips,
+      completed,
+      timeMs,
+      reason,
+      diff: this.diff,
+    };
+    if (this.multi) Object.assign(payload, this._standings(completed, timeMs));
+    if (this._onEnd) this._onEnd(payload);
+  }
+
+  // 멀티 최종 순위 — 완주자는 완주시간 빠른 순, 미완주는 진행도 높은 순.
+  _standings(completed, timeMs) {
+    const L = this.finishX - this.startX;
+    const pProg = Math.max(0, Math.min(1, (this.maxX - this.startX) / L));
+    const entrants = [
+      { name: this.playerNick, color: '#2ce6c4', isPlayer: true,
+        finished: completed, finishTime: completed ? timeMs / 1000 : null, progress: completed ? 1 : pProg },
+      ...this.ghosts.map((g) => ({ name: g.name, color: g.color, isPlayer: false,
+        finished: g.finished, finishTime: g.finishTime, progress: g.progress })),
+    ];
+    entrants.sort((a, b) => {
+      if (a.finished && b.finished) return a.finishTime - b.finishTime;
+      if (a.finished !== b.finished) return a.finished ? -1 : 1;
+      return b.progress - a.progress;
+    });
+    entrants.forEach((e, i) => { e.rank = i + 1; });
+    return { multi: true, standings: entrants, multiRank: entrants.findIndex((e) => e.isPlayer) + 1, multiTotal: entrants.length };
   }
 
   stop() {
@@ -578,7 +611,9 @@ export class Game {
     this._drawTerrain(ctx, camX, worldW);
     this._drawLabels(ctx, camX, worldW);
     this._drawEvents(ctx);
+    if (this.multi) this._drawGhosts(ctx, camX, worldW);
     this._drawBike(ctx);
+    if (this.multi) this._drawNameTag(ctx, this.bike.position.x, this.bike.position.y - 50, this.playerNick, '#2ce6c4');
 
     ctx.restore();
 
@@ -606,6 +641,58 @@ export class Game {
       ctx.font = '800 13px sans-serif'; ctx.fillStyle = isTest ? '#ffe9a8' : '#ff8da0';
       ctx.fillText(isTest ? t.obstacle : eventName(eb.event), x, top - 48);
     }
+  }
+
+  // 멀티 — AI 고스트 라이더들(코스 위, 색상 바이크 + 닉네임)
+  _drawGhosts(ctx, camX, vw) {
+    const L = this.finishX - this.startX;
+    for (const g of this.ghosts) {
+      const x = this.startX + g.progress * L;
+      if (x < camX - 160 || x > camX + vw + 160) continue;   // 화면 밖은 스킵
+      const y = this._terrainYAt(x);
+      const slope = Math.atan2(this._terrainYAt(x + 30) - this._terrainYAt(x - 30), 60);
+      this._drawGhostBike(ctx, x, y, slope, g);
+      this._drawNameTag(ctx, x, y - 52, g.name, g.color);
+    }
+  }
+
+  _drawGhostBike(ctx, x, y, slope, g) {
+    ctx.save();
+    ctx.translate(x, y - 16);
+    ctx.rotate(slope);
+    ctx.globalAlpha = 0.9;
+    const col = g.color;
+    const WR = 15, wb = 25;   // 바퀴 반지름 / 휠베이스 반
+    for (const wx of [-wb, wb]) {
+      ctx.fillStyle = '#0c1117';
+      ctx.beginPath(); ctx.arc(wx, 0, WR, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = col; ctx.lineWidth = 2.4;
+      ctx.shadowColor = col; ctx.shadowBlur = 6;
+      ctx.beginPath(); ctx.arc(wx, 0, WR - 5, 0, Math.PI * 2); ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+    ctx.strokeStyle = col; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(-wb, -3); ctx.lineTo(0, -13); ctx.lineTo(wb, -3); ctx.stroke();   // 프레임
+    ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(4, -24); ctx.stroke();                          // 라이더 몸
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(5, -29, 5.5, 0, Math.PI * 2); ctx.fill();                               // 머리
+    ctx.restore();
+  }
+
+  // 바이크 위 닉네임 라벨 (회전 없이 수평)
+  _drawNameTag(ctx, x, topY, name, color) {
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.font = '700 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const w = ctx.measureText(name).width;
+    ctx.fillStyle = 'rgba(5,8,13,0.72)';
+    this._roundRect(ctx, x - w / 2 - 8, topY - 11, w + 16, 22, 7); ctx.fill();
+    ctx.fillStyle = color;
+    ctx.fillText(name, x, topY + 1);
+    ctx.restore();
+    ctx.textBaseline = 'alphabetic';
   }
 
   _drawGrid(ctx, camX, camY, vw, vh) {

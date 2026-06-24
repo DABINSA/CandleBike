@@ -71,6 +71,12 @@
           <ul id="search-results" class="search-results"></ul>
         </div>
 
+        <!-- 모드: 싱글 / 멀티(가짜 경쟁) -->
+        <div class="mode-seg" id="mode-seg">
+          <button class="mode-opt active" type="button" data-mode="single" data-i18n="modeSingle">🏍️ 싱글</button>
+          <button class="mode-opt" type="button" data-mode="multi" data-i18n="modeMulti">👥 멀티 경쟁</button>
+        </div>
+
         <button id="btn-start" class="btn btn-primary" data-i18n="selectStock" disabled>종목을 선택하세요</button>
 
         <!-- 실시간 추천: 급등주 / 거래량 토글 (클릭 즉시 시작) -->
@@ -181,6 +187,12 @@
           <div class="rc-brand" data-i18n="brand">📈🏍️ 캔들바이크</div>
         </div>
 
+        <!-- 멀티 결과 등수 (멀티일 때만 노출) -->
+        <div id="multi-result" class="multi-result" hidden>
+          <div class="mr-headline" id="mr-headline"></div>
+          <ol id="mr-standings" class="mr-standings"></ol>
+        </div>
+
         <div class="share-row">
           <button id="btn-share" class="btn btn-primary" data-i18n="share">📲 공유하기</button>
           <button id="btn-save-card" class="btn btn-ghost" data-i18n="saveImg">🖼️ 결과 이미지 저장</button>
@@ -205,6 +217,16 @@
       <p data-i18n="nickTitle">순위에 기록할 닉네임</p>
       <input id="nick-input" type="text" maxlength="12" data-i18n-ph="nickPh" placeholder="라이더닉네임" />
       <button id="nick-save" class="btn btn-primary" data-i18n="nickSave">저장하고 순위 등록</button>
+    </div>
+  </div>
+
+  <!-- 매칭중(가짜) — 멀티 시작 전 '다른 라이더 기다리는 중' 연출 -->
+  <div id="match-overlay" class="match-overlay">
+    <div class="match-inner">
+      <div class="match-spinner"></div>
+      <p class="match-title" data-i18n="matchTitle">다른 라이더를 찾는 중…</p>
+      <p class="match-sub" id="match-sub" data-i18n="matchSub">곧 경주가 시작됩니다</p>
+      <ul id="match-players" class="match-players"></ul>
     </div>
   </div>
 

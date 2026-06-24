@@ -9,6 +9,7 @@ import { Game } from './game/game.js';
 import { initPlayBanner, showRewardedAd, renderHouseAd } from './ads/ads.js';
 import { submitScore, topScores, getNick, setNick, isRemote } from './leaderboard/leaderboard.js';
 import { shareResult, saveCard } from './share/share.js';
+import { pickGhostNames } from './game/ghosts.js';
 import { quickDifficulty } from './difficulty.js';
 import { MOCK_SYMBOLS } from './stock/mockData.js';
 import * as audio from './audio.js';
@@ -45,6 +46,7 @@ function show(name) {
 }
 
 let selected = null;     // { symbol, name }
+let gameMode = 'single'; // 'single' | 'multi'(가짜 AI 경쟁)
 let game = null;
 let lastResult = null;    // { symbol, distance, flips, score }
 
@@ -123,7 +125,67 @@ async function launch(item) {
     show('home');
   }
 }
-$('btn-start').onclick = () => launch(selected);
+$('btn-start').onclick = () => launchMode(selected);
+
+// ---------------- 모드 선택(싱글 / 멀티 가짜 경쟁) ----------------
+document.querySelectorAll('.mode-opt').forEach((b) => {
+  b.onclick = () => {
+    gameMode = b.dataset.mode;
+    document.querySelectorAll('.mode-opt').forEach((x) => x.classList.toggle('active', x === b));
+  };
+});
+
+// 모드에 따라 분기 — 싱글은 바로, 멀티는 매칭 연출 후 시작.
+function launchMode(item) {
+  if (gameMode === 'multi') return launchMulti(item);
+  return launch(item);
+}
+
+// 멀티(가짜) — 2~4명 더미와 매칭되는 척 → 코스 로드 → 고스트와 경주.
+async function launchMulti(item) {
+  if (!item) return;
+  selected = item;
+  const count = 2 + Math.floor(Math.random() * 3);     // 2~4명
+  const ghostNames = pickGhostNames(count);
+  const myNick = getNick() || t.anon;
+  await runMatchmaking(myNick, ghostNames);            // '다른 라이더 찾는 중' 연출
+  rememberName(item.symbol, item.name);
+  show('loading');
+  $('loading-text').textContent = t.loadingCourse(item.symbol);
+  try {
+    const series = await getCourse(item.symbol);
+    startGame(series, item.symbol, item.name, { multi: true, nick: myNick, ghostCount: count, ghostNames });
+    if (getLastCourseSource() === 'demo' && CONFIG.STOCK_PROVIDER !== 'mock') showToast(t.demoAlert, { top: true });
+  } catch (e) {
+    console.error(e); alert(t.courseFail + '\n' + e.message); show('home');
+  }
+}
+
+// 매칭 연출 — 나 + 더미들이 차례로 '입장'하고 잠시 후 resolve(가짜 대기).
+function runMatchmaking(myNick, ghostNames) {
+  return new Promise((resolve) => {
+    const ov = $('match-overlay'), list = $('match-players'), sub = $('match-sub');
+    list.innerHTML = '';
+    if (sub) sub.textContent = t.matchSub;
+    ov.classList.add('active');
+    const addPlayer = (name, me) => {
+      const li = document.createElement('li');
+      li.className = 'match-player' + (me ? ' me' : '');
+      li.innerHTML = `<span class="mp-dot"></span><span class="mp-name">${escapeHtml(name)}</span>${me ? ` <span class="mp-you">${t.you}</span>` : ''}`;
+      list.appendChild(li);
+    };
+    addPlayer(myNick, true);
+    let i = 0;
+    const tick = () => {
+      if (i < ghostNames.length) { addPlayer(ghostNames[i], false); i += 1; setTimeout(tick, 450 + Math.random() * 450); }
+      else {
+        if (sub) sub.textContent = t.matchReady;
+        setTimeout(() => { ov.classList.remove('active'); resolve(); }, 800);
+      }
+    };
+    setTimeout(tick, 500);
+  });
+}
 
 // ---------------- 토스 인앱 첫 진입: 로그인 + 닉네임 계정 기본값 ----------------
 // 토스에서만, '아직 닉이 없을 때만' 자동 로그인(매 실행 나그 방지). 서버에 저장된 계정
@@ -202,7 +264,7 @@ async function renderTrending() {
         `<div class="tc-name">${escapeHtml(item.name || '')}</div>` +
         `<div class="tc-diff">${diffBadge(item.symbol)}</div></div>` +
         right;
-      div.onclick = () => launch(item);
+      div.onclick = () => launchMode(item);
       el.appendChild(div);
     });
     if (!list.length) el.innerHTML = `<div class="trending-skeleton">${t.noTrending}</div>`;
@@ -319,10 +381,34 @@ async function onGameEnd(result) {
   await showResult(result);
 }
 
+// 멀티 결과 등수 — 플레이어 vs 고스트 최종 순위.
+function renderMultiResult(result) {
+  const box = $('multi-result');
+  if (!box) return;
+  if (!result.multi) { box.hidden = true; return; }
+  box.hidden = false;
+  const rank = result.multiRank, total = result.multiTotal;
+  $('mr-headline').textContent = rank === 1 ? `🏆 ${t.multiWin}` : t.multiRankLine(rank, total);
+  const ol = $('mr-standings');
+  ol.innerHTML = '';
+  result.standings.forEach((e) => {
+    const li = document.createElement('li');
+    if (e.isPlayer) li.classList.add('me');
+    const stat = e.finished ? t.timeFmt(Math.round(e.finishTime * 1000)) : `${Math.round(e.progress * 100)}%`;
+    li.innerHTML =
+      `<span class="mr-rank">${e.rank}</span>` +
+      `<span class="mr-dot" style="background:${e.color}"></span>` +
+      `<span class="mr-name">${escapeHtml(e.name)}${e.isPlayer ? ` <b>${t.you}</b>` : ''}</span>` +
+      `<span class="mr-stat">${stat}</span>`;
+    ol.appendChild(li);
+  });
+}
+
 let regPromise = null;
 async function showResult(result) {
   show('result');
   renderHouseAd($('ad-result'), 'result');   // 결과 화면 배너(토스: 토스 배너 / 웹: 하우스·애드센스)
+  renderMultiResult(result);                 // 멀티면 등수 표시
   rememberName(result.symbol, result.name);
   $('rc-symbol').textContent = result.name ? `${result.name} (${result.symbol})` : result.symbol;
   if (result.diff) {
@@ -430,7 +516,7 @@ $('btn-save-card').onclick = async () => {
 // ---------------- 네비게이션 ----------------
 $('btn-retry').onclick = () => {
   if (!selected) return show('home');
-  launch(selected);
+  launchMode(selected);
 };
 $('btn-home').onclick = () => { show('home'); input.value = ''; selected = null; $('btn-start').disabled = true; };
 $('btn-leaderboard-home').onclick = async () => {

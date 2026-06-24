@@ -48,6 +48,13 @@ export const CONFIG = {
   // 그 전엔 토스 제공 테스트 ID(미집계). 토스 환경에서만 동작(웹 영향 0).
   TOSS_BANNER_AD_GROUP: 'ait-ad-test-banner-id',
 
+  // ---- 멀티(가짜 AI 경쟁) ----
+  MULTI: {
+    // AI 목표 완주시간 = 연료예산 × 이 계수. 낮을수록 AI가 빠름(어려움).
+    // 0.9 = 중간 실력(잘하면 이김). 너무 자주 지면 ↑, 너무 쉬우면 ↓.
+    aiParFactor: 0.9,
+  },
+
   // ---- 게임 튜닝 ----
   GAME: {
     fuelSeconds: 60,         // 연료(시간) 한도 — 빠듯하게(near-miss 자극)
