@@ -307,17 +307,22 @@ export class Game {
     return pts[pts.length - 1].y;
   }
 
-  // 바이크를 현재 x의 지면 위로 똑바로 세워 재배치(부활).
+  // 부활 — 최고 도달 지점(maxX)의 지면 위에 '표준 자세'로 완전 재배치.
+  // 시작 직후 떨어지면 maxX≈시작점 → 시작 위치로, 뒤집혀 끝났어도 똑바로 선 채 부활.
   _respawnBike() {
-    const cur = this.bike.chassis.position;
-    const groundY = this._terrainYAt(cur.x);
-    const off = { x: 0, y: (groundY - 90) - cur.y };
-    for (const b of this.bike.parts) {
-      Matter.Body.translate(b, off);
+    const x = Math.max(this.startX, Math.min(this.maxX, this.terrain.worldWidth - 200));
+    const cy = this._terrainYAt(x) - 80;   // createBike 의 spawn 높이(sp.y - 80)와 동일
+    const { chassis, rear, front } = this.bike;
+    Matter.Body.setPosition(chassis, { x, y: cy });
+    Matter.Body.setPosition(rear, { x: x - 44, y: cy + 26 });   // createBike 의 바퀴 오프셋과 동일
+    Matter.Body.setPosition(front, { x: x + 44, y: cy + 26 });
+    for (const b of [chassis, rear, front]) {
+      Matter.Body.setAngle(b, 0);
       Matter.Body.setVelocity(b, { x: 0, y: 0 });
       Matter.Body.setAngularVelocity(b, 0);
     }
-    Matter.Body.setAngle(this.bike.chassis, 0);
+    // 공중 트릭 추적 등 자세 관련 상태도 초기화
+    this.bike._wasGrounded = false;
   }
 
   _end(reason) {
