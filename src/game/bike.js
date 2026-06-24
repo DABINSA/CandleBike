@@ -72,7 +72,8 @@ export function createBike(world, x, y) {
           if (rear.angularVelocity < driveCap) rear.torque += torque;
           if (front.angularVelocity < driveCap) front.torque += torque;
         }
-        if (brake) { rear.torque -= reverse; front.torque -= reverse * 0.9; }
+        // 후진: 브레이크(키 ↓) 또는 '가속 안 누른 채 앞들기'(멈춰서 뒤로 빠져나오기)
+        if (brake || (leanBack && !gas)) { rear.torque -= reverse; front.torque -= reverse * 0.9; }
 
         // ── 분리된 자세 제어(Stock Rider식): 윌리=앞들기, 앞숙임 ──
         // (Matter: 음의 토크 = 앞들림, 양의 토크 = 앞코 내림)

@@ -204,37 +204,36 @@ body {
   display: flex; align-items: center; justify-content: space-between;
   gap: 10px; padding: 0 14px; pointer-events: none;
 }
-/* 왼손 십자 방향패드 (↑점프 ←앞들기 →앞숙임 ↓뒤로) */
+/* 왼손 방향패드 (↑점프 ←앞들기/뒤로 →앞숙임) — 3버튼 2줄 T자, 컴팩트 */
 .dpad {
-  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
-  gap: 5px; width: min(48vw, 216px); aspect-ratio: 1.12 / 1;
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);
+  gap: 5px; width: min(46vw, 188px); aspect-ratio: 1.5 / 1;
 }
 .dp-up    { grid-area: 1 / 2 / 2 / 3; }
 .dp-left  { grid-area: 2 / 1 / 3 / 2; }
 .dp-right { grid-area: 2 / 3 / 3 / 4; }
-.dp-down  { grid-area: 3 / 2 / 4 / 3; }
 .ctrl-btn {
   pointer-events: auto;
   touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-  border-radius: 16px; font-size: 13px; font-weight: 800; color: var(--text);
+  border-radius: 15px; font-size: 12.5px; font-weight: 800; color: var(--text);
   background: rgba(255,255,255,.07); border: 1.5px solid var(--panel-border);
   backdrop-filter: blur(6px);
-  display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2;
+  display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.18;
   box-shadow: 0 6px 18px rgba(0,0,0,.4);
 }
 .ctrl-btn:active { transform: scale(.95); filter: brightness(1.25); }
-#btn-wheelie, #btn-nose, #btn-reverse { background: rgba(255,211,77,.12); border-color: rgba(255,211,77,.42); color: #ffe9a8; }
+#btn-wheelie, #btn-nose { background: rgba(255,211,77,.12); border-color: rgba(255,211,77,.42); color: #ffe9a8; }
 .ctrl-jump { background: rgba(91,140,255,.18); border-color: rgba(91,140,255,.5); color: #cdd9ff; }
-/* 오른손 큰 가속 */
+/* 오른손 가속 — 적당한 크기 */
 .ctrl-gas {
-  width: min(34vw, 150px); height: min(34vw, 150px); border-radius: 26px; font-size: 18px;
+  width: min(26vw, 110px); height: min(30vw, 118px); border-radius: 20px; font-size: 16px;
   background: rgba(44,230,196,.16); border-color: rgba(44,230,196,.5); color: #d7fff6;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .controls { opacity: .9; }
-  .dpad { width: 200px; }
-  .ctrl-gas { width: 120px; height: 120px; }
+  .dpad { width: 168px; }
+  .ctrl-gas { width: 92px; height: 100px; }
 }
 
 /* 플레이 중 재시작 버튼 */

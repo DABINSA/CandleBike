@@ -64,7 +64,7 @@ export class Game {
     if (this.testMode) {
       const pts = this.terrain.points;
       this._events = [];
-      for (let x = 1200; x < this.terrain.worldWidth - 500; x += 820) {
+      for (let x = 1500; x < this.terrain.worldWidth - 500; x += 1500) {
         let y = pts[pts.length - 1].y;
         for (let i = 1; i < pts.length; i++) { if (pts[i].x >= x) { y = pts[i].y; break; } }
         this._events.push({ x, y, event: { emoji: '🚧', test: true }, done: false });
@@ -129,10 +129,9 @@ export class Game {
       el.addEventListener('contextmenu', ctx);
       el._handlers = { down, up, ctx };
     };
-    // 모바일 버튼: 앞들기(윌리)·앞숙임·뒤로(후진)·점프 / 가속
+    // 모바일 버튼: 앞들기(윌리, 가속 안 누르면 후진)·앞숙임·점프 / 가속
     this._press(document.getElementById('btn-wheelie'), 'leanBack');
     this._press(document.getElementById('btn-nose'), 'leanFwd');
-    this._press(document.getElementById('btn-reverse'), 'brake');
     this._press(document.getElementById('btn-jump'), 'jump');
     this._press(document.getElementById('btn-gas'), 'gas');
 
@@ -324,7 +323,7 @@ export class Game {
       window.removeEventListener('keydown', this._key);
       window.removeEventListener('keyup', this._key);
     }
-    ['btn-gas', 'btn-wheelie', 'btn-nose', 'btn-reverse', 'btn-jump'].forEach((id) => {
+    ['btn-gas', 'btn-wheelie', 'btn-nose', 'btn-jump'].forEach((id) => {
       const el = document.getElementById(id);
       if (el && el._handlers) {
         el.removeEventListener('pointerdown', el._handlers.down);
