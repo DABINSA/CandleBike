@@ -47,8 +47,10 @@
 
   <link rel="stylesheet" href="./styles.css" />
 
-  <!-- Google AdSense (게시 후 ca-pub-XXXX 교체) -->
-  <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
+  <!-- Google AdSense 소유권 확인(메타 태그) — 정적이라 토스에서도 안전.
+       ⚠️ 실제 광고 스크립트(adsbygoogle.js)는 토스 외부광고 금지 때문에 정적 삽입 X.
+          승인 후 '웹(비-토스)에서만' 동적 로드한다. -->
+  <meta name="google-adsense-account" content="ca-pub-3716603498723289" />
 </head>
 <body>
   <div id="app">

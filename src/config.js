@@ -41,7 +41,7 @@ export const CONFIG = {
   // 'off'    : 광고/리워드 게이트 모두 끔 (순수 테스트)
   AD_MODE: 'house',
   AD_CONTACT_EMAIL: 'withusts@gmail.com',   // 광고 문의받을 이메일 (바꾸세요)
-  ADSENSE_CLIENT: 'ca-pub-XXXXXXXXXXXXXXXX',
+  ADSENSE_CLIENT: 'ca-pub-3716603498723289',
   REWARD_AD_SECONDS: 5,      // 결과 보기 전 강제 시청 시간(초)
 
   // 토스 인앱 배너 광고 그룹 ID (WebView SDK). 🔴 광고그룹 발급 후 실 ID로 교체.

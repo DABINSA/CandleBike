@@ -1,3 +1,1 @@
-# ads.txt — Google AdSense 승인 후, 아래 줄의 주석(#)을 풀고 pub-ID를 실제 발행자 ID로 교체하세요.
-# (애드센스는 루트 도메인의 /ads.txt 를 읽습니다. 서브도메인으로 운영 시 루트 도메인에도 동일 파일을 서빙하세요.)
-# google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
+google.com, pub-3716603498723289, DIRECT, f08c47fec0942fa0
