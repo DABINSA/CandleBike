@@ -92,10 +92,11 @@ const DICT = {
     courseFail: '코스를 불러오지 못했습니다. 다른 종목을 시도해 주세요.',
     savedAlert: '이미지를 저장했어요! 인스타에 올리고 캡션을 붙여넣으세요. (캡션 복사됨)',
     shareLinkCopied: '🔗 링크도 복사했어요 — 채팅에 붙여넣으면 친구가 바로 플레이할 수 있어요!',
+    // URL은 navigator.share 의 url 필드로 따로 전달(본문 끝에 자동 첨부)되므로 캡션엔 넣지 않는다.
     shareCaption: (sym, dist, rank, url) =>
-      `🏍️ ${sym} 차트를 달려 ${dist}m! 너도 같이 달려보자 — 누가 더 멀리 가나 🔥\n👉 ${url}\n#캔들바이크 #CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
+      `🏍️ ${sym} 차트를 달려 ${dist}m! 너도 같이 달려보자 — 누가 더 멀리 가나 🔥\n#캔들바이크 #CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
     shareCaptionTime: (sym, time, rank, url) =>
-      `🏍️ 나 ${sym} 차트 ${time} 완주, 전체 ${rank}위! 🏁\n이 기록 깰 수 있어? 친구들아 덤벼 😎\n👉 ${url}\n#캔들바이크 #CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
+      `🏍️ 나 ${sym} 차트 ${time} 완주, 전체 ${rank}위! 🏁 이 기록 깰 수 있어? 친구들아 덤벼 😎\n#캔들바이크 #CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
     cardChallenge: '🏁 이 기록, 깰 수 있어?',
     cardCta: '👉 지금 같이 도전',
     cardBrand: '📈🏍️ 캔들바이크 — 변동성을 버텨라',
@@ -186,10 +187,11 @@ const DICT = {
     courseFail: "Couldn't load the course. Please try another stock.",
     savedAlert: 'Image saved! Post it and paste the caption. (caption copied)',
     shareLinkCopied: '🔗 Link copied too — paste it in the chat so friends can play right away!',
+    // URL is passed via navigator.share's url field (auto-appended), so keep it out of the caption.
     shareCaption: (sym, dist, rank, url) =>
-      `🏍️ Rode the ${sym} chart for ${dist}m! Come race me — who goes farther? 🔥\n👉 ${url}\n#CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
+      `🏍️ Rode the ${sym} chart for ${dist}m! Come race me — who goes farther? 🔥\n#CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
     shareCaptionTime: (sym, time, rank, url) =>
-      `🏍️ I finished the ${sym} chart in ${time} — rank #${rank}! 🏁\nThink you can beat it? Bring it on 😎\n👉 ${url}\n#CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
+      `🏍️ I finished the ${sym} chart in ${time} — rank #${rank}! 🏁 Think you can beat it? Bring it on 😎\n#CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
     cardChallenge: '🏁 Can you beat this?',
     cardCta: '👉 Play & race me',
     cardBrand: '📈🏍️ CandleBike — Survive the Volatility',
