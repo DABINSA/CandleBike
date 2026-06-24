@@ -38,17 +38,18 @@ export function createGhosts(count, parTime, names) {
     finishTime: null,
     _phase: Math.random() * Math.PI * 2,
     _wob: 0.7 + Math.random() * 0.8,     // 완만한 흔들림 주기
-    // 점프/트릭 연출 상태(시각용 — 페이스에는 영향 없음)
-    hop: 0, hopSpeed: 0, flipDir: 0, flipTurns: 0, _cool: 0,
+    _speedScale: 1,                       // 지형 반응 속도(내리막↑/오르막↓) — game이 매 프레임 갱신
+    // 연출 상태(시각용 — 페이스 무관): 장애물 점프 아치 / 플레어 백플립
+    obAir: 0, flip: 0, flipDur: 0, flipDir: 0, flipTurns: 0, _cool: 0,
   }));
 }
 
-// 고스트 전진 — 플레이어와 무관한 일정한 독립 페이스(완만한 흔들림만, 주춤 없음).
+// 고스트 전진 — 플레이어와 무관한 독립 페이스. 지형 반응(_speedScale)으로 평지·내리막에선 빨라진다.
 export function updateGhosts(ghosts, dt, elapsed) {
   for (const g of ghosts) {
     if (g.finished) continue;
     const mul = 1 + 0.1 * Math.sin(elapsed * g._wob + g._phase);   // ±10% 완만한 흔들림
-    g.progress += (mul / g.targetTime) * dt;
+    g.progress += (mul * (g._speedScale || 1) / g.targetTime) * dt;
     if (g.progress >= 1) { g.progress = 1; g.finished = true; g.finishTime = elapsed; }
   }
 }

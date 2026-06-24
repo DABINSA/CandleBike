@@ -290,6 +290,7 @@ document.getElementById('tab-volume')?.addEventListener('click', () => setTrendi
 let playCtx = null;   // 재시작용 — 현재 플레이 중인 코스
 function startGame(series, symbol, name, opts = {}) {
   playCtx = { series, symbol, name, opts };
+  $('pause-menu')?.classList.remove('active');
   show('play');
   initPlayBanner();
   const canvas = $('game-canvas');
@@ -350,11 +351,11 @@ function restartPlay() {
 // 게임 중 설정(톱니) 메뉴 — 열면 일시정지, 다시 하기 / 나가기.
 function closePauseMenu(resume) {
   $('pause-menu').classList.remove('active');
-  if (resume) game?.resume();
+  if (resume && game && !game.multi) game.resume();   // 일시정지는 싱글만
 }
 $('btn-pause')?.addEventListener('click', () => {
   const open = $('pause-menu').classList.toggle('active');
-  if (open) game?.pause(); else game?.resume();
+  if (game && !game.multi) { open ? game.pause() : game.resume(); }   // 멀티는 라이브 — 정지 없음
 });
 $('pm-resume')?.addEventListener('click', () => closePauseMenu(true));
 $('pm-restart')?.addEventListener('click', () => { closePauseMenu(false); restartPlay(); });

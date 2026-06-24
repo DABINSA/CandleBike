@@ -676,29 +676,37 @@ export class Game {
     }
   }
 
-  // 고스트 점프/트릭 연출 — 장애물 앞에서 점프(가끔 백플립), 평지선 가끔 플립. 페이스엔 영향 없음.
+  // 고스트 연출/물리감 — 지형 반응 속도 + 장애물 점프(확정) + 평지 백플립(믿을 만한 속도).
   _updateGhostFx(dt) {
     const L = this.finishX - this.startX;
+    const JW = 78;   // 장애물 점프 존 반폭(px)
     for (const g of this.ghosts) {
-      if (g.finished) { g.hop = 0; continue; }
-      g._cool = Math.max(0, (g._cool || 0) - dt);
-      if (g.hop > 0) {                       // 점프 진행 중
-        g.hop += g.hopSpeed * dt;
-        if (g.hop >= 1) { g.hop = 0; g.flipDir = 0; }
-        continue;
-      }
-      if (g._cool > 0) continue;
+      if (g.finished) { g.obAir = 0; g.flip = 0; g._speedScale = 1; continue; }
       const x = this.startX + g.progress * L;
-      const nearObstacle = this._events && this._events.some((ev) => ev.x > x && ev.x - x < 90);
-      const wantFlip = nearObstacle ? Math.random() < 0.6 : Math.random() < dt * 0.06;
-      if (nearObstacle || wantFlip) {
-        g.hop = 0.0001;
-        g.hopSpeed = 1 / (0.55 + Math.random() * 0.3);          // 점프 지속(약 0.55~0.85s)
-        if (wantFlip) {
-          g.flipDir = Math.random() < 0.72 ? -1 : 1;            // 백플립 위주
-          g.flipTurns = 1 + (Math.random() < 0.22 ? 1 : 0);     // 가끔 2바퀴
-        } else { g.flipDir = 0; g.flipTurns = 0; }
-        g._cool = 1.1 + Math.random() * 0.6;
+      const slope = Math.atan2(this._terrainYAt(x + 30) - this._terrainYAt(x - 30), 60);
+      // 지형 반응: 내리막/평지 가속, 오르막 감속(평균 ~1)
+      g._speedScale = 1 + Math.max(-0.35, Math.min(0.5, slope * 0.8));
+
+      // 장애물 통과 — 위치 기반 아치로 '확실히' 넘긴다(실제 함정 위를 그냥 통과 X)
+      let air = 0;
+      if (this._events) {
+        for (const ev of this._events) {
+          const d = x - ev.x;
+          if (d >= -JW && d <= JW) air = Math.max(air, Math.sin(((d + JW) / (2 * JW)) * Math.PI));
+        }
+      }
+      g.obAir = air;
+
+      // 평지 플레어 백플립 — 가끔, 1바퀴를 ~1초에(천천히). 장애물/경사 구간엔 안 함.
+      g._cool = Math.max(0, (g._cool || 0) - dt);
+      if (g.flip > 0) {
+        g.flip += dt / g.flipDur;
+        if (g.flip >= 1) g.flip = 0;
+      } else if (g._cool <= 0 && air < 0.05 && Math.abs(slope) < 0.22 && Math.random() < dt * 0.05) {
+        const turns = Math.random() < 0.25 ? 2 : 1;
+        g.flip = 0.0001; g.flipTurns = turns; g.flipDur = turns * 0.8;   // 0.8s/바퀴 — 일정 속도(플레이어 수준)
+        g.flipDir = -1;                                                  // 백플립
+        g._cool = 3 + Math.random() * 3;
       }
     }
   }
@@ -711,9 +719,10 @@ export class Game {
       if (x < camX - 200 || x > camX + vw + 200) continue;   // 화면 밖은 스킵
       let py = this._terrainYAt(x) - 50;                     // 바퀴가 지면에 닿도록(플레이어와 동일 기준)
       let ang = Math.atan2(this._terrainYAt(x + 30) - this._terrainYAt(x - 30), 60);
-      if (g.hop > 0) {                                        // 점프 아치 + (있으면) 플립 회전
-        py -= Math.sin(g.hop * Math.PI) * 72;
-        if (g.flipDir) ang += g.flipDir * g.flipTurns * 2 * Math.PI * g.hop;
+      if (g.obAir > 0) py -= g.obAir * 102;                  // 장애물 점프(벽 충분히 넘김)
+      if (g.flip > 0) {                                       // 평지 백플립: 자체 아치 + 일정 속도 회전
+        py -= Math.sin(g.flip * Math.PI) * (70 + g.flipTurns * 16);
+        ang += g.flipDir * 2 * Math.PI * g.flipTurns * g.flip;
       }
       const cA = Math.cos(ang), sA = Math.sin(ang);
       const toW = (lx, ly) => ({ x: x + lx * cA - ly * sA, y: py + lx * sA + ly * cA });
