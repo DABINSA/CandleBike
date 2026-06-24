@@ -125,6 +125,8 @@ async function launch(item) {
 $('btn-start').onclick = () => launch(selected);
 
 // ---------------- 실시간 추천 종목 ----------------
+let trendingMode = 'gainers';   // 'gainers'(급등주) | 'volume'(거래량)
+
 async function renderTrending() {
   const el = $('trending-list');
   // 열린 장에 맞춰 헤더 표시 (한국장/미국장)
@@ -133,12 +135,16 @@ async function renderTrending() {
     headEl.textContent = activeMarket() === 'kr' ? t.trendingKr : t.trendingUs;
   }
   try {
-    const list = await getTrending();
+    const list = await getTrending(trendingMode);
     el.innerHTML = '';
     list.forEach((item) => {
       rememberName(item.symbol, item.name);
       const up = (item.change ?? 0) >= 0;
       const chg = item.change != null ? `${up ? '+' : ''}${item.change}%` : '';
+      // 거래량 탭: 우측에 거래량/거래대금, 급등주 탭: 등락률
+      const right = trendingMode === 'volume'
+        ? `<div class="tc-vol">${escapeHtml(item.volText || '')}</div>`
+        : `<div class="tc-chg ${up ? 'up' : 'down'}">${chg}</div>`;
       const div = document.createElement('div');
       div.className = 'trend-chip';
       div.innerHTML =
@@ -146,7 +152,7 @@ async function renderTrending() {
         `<div class="tc-sym">${escapeHtml(item.symbol)}${item.hot ? ' <span class="tc-fire">🔥</span>' : ''}</div>` +
         `<div class="tc-name">${escapeHtml(item.name || '')}</div>` +
         `<div class="tc-diff">${diffBadge(item.symbol)}</div></div>` +
-        `<div class="tc-chg ${up ? 'up' : 'down'}">${chg}</div>`;
+        right;
       div.onclick = () => launch(item);
       el.appendChild(div);
     });
@@ -155,6 +161,19 @@ async function renderTrending() {
     el.innerHTML = `<div class="trending-skeleton">${t.trendingFail}</div>`;
   }
 }
+
+// 급등주 ⇄ 거래량 탭 전환
+function setTrendingTab(mode) {
+  if (mode === trendingMode) return;
+  trendingMode = mode;
+  const g = document.getElementById('tab-gainers'), v = document.getElementById('tab-volume');
+  if (g) g.classList.toggle('active', mode === 'gainers');
+  if (v) v.classList.toggle('active', mode === 'volume');
+  $('trending-list').innerHTML = `<div class="trending-skeleton">${t.loadingTrending}</div>`;
+  renderTrending();
+}
+document.getElementById('tab-gainers')?.addEventListener('click', () => setTrendingTab('gainers'));
+document.getElementById('tab-volume')?.addEventListener('click', () => setTrendingTab('volume'));
 
 function startGame(series, symbol, name) {
   show('play');

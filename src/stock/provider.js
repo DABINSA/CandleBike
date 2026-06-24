@@ -106,6 +106,31 @@ async function yahooTrending() {
   return list;
 }
 
+// 거래량 표기 압축 (12,300,000 → 12.3M)
+function fmtVol(v) {
+  v = +v;
+  if (!isFinite(v) || v <= 0) return '';
+  if (v >= 1e9) return (v / 1e9).toFixed(1) + 'B';
+  if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+  if (v >= 1e3) return Math.round(v / 1e3) + 'K';
+  return '' + v;
+}
+
+// 미국 거래량 상위 (Yahoo most_actives — dayvolume 정렬)
+async function yahooActives() {
+  const j = await yfetch('https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=16&scrIds=most_actives');
+  const quotes = (j.finance && j.finance.result && j.finance.result[0] && j.finance.result[0].quotes) || [];
+  const list = quotes
+    .filter((x) => x.symbol && x.quoteType === 'EQUITY')
+    .map((x) => {
+      const chg = x.regularMarketChangePercent != null ? +(+x.regularMarketChangePercent).toFixed(1) : null;
+      return { symbol: x.symbol, name: x.shortName || x.longName || x.symbol, change: chg, hot: false, volText: fmtVol(x.regularMarketVolume) };
+    })
+    .slice(0, 8);
+  if (!list.length) throw new Error('no actives');
+  return list;
+}
+
 // 현재 '열린 장' 판별 (UTC 기준). 한국장 열리면 kr, 미국장(프리/애프터 포함) 열리면 us.
 export function activeMarket() {
   const now = new Date();
@@ -123,18 +148,25 @@ export function activeMarket() {
   return LANG === 'ko' ? 'kr' : 'us';
 }
 
-// 한국 실시간 급등주 (네이버 금융, 동일 도메인 /api/kr-gainers)
+// 한국 실시간 급등주/거래량 (네이버 금융, 동일 도메인 /api/kr-gainers)
 async function krGainers() {
   const r = await fetch('/api/kr-gainers');
   if (!r.ok) throw new Error('kr http ' + r.status);
   return await r.json();
 }
+async function krVolume() {
+  const r = await fetch('/api/kr-gainers?type=volume');
+  if (!r.ok) throw new Error('kr vol ' + r.status);
+  return await r.json();
+}
 
-// 열린 장에 맞춰 급등주 선택 (실패 시 반대 장으로 폴백)
-async function marketTrending() {
+// 열린 장 + 모드(급등주/거래량)에 맞춰 선택 (실패 시 반대 장으로 폴백)
+async function marketTrending(mode = 'gainers') {
   const m = activeMarket();
-  const primary = m === 'kr' ? krGainers : yahooTrending;
-  const secondary = m === 'kr' ? yahooTrending : krGainers;
+  const us = mode === 'volume' ? yahooActives : yahooTrending;
+  const kr = mode === 'volume' ? krVolume : krGainers;
+  const primary = m === 'kr' ? kr : us;
+  const secondary = m === 'kr' ? us : kr;
   try { const a = await primary(); if (a && a.length) return a.slice(0, 8); }
   catch (e) { console.warn('primary trending 실패', e); }
   try { const b = await secondary(); if (b && b.length) return b.slice(0, 8); }
@@ -223,9 +255,9 @@ export async function getHistory(symbol) {
   return data;
 }
 
-export async function getTrending() {
+export async function getTrending(mode = 'gainers') {
   try {
-    const list = await getProvider().trending();
+    const list = await getProvider().trending(mode);
     if (list && list.length) return list;
   } catch (e) {
     console.warn('trending 실패, mock으로 대체', e);

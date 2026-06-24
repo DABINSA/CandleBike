@@ -73,9 +73,15 @@
 
         <button id="btn-start" class="btn btn-primary" data-i18n="selectStock" disabled>종목을 선택하세요</button>
 
-        <!-- 실시간 추천: 거래량 급증 / 급등주 (클릭 즉시 시작) -->
+        <!-- 실시간 추천: 급등주 / 거래량 토글 (클릭 즉시 시작) -->
         <div class="trending">
-          <div class="trending-head"><span id="trending-head-label" data-i18n="trendingHead">🔥 지금 뜨는 종목</span> <span class="live-dot"></span><span class="live" data-i18n="live">실시간</span></div>
+          <div class="trending-head">
+            <div class="trend-tabs">
+              <button id="tab-gainers" class="trend-tab active" type="button">🔥 <span data-i18n="trendGainers">급등주</span></button>
+              <button id="tab-volume" class="trend-tab" type="button">📊 <span data-i18n="trendVolume">거래량</span></button>
+            </div>
+            <span class="trend-right"><span id="trending-head-label" class="trend-market"></span> <span class="live-dot"></span><span class="live" data-i18n="live">실시간</span></span>
+          </div>
           <div id="trending-list" class="trending-list">
             <div class="trending-skeleton" data-i18n="loadingTrending">불러오는 중…</div>
           </div>
