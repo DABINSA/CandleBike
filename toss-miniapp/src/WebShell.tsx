@@ -1,4 +1,4 @@
-// CandleBike 미니앱 공용 웹뷰 셸 — candlebike.vercel.app 을 WebView로 로딩.
+// CandleRider 미니앱 공용 웹뷰 셸 — candlebike.vercel.app 을 WebView로 로딩.
 // 토스 환경 마커 주입 + 뒤로가기 처리 + UA 마커 + 네이티브 브리지(appLogin).
 // ⚠️ @granite-js/native/react-native-webview 의 WebView 사용(토스 호스트 링크 모듈).
 import { useEffect, useRef } from 'react';

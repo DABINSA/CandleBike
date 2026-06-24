@@ -32,9 +32,9 @@ export default async function handler(req, res) {
 
   const title = c
     ? `${name ? name + ' ' : ''}${c}${rec ? ' · ' + rec : ''} 🏍️`
-    : '캔들바이크 — 변동성을 버텨라 🏍️📈';
+    : '캔들라이더 — 변동성을 버텨라 🏍️📈';
   const desc = c
-    ? `${rl ? rl + ' — ' : ''}이 기록 깰 수 있어? 캔들바이크에서 ${c} 차트를 오토바이로 달려봐! 👉 지금 도전`
+    ? `${rl ? rl + ' — ' : ''}이 기록 깰 수 있어? 캔들라이더에서 ${c} 차트를 오토바이로 달려봐! 👉 지금 도전`
     : '검색한 주식의 3년 차트가 코스! 변동성을 버티고 순위에 도전.';
 
   // OG 미리보기 이미지 — 결과별 동적 카드(/api/og). 종목 없으면 기본 og.png.
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(desc)}">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="캔들바이크 · CandleBike">
+<meta property="og:site_name" content="캔들라이더 · CandleRider">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(desc)}">
 <meta property="og:image" content="${esc(img)}">
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
 <meta name="twitter:image" content="${esc(img)}">
 <script>location.replace(${JSON.stringify(playUrl)});</script>
 </head><body style="background:#0a0e14;color:#cfe9e2;font-family:sans-serif;text-align:center;padding:48px 20px">
-<p style="font-size:18px">캔들바이크로 이동 중…</p>
+<p style="font-size:18px">캔들라이더로 이동 중…</p>
 <p><a href="${esc(playUrl)}" style="color:#2ce6c4;font-weight:700">바로 가기 →</a></p>
 </body></html>`);
 }

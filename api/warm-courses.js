@@ -31,7 +31,7 @@ async function fetchHistory(symbol) {
   const now = Math.floor(Date.now() / 1000);
   const p1 = Math.floor(now - HISTORY_YEARS * 365.25 * 86400);
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?period1=${p1}&period2=${now}&interval=1d`;
-  const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CandleBike/1.0)' } });
+  const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CandleRider/1.0)' } });
   const j = await r.json();
   const res = j.chart && j.chart.result && j.chart.result[0];
   if (!res) throw new Error('no data');

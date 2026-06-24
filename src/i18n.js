@@ -1,5 +1,4 @@
 // 다국어 — 저장된 선택이 있으면 우선, 없으면 접속 브라우저 언어(한국어→ko, 그 외→en).
-import { IS_TOSS } from './toss.js';
 
 const LS_LANG = 'candlebike_lang';
 const isKo = (navigator.languages || [navigator.language || 'en'])
@@ -18,8 +17,8 @@ export function setLang(lang) {
 
 const DICT = {
   ko: {
-    docTitle: '캔들바이크 — 변동성을 버텨라',
-    logo: '📈🏍️ 캔들바이크',
+    docTitle: '캔들라이더 — 변동성을 버텨라',
+    logo: '📈🏍️ 캔들라이더',
     privacy: '개인정보처리방침',
     tagline: '검색한 주식의 <b>3년 등락 그래프</b>가 코스가 됩니다.<br/>변동성을 버티고 <b>최고 거리</b>에 도전하세요!',
     searchPh: '종목 검색 (예: AAPL, TSLA, 삼성전자)',
@@ -66,7 +65,7 @@ const DICT = {
     reviveSub: '광고 보고 이어서 달릴까요?',
     reviveWatch: '🎬 광고 보고 이어가기',
     reviveSkip: '그만하기',
-    brand: '📈🏍️ 캔들바이크',
+    brand: '📈🏍️ 캔들라이더',
     share: '📲 공유하기',
     saveImg: '🖼️ 결과 이미지 저장',
     leaderboardTitle: (s) => (s ? `🏆 ${s} 순위` : '🏆 전체 순위'),
@@ -111,12 +110,12 @@ const DICT = {
     shareLinkCopied: '🔗 링크도 복사했어요 — 채팅에 붙여넣으면 친구가 바로 플레이할 수 있어요!',
     // URL은 navigator.share 의 url 필드로 따로 전달(본문 끝에 자동 첨부)되므로 캡션엔 넣지 않는다.
     shareCaption: (sym, dist, rank, url) =>
-      `🏍️ ${sym} 차트를 달려 ${dist}m! 너도 같이 달려보자 — 누가 더 멀리 가나 🔥\n#캔들바이크 #CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
+      `🏍️ ${sym} 차트를 달려 ${dist}m! 너도 같이 달려보자 — 누가 더 멀리 가나 🔥\n#캔들라이더 #CandleRider #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
     shareCaptionTime: (sym, time, rank, url) =>
-      `🏍️ 나 ${sym} 차트 ${time} 완주, 전체 ${rank}위! 🏁 이 기록 깰 수 있어? 친구들아 덤벼 😎\n#캔들바이크 #CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
+      `🏍️ 나 ${sym} 차트 ${time} 완주, 전체 ${rank}위! 🏁 이 기록 깰 수 있어? 친구들아 덤벼 😎\n#캔들라이더 #CandleRider #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
     cardChallenge: '🏁 이 기록, 깰 수 있어?',
     cardCta: '👉 지금 같이 도전',
-    cardBrand: '📈🏍️ 캔들바이크 — 변동성을 버텨라',
+    cardBrand: '📈🏍️ 캔들라이더 — 변동성을 버텨라',
     cardRank: (r, p) => `전체 ${r}위 · 상위 ${p}%`,
     // 하우스 광고 (광고주 유치)
     adSpace: '광고 자리',
@@ -127,12 +126,12 @@ const DICT = {
     houseTitleResult: '📢 여기에 브랜드를 노출하세요',
     houseSubResult: '게임을 막 끝낸 유저가 보는 자리 — 클릭률이 높아요',
     houseCta: (email) => `광고 문의 → ${email}`,
-    mailSubject: '[캔들바이크] 광고 문의',
+    mailSubject: '[캔들라이더] 광고 문의',
   },
   en: {
-    docTitle: 'CandleBike — Survive the Volatility',
+    docTitle: 'CandleRider — Survive the Volatility',
     privacy: 'Privacy Policy',
-    logo: '📈🏍️ CandleBike',
+    logo: '📈🏍️ CandleRider',
     tagline: "A stock's <b>3-year price chart</b> becomes your course.<br/>Survive the volatility and chase the <b>longest distance</b>!",
     searchPh: 'Search a stock (e.g. AAPL, TSLA, Samsung)',
     selectStock: 'Select a stock',
@@ -178,7 +177,7 @@ const DICT = {
     reviveSub: 'Watch an ad to keep going?',
     reviveWatch: '🎬 Watch ad & continue',
     reviveSkip: 'Stop here',
-    brand: '📈🏍️ CandleBike',
+    brand: '📈🏍️ CandleRider',
     share: '📲 Share',
     saveImg: '🖼️ Save image',
     leaderboardTitle: (s) => (s ? `🏆 ${s} Ranking` : '🏆 Leaderboard'),
@@ -223,12 +222,12 @@ const DICT = {
     shareLinkCopied: '🔗 Link copied too — paste it in the chat so friends can play right away!',
     // URL is passed via navigator.share's url field (auto-appended), so keep it out of the caption.
     shareCaption: (sym, dist, rank, url) =>
-      `🏍️ Rode the ${sym} chart for ${dist}m! Come race me — who goes farther? 🔥\n#CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
+      `🏍️ Rode the ${sym} chart for ${dist}m! Come race me — who goes farther? 🔥\n#CandleRider #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
     shareCaptionTime: (sym, time, rank, url) =>
-      `🏍️ I finished the ${sym} chart in ${time} — rank #${rank}! 🏁 Think you can beat it? Bring it on 😎\n#CandleBike #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
+      `🏍️ I finished the ${sym} chart in ${time} — rank #${rank}! 🏁 Think you can beat it? Bring it on 😎\n#CandleRider #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
     cardChallenge: '🏁 Can you beat this?',
     cardCta: '👉 Play & race me',
-    cardBrand: '📈🏍️ CandleBike — Survive the Volatility',
+    cardBrand: '📈🏍️ CandleRider — Survive the Volatility',
     cardRank: (r, p) => `Rank #${r} · Top ${p}%`,
     // House ad (advertiser acquisition)
     adSpace: 'AD SPACE',
@@ -239,18 +238,9 @@ const DICT = {
     houseTitleResult: '📢 Put your brand here',
     houseSubResult: 'Seen right after a run — high click-through',
     houseCta: (email) => `Advertise → ${email}`,
-    mailSubject: '[CandleBike] Advertising inquiry',
+    mailSubject: '[CandleRider] Advertising inquiry',
   },
 };
-
-// 앱인토스(토스 인앱)에서는 앱 이름이 '캔들라이더' → 사이트 표시도 일치시킨다.
-// (웹 버전은 '캔들바이크' 그대로. setLang은 새로고침이라 한 번 덮으면 충분.)
-if (IS_TOSS) {
-  DICT.ko.logo = '📈🏍️ 캔들라이더';
-  DICT.ko.docTitle = '캔들라이더 — 변동성을 버텨라';
-  DICT.en.logo = '📈🏍️ CandleRider';
-  DICT.en.docTitle = 'CandleRider — Ride the Chart';
-}
 
 export const t = DICT[LANG];
 

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="index,follow" />
-  <title>개인정보처리방침 · 캔들바이크/캔들라이더</title>
+  <title>개인정보처리방침 · 캔들라이더</title>
   <style>
     :root { --bg:#0a0e14; --bg2:#0d1320; --neon:#2ce6c4; --text:#e6f0f0; --muted:#9fb0bd; --border:#1d2735; }
     * { box-sizing: border-box; }
@@ -32,7 +32,7 @@
 <body>
   <div class="wrap">
     <div class="topbar">
-      <a class="home" href="/" id="home-link">← 캔들바이크</a>
+      <a class="home" href="/" id="home-link">← 캔들라이더</a>
       <div class="lang">
         <button data-l="ko">한국어</button>
         <button data-l="en">EN</button>
@@ -42,7 +42,7 @@
     <!-- ===== 한국어 ===== -->
     <div id="doc-ko">
       <h1>개인정보처리방침</h1>
-      <p class="sub">캔들바이크(CandleBike) · 토스 인앱 명칭 캔들라이더(CandleRider) — 이하 “서비스”</p>
+      <p class="sub">캔들라이더(CandleRider) — 이하 “서비스”</p>
       <p class="sub">시행일: 2026-06-24</p>
 
       <p>서비스는 별도의 회원가입·로그인 없이 즐기는 캐주얼 게임입니다. 서비스는 이용자의 실명·이메일·전화번호 등
@@ -97,7 +97,7 @@
     <!-- ===== English ===== -->
     <div id="doc-en" hidden>
       <h1>Privacy Policy</h1>
-      <p class="sub">CandleBike · Toss in-app name CandleRider — the “Service”</p>
+      <p class="sub">CandleRider — the “Service”</p>
       <p class="sub">Effective date: 2026-06-24</p>
 
       <p>The Service is a casual game you play without any sign-up or login. The Service
@@ -169,8 +169,8 @@
         document.getElementById('doc-ko').hidden = (l !== 'ko');
         document.getElementById('doc-en').hidden = (l !== 'en');
         document.documentElement.lang = l;
-        document.title = (l === 'ko') ? '개인정보처리방침 · 캔들바이크/캔들라이더' : 'Privacy Policy · CandleBike/CandleRider';
-        document.getElementById('home-link').textContent = (l === 'ko') ? '← 캔들바이크' : '← CandleBike';
+        document.title = (l === 'ko') ? '개인정보처리방침 · 캔들라이더' : 'Privacy Policy · CandleRider';
+        document.getElementById('home-link').textContent = (l === 'ko') ? '← 캔들라이더' : '← CandleRider';
         var btns = document.querySelectorAll('.lang button');
         for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('active', btns[i].getAttribute('data-l') === l);
       }

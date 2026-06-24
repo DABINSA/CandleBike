@@ -116,7 +116,7 @@ export async function shareResult(result) {
   // 링크(url) 공유 — 카카오/메신저가 OG 카드로 펼치고, 친구가 눌러 바로 그 종목에 도전.
   if (navigator.share) {
     try {
-      await navigator.share({ title: 'CandleBike', text: caption, url: shareUrl });
+      await navigator.share({ title: 'CandleRider', text: caption, url: shareUrl });
       return copied ? 'shared-copied' : 'shared';
     } catch (e) { if (e.name === 'AbortError') return 'cancelled'; }
   }
@@ -131,7 +131,7 @@ export async function saveCard(result) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   const tag = result.completed ? `${(result.timeMs / 1000).toFixed(1)}s` : `${result.distance}m`;
-  a.href = url; a.download = `candlebike_${result.symbol}_${tag}.png`;
+  a.href = url; a.download = `candlerider_${result.symbol}_${tag}.png`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
