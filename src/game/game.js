@@ -82,7 +82,7 @@ export class Game {
 
     // 멀티(가짜 AI 경쟁) — 중간 실력의 고스트 2~4명. par = 연료예산 × 계수.
     this.multi = !!opts.multi && !this.testMode;
-    this.playerNick = opts.nick || '나';
+    this.playerNick = opts.nick || t.you;
     if (this.multi) {
       const parTime = CONFIG.GAME.fuelSeconds * (CONFIG.MULTI?.aiParFactor ?? 0.9);
       this.ghosts = createGhosts(opts.ghostCount || 3, parTime, opts.ghostNames);

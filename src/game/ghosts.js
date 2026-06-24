@@ -4,11 +4,20 @@
 //
 // 고스트는 물리 없이 progress(0..1)만 가진다. 위치/렌더는 game.js가 코스 지형에 매핑.
 
-const NAMES = [
+import { LANG } from '../i18n.js';
+
+const NAMES_KO = [
   '질주왕', '캔들고수', '풀악셀', '라이더준', '떡상가즈아', '니트로', '백플립마스터',
   '코스파괴자', '드리프트킹', '폭주기관차', '차트의신', '오토바이러버', '스피드광',
   '월광라이더', '불꽃슈팅', '명품질주', '갓생라이더', '광클러', '존버맨', '한강뷰',
 ];
+const NAMES_EN = [
+  'SpeedDemon', 'NitroNick', 'BackflipBoss', 'ChartRider', 'MoonShot', 'RedlineRex',
+  'ApexAce', 'TurboTom', 'GravityKid', 'PixelRacer', 'VoltViper', 'DriftKing',
+  'FlipMaster', 'RushHour', 'NeonGhost', 'BoostBandit', 'WheelieWil', 'ComboQueen',
+  'LastLap', 'DiamondHands',
+];
+const NAMES = LANG === 'en' ? NAMES_EN : NAMES_KO;
 const COLORS = ['#ff6b6b', '#ffd34d', '#a78bfa', '#4dabf7', '#ff8cc8', '#69db7c', '#ff922b'];
 
 function pickUnique(arr, n) {
