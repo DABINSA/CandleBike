@@ -307,10 +307,10 @@ export class Game {
     return pts[pts.length - 1].y;
   }
 
-  // 부활 — 최고 도달 지점(maxX)의 지면 위에 '표준 자세'로 완전 재배치.
-  // 시작 직후 떨어지면 maxX≈시작점 → 시작 위치로, 뒤집혀 끝났어도 똑바로 선 채 부활.
+  // 부활 — 죽은 그 자리(현재 x)의 지면 위에 '표준 자세'로 완전 재배치.
+  // 시작 직후 이탈하면 클램프로 시작점 근처, 뒤집혀 끝났어도 똑바로 선 채 부활.
   _respawnBike() {
-    const x = Math.max(this.startX, Math.min(this.maxX, this.terrain.worldWidth - 200));
+    const x = Math.max(this.startX, Math.min(this.bike.position.x, this.terrain.worldWidth - 200));
     const cy = this._terrainYAt(x) - 80;   // createBike 의 spawn 높이(sp.y - 80)와 동일
     const { chassis, rear, front } = this.bike;
     Matter.Body.setPosition(chassis, { x, y: cy });
