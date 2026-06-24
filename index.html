@@ -134,12 +134,12 @@
       <!-- 조작 안내 (시작 시 잠깐) -->
       <div id="controls-hint" class="controls-hint"></div>
 
-      <!-- 게임 컨트롤 — 왼손: 방향패드(↑점프 ←앞들기/뒤로 →앞숙임), 오른손: 큰 가속 -->
+      <!-- 게임 컨트롤 — 왼손: 앞들기/뒤로 · 점프 · 앞숙임 (한 줄), 오른손: 가속 -->
       <div class="controls">
-        <div class="dpad dpad3">
-          <button id="btn-jump" class="ctrl-btn ctrl-jump dp-up" data-i18n-html="jumpBtn">⤴<br/>점프</button>
-          <button id="btn-wheelie" class="ctrl-btn dp-left" data-i18n-html="wheelieBtn">⤺앞들기<br/>◀뒤로</button>
-          <button id="btn-nose" class="ctrl-btn dp-right" data-i18n-html="noseBtn">⤹<br/>앞숙임</button>
+        <div class="dpad-row">
+          <button id="btn-wheelie" class="ctrl-btn" data-i18n-html="wheelieBtn">⤺앞들기<br/>◀뒤로</button>
+          <button id="btn-jump" class="ctrl-btn ctrl-jump" data-i18n-html="jumpBtn">⤴<br/>점프</button>
+          <button id="btn-nose" class="ctrl-btn" data-i18n-html="noseBtn">⤹<br/>앞숙임</button>
         </div>
         <button id="btn-gas" class="ctrl-btn ctrl-gas" data-i18n-html="gasBtn">가속<br/>▶</button>
       </div>

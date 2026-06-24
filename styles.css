@@ -204,14 +204,9 @@ body {
   display: flex; align-items: center; justify-content: space-between;
   gap: 10px; padding: 0 14px; pointer-events: none;
 }
-/* 왼손 방향패드 (↑점프 ←앞들기/뒤로 →앞숙임) — 3버튼 2줄 T자, 컴팩트 */
-.dpad {
-  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);
-  gap: 5px; width: min(46vw, 188px); aspect-ratio: 1.5 / 1;
-}
-.dp-up    { grid-area: 1 / 2 / 2 / 3; }
-.dp-left  { grid-area: 2 / 1 / 3 / 2; }
-.dp-right { grid-area: 2 / 3 / 3 / 4; }
+/* 왼손 컨트롤 — 앞들기/뒤로 · 점프 · 앞숙임 한 줄(빈공간 없음) */
+.dpad-row { display: flex; gap: 6px; flex: 1 1 0; max-width: 252px; }
+.dpad-row .ctrl-btn { flex: 1 1 0; min-width: 0; height: min(24vw, 94px); }
 .ctrl-btn {
   pointer-events: auto;
   touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
@@ -232,8 +227,9 @@ body {
 
 @media (hover: hover) and (pointer: fine) {
   .controls { opacity: .9; }
-  .dpad { width: 168px; }
-  .ctrl-gas { width: 92px; height: 100px; }
+  .dpad-row { max-width: 220px; }
+  .dpad-row .ctrl-btn { height: 76px; }
+  .ctrl-gas { width: 96px; height: 92px; }
 }
 
 /* 플레이 중 재시작 버튼 */
