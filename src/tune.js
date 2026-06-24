@@ -26,7 +26,9 @@ if (typeof location !== 'undefined' && new URLSearchParams(location.search).get(
 
   const panel = document.createElement('div');
   panel.id = 'tune-panel';
-  panel.innerHTML = `<div class="tp-head"><b>🛠 물리 튜닝</b><button id="tp-min">_</button></div><div id="tp-body"></div>
+  panel.innerHTML = `<div class="tp-head"><b>🛠 물리 튜닝</b><button id="tp-min">_</button></div>
+    <button id="tp-test" class="tp-test">🏁 테스트 코스(무제한)</button>
+    <div id="tp-body"></div>
     <div class="tp-foot"><button id="tp-copy">📋 값 복사</button><button id="tp-reset">되돌리기</button></div>`;
   const body = panel.querySelector('#tp-body');
   const DEFAULTS = { ...TUNING };
@@ -66,6 +68,7 @@ if (typeof location !== 'undefined' && new URLSearchParams(location.search).get(
     syncSliders();
   });
   panel.querySelector('#tp-min').addEventListener('click', () => panel.classList.toggle('min'));
+  panel.querySelector('#tp-test').addEventListener('click', () => window.__candleStartTest && window.__candleStartTest());
 
   function attach() { if (document.body) document.body.appendChild(panel); else requestAnimationFrame(attach); }
   attach();

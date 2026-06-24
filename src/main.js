@@ -177,22 +177,46 @@ document.getElementById('tab-gainers')?.addEventListener('click', () => setTrend
 document.getElementById('tab-volume')?.addEventListener('click', () => setTrendingTab('volume'));
 
 let playCtx = null;   // 재시작용 — 현재 플레이 중인 코스
-function startGame(series, symbol, name) {
-  playCtx = { series, symbol, name };
+function startGame(series, symbol, name, opts = {}) {
+  playCtx = { series, symbol, name, opts };
   show('play');
   initPlayBanner();
   const canvas = $('game-canvas');
   if (game) { try { game.stop(); } catch {} }   // 이전 게임 정리(재시작 시)
   game = new Game(canvas);
-  game.start(series, symbol, name, onGameEnd);
+  game.start(series, symbol, name, onGameEnd, opts);
 }
 
 // 플레이 중 재시작 — 결과까지 안 기다리고 같은 코스를 즉시 다시
 function restartPlay() {
   if (!playCtx) return;
-  startGame(playCtx.series, playCtx.symbol, playCtx.name);
+  startGame(playCtx.series, playCtx.symbol, playCtx.name, playCtx.opts);
 }
 $('btn-restart-play')?.addEventListener('click', restartPlay);
+
+// ?tune=1 테스트 코스 — 다양한 지형(직진·상승·하락·횡보·램프·범프) 무제한 주행
+if (new URLSearchParams(location.search).get('tune') === '1') {
+  window.__candleStartTest = () => startGame(genTestCourse(), 'TEST', '테스트 코스', { test: true });
+}
+function genTestCourse() {
+  const pts = [];
+  let v = 100;
+  const push = (val) => pts.push({ date: '2026-01-01', close: +val.toFixed(2) });
+  const seg = {
+    flat:      (n) => { for (let i = 0; i < n; i++) push(v + Math.sin(i * 0.25) * 0.4); },        // 직진
+    up:        (n) => { for (let i = 0; i < n; i++) { v += 0.8; push(v); } },                     // 상승
+    down:      (n) => { for (let i = 0; i < n; i++) { v -= 0.8; push(v); } },                     // 하락
+    side:      (n) => { for (let i = 0; i < n; i++) push(v + Math.sin(i * 0.5) * 6); },           // 횡보(파도)
+    ramp:      (n) => { for (let i = 0; i < n; i++) { v += (i < n / 2 ? 2.4 : -2.4); push(v); } },// 점프대(급상승→급하락)
+    bumps:     (n) => { for (let i = 0; i < n; i++) push(v + (i % 6 < 3 ? 4 : -4)); },             // 범프
+    steepUp:   (n) => { for (let i = 0; i < n; i++) { v += 1.6; push(v); } },                     // 급상승
+    steepDown: (n) => { for (let i = 0; i < n; i++) { v -= 1.6; push(v); } },                     // 급하락
+  };
+  const plan = [['flat', 60], ['up', 90], ['flat', 40], ['down', 90], ['side', 120], ['ramp', 70],
+    ['flat', 50], ['bumps', 60], ['steepUp', 70], ['steepDown', 70], ['side', 100], ['ramp', 80], ['flat', 60]];
+  for (let r = 0; r < 6; r++) for (const [k, n] of plan) seg[k](n);   // 길게 반복 → 무제한 느낌
+  return pts;
+}
 
 // ---------------- 게임 종료 → 리워드 광고 → 결과 ----------------
 async function onGameEnd(result) {

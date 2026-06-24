@@ -26,8 +26,9 @@ export class Game {
     this._onEnd = null;
   }
 
-  start(series, symbol, name, onEnd) {
+  start(series, symbol, name, onEnd, opts = {}) {
     this._onEnd = onEnd;
+    this.testMode = !!opts.test;   // ?tune=1 테스트: 무제한(연료/완주/크래시 종료 끔)
     this.symbol = symbol;
     this.stockName = (name || '').split('·')[0].trim();   // 거래소 꼬리표 제거
     this.diff = difficulty(series);                        // 변동성 기반 난이도
@@ -173,7 +174,7 @@ export class Game {
     // 거리 / 연료
     this.maxX = Math.max(this.maxX, this.bike.position.x);
     this.distanceM = Math.max(0, Math.floor((this.maxX - this.startX) / PX_PER_METER));
-    this.fuel -= dt;
+    if (!this.testMode) this.fuel -= dt;   // 테스트 모드: 연료 무제한
 
     // 체크포인트(20/50/80%) 통과 시 +시간
     const totalW = this.terrain.worldWidth - this.startX;
@@ -228,8 +229,9 @@ export class Game {
     const elapsed = (performance.now() - this.startTime) / 1000;
     if (elapsed < this.graceSec) return;   // 시작 직후 유예
     let reason = null;
-    if (this.fuel <= 0) reason = 'fuel';
-    else if (this.bike.position.y > this.terrain.maxY + 700) reason = 'fell';   // 지형보다 한참 아래 = 추락
+    if (this.bike.position.y > this.terrain.maxY + 700) reason = 'fell';   // 지형보다 한참 아래 = 추락(테스트도 안전상 유지)
+    else if (this.testMode) reason = null;   // 테스트 모드: 연료/완주/크래시 종료 없음(무제한 주행)
+    else if (this.fuel <= 0) reason = 'fuel';
     else if (this.bike.position.x >= this.terrain.worldWidth - 120) reason = 'finish';
     else if (this._crashTimer > 2.5) reason = 'crash';
     if (reason) { console.log('[게임오버]', reason); this._end(reason); }

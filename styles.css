@@ -242,6 +242,8 @@ body {
   font-size: 11px; color: var(--text); box-shadow: 0 8px 30px rgba(0,0,0,.6);
 }
 #tune-panel.min #tp-body, #tune-panel.min .tp-foot { display: none; }
+.tp-test { width: 100%; margin: 6px 0 2px; background: rgba(44,230,196,.16); border: 1px solid var(--neon); color: #d7fff6; border-radius: 8px; padding: 8px; font-weight: 800; cursor: pointer; }
+.tp-test:active { transform: scale(.97); }
 .tp-head { display: flex; justify-content: space-between; align-items: center; }
 .tp-head button { background: none; border: 1px solid var(--panel-border); color: var(--muted); border-radius: 6px; cursor: pointer; padding: 0 9px; }
 .tp-row { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "k v" "s s"; gap: 1px 6px; margin: 8px 0; }
