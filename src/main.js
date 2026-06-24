@@ -12,7 +12,7 @@ import { shareResult, saveCard } from './share/share.js';
 import { quickDifficulty } from './difficulty.js';
 import { MOCK_SYMBOLS } from './stock/mockData.js';
 import * as audio from './audio.js';
-import { effectiveAdMode } from './toss.js';
+import { IS_TOSS, effectiveAdMode, requestTossLogin } from './toss.js';
 import './tune.js';   // ?tune=1 일 때만 물리 튜닝 패널 표시
 
 // 토스 인앱에서는 외부광고 금지 → 광고/결과 게이트 'off'(결과 즉시 공개).
@@ -124,6 +124,44 @@ async function launch(item) {
   }
 }
 $('btn-start').onclick = () => launch(selected);
+
+// ---------------- 토스 인앱 첫 진입: 로그인 + 닉네임 계정 기본값 ----------------
+// 토스에서만, '아직 닉이 없을 때만' 자동 로그인(매 실행 나그 방지). 서버에 저장된 계정
+// 기본 닉이 있으면 자동 적용 → 순위에 자동으로 그 닉이 들어간다. 없으면 1회 입력받아 저장.
+// 실패하면 조용히 넘어가고, 기존 흐름(첫 완주 시 닉 입력)으로 폴백한다.
+const TOSS_TOKEN_LS = 'candlebike_toss_token';
+async function tossLoginFlow() {
+  if (!IS_TOSS || getNick()) return;
+  try {
+    const login = await requestTossLogin();                 // 셸 appLogin → { authorizationCode }
+    const res = await fetch('/api/auth/toss', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ authorizationCode: login?.authorizationCode }),
+    });
+    if (!res.ok) { console.warn('토스 로그인 API', res.status); return; }
+    const data = await res.json();
+    if (data.token) localStorage.setItem(TOSS_TOKEN_LS, data.token);
+    if (data.nick) setNick(data.nick);                      // 계정 기본 닉 자동 적용
+    else promptTossNick(data.token);                        // 첫 로그인 → 닉 1회 입력
+  } catch (e) {
+    console.warn('토스 로그인 생략', e);                     // 브리지 없음/타임아웃 등 → 폴백
+  }
+}
+// 토스 닉 입력 모달(기존 promptNick 재사용) → 입력 시 계정 기본값으로 서버 저장.
+function promptTossNick(token) {
+  promptNick(async (n) => {
+    setNick(n);
+    if (token) {
+      try {
+        await fetch('/api/toss-nick', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, nick: n }),
+        });
+      } catch (e) { console.warn('닉 저장 실패', e); }
+    }
+  });
+}
+tossLoginFlow();
 
 // ---------------- 공유 링크로 진입 (?c=종목) → 바로 그 종목 도전 ----------------
 // 친구가 공유 카드를 눌러 들어오면 해당 종목 코스로 즉시 시작 → 곧장 '같이 도전'.

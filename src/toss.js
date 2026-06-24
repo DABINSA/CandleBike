@@ -16,3 +16,41 @@ export const IS_TOSS = (() => {
 export function effectiveAdMode(configMode) {
   return IS_TOSS ? 'off' : configMode;
 }
+
+// ─── RN 셸 ↔ 웹 브리지 (클라이언트) ───────────────────────────────────────
+// appLogin / 리워드광고 같은 토스 네이티브 기능은 RN 셸만 호출 가능 → postMessage 요청 →
+// 셸이 네이티브 호출 후 injectJavaScript 로 회신.
+//   웹→셸:  ReactNativeWebView.postMessage(JSON{ type, requestId, params })
+//   셸→웹:  window.__onTossBridgeMessage(JSON{ requestId, ok, data?, error? })
+const _pending = new Map();
+function _ensureDispatcher() {
+  if (window.__onTossBridgeMessage) return;
+  window.__onTossBridgeMessage = (raw) => {
+    let msg;
+    try { msg = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { return; }
+    const p = _pending.get(msg.requestId);
+    if (!p) return;
+    clearTimeout(p.timer);
+    _pending.delete(msg.requestId);
+    if (msg.ok) p.resolve(msg.data);
+    else p.reject(new Error(msg.error || 'BRIDGE_ERROR'));
+  };
+}
+
+// 셸 브리지 호출 — 셸이 없으면(웹) NO_BRIDGE 로 reject.
+export function callBridge(type, params = {}, timeoutMs = 60000) {
+  return new Promise((resolve, reject) => {
+    const rn = window.ReactNativeWebView;
+    if (!rn || !rn.postMessage) { reject(new Error('NO_BRIDGE')); return; }
+    _ensureDispatcher();
+    const requestId = `tb_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const timer = setTimeout(() => { _pending.delete(requestId); reject(new Error('TIMEOUT')); }, timeoutMs);
+    _pending.set(requestId, { resolve, reject, timer });
+    rn.postMessage(JSON.stringify({ type, requestId, params }));
+  });
+}
+
+// 토스 로그인 — 셸 appLogin() 호출 요청 → { authorizationCode, referrer }.
+export function requestTossLogin() {
+  return callBridge('appLogin');
+}
