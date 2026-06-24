@@ -204,12 +204,12 @@ body {
   padding: 0 12px; pointer-events: none;
 }
 /* 2×2 풀폭: 위 앞들기/뒤로·앞숙임 / 아래 점프·가속 (가속+점프는 좌우 다른 손) */
-.pad2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.pad2x2 .ctrl-btn { min-width: 0; height: min(20vw, 90px); }
+.pad2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.pad2x2 .ctrl-btn { min-width: 0; height: min(13vw, 52px); }
 .ctrl-btn {
   pointer-events: auto;
   touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-  border-radius: 16px; font-size: 14px; font-weight: 800; color: var(--text);
+  border-radius: 14px; font-size: 12.5px; font-weight: 800; color: var(--text);
   background: rgba(255,255,255,.07); border: 1.5px solid var(--panel-border);
   backdrop-filter: blur(6px);
   display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2;
@@ -223,7 +223,7 @@ body {
 @media (hover: hover) and (pointer: fine) {
   .controls { opacity: .9; padding: 0 24px; }
   .pad2x2 { max-width: 420px; margin: 0 auto; }
-  .pad2x2 .ctrl-btn { height: 66px; }
+  .pad2x2 .ctrl-btn { height: 50px; }
 }
 
 /* 플레이 중 재시작 버튼 */
