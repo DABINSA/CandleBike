@@ -376,6 +376,26 @@ body {
   background: var(--bg); border: 1px solid var(--panel-border); border-radius: 12px; color: var(--text); outline: none;
 }
 
+/* 부활(이어가기) 제안 오버레이 */
+.revive-overlay {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(2,5,9,.78); backdrop-filter: blur(4px);
+  display: none; align-items: center; justify-content: center; padding: 24px;
+}
+.revive-overlay.active { display: flex; }
+.revive-inner {
+  background: var(--bg2); border: 1px solid var(--panel-border);
+  border-radius: 20px; padding: 26px 22px; width: 100%; max-width: 360px; text-align: center;
+  box-shadow: 0 12px 40px rgba(0,0,0,.5);
+}
+.revive-emoji { font-size: 40px; margin-bottom: 8px; }
+.revive-msg { font-size: 22px; font-weight: 900; margin: 0 0 4px; }
+.revive-sub { font-size: 14px; color: var(--muted); margin: 0 0 16px; }
+.revive-bar-wrap { height: 6px; border-radius: 4px; background: rgba(255,255,255,.1); overflow: hidden; margin-bottom: 18px; }
+.revive-bar { height: 100%; width: 100%; background: var(--neon); transition: width .1s linear; }
+.revive-inner .btn { width: 100%; }
+.revive-inner #btn-revive-skip { margin-top: 8px; }
+
 /* 트릭 점수 토스트 (게임 캔버스 위) */
 .trick-toast {
   position: absolute; z-index: 7; left: 50%; top: 38%; transform: translateX(-50%);

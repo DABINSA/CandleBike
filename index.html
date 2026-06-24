@@ -208,6 +208,18 @@
     </div>
   </div>
 
+  <!-- 부활(이어가기) 제안 — 미완주 시 광고 보고 같은 자리에서 계속 -->
+  <div id="revive-overlay" class="revive-overlay">
+    <div class="revive-inner">
+      <div class="revive-emoji">🏍️💨</div>
+      <p id="revive-msg" class="revive-msg" data-i18n="reviveCrash">넘어졌어요!</p>
+      <p class="revive-sub" data-i18n="reviveSub">광고 보고 이어서 달릴까요?</p>
+      <div class="revive-bar-wrap"><div id="revive-bar" class="revive-bar"></div></div>
+      <button id="btn-revive-ad" class="btn btn-primary" data-i18n="reviveWatch">🎬 광고 보고 이어가기</button>
+      <button id="btn-revive-skip" class="btn btn-ghost" data-i18n="reviveSkip">그만하기</button>
+    </div>
+  </div>
+
   <canvas id="card-canvas" width="1080" height="1350" style="display:none"></canvas>
 
   <script type="module" src="./src/main.js"></script>

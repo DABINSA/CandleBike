@@ -76,6 +76,8 @@ export class Game {
     this.ended = false;
     this.startTime = performance.now();
     this.graceSec = 1.8;          // 시작 직후 종료 판정 유예(착지 대기)
+    this._revivesLeft = this.testMode ? 0 : 1;   // 광고 보고 '이어가기' 1회
+    this._reviveGraceUntil = 0;   // 부활 직후 종료 판정 유예
 
     // 지면 접촉 감지
     Matter.Events.on(this.engine, 'collisionActive', (ev) => {
@@ -271,7 +273,8 @@ export class Game {
   }
 
   _checkEnd() {
-    if (this.ended) return;
+    if (this.ended || this._reviving) return;
+    if (this._reviveGraceUntil && performance.now() < this._reviveGraceUntil) return;  // 부활 직후 유예
     const elapsed = (performance.now() - this.startTime) / 1000;
     if (elapsed < this.graceSec) return;   // 시작 직후 유예
     let reason = null;
@@ -283,7 +286,76 @@ export class Game {
     if (reason) { console.log('[게임오버]', reason); this._end(reason); }
   }
 
+  // 미완주 종료 직전, 광고 보고 '이어가기'를 제안할 수 있으면 제안한다.
+  _canOfferRevive(reason) {
+    return !this.testMode && reason !== 'finish' && this._revivesLeft > 0
+      && typeof this._reviveCb === 'function';
+  }
+
+  // 지형 높이(주어진 x의 지면 y) — 부활 시 안전 위치 산정.
+  _terrainYAt(x) {
+    const pts = this.terrain?.points;
+    if (!pts || !pts.length) return this.terrain?.startPoint?.y ?? 0;
+    if (x <= pts[0].x) return pts[0].y;
+    for (let i = 1; i < pts.length; i++) {
+      if (pts[i].x >= x) {
+        const a = pts[i - 1], b = pts[i];
+        const t = (x - a.x) / Math.max(1e-6, b.x - a.x);
+        return a.y + (b.y - a.y) * t;
+      }
+    }
+    return pts[pts.length - 1].y;
+  }
+
+  // 바이크를 현재 x의 지면 위로 똑바로 세워 재배치(부활).
+  _respawnBike() {
+    const cur = this.bike.chassis.position;
+    const groundY = this._terrainYAt(cur.x);
+    const off = { x: 0, y: (groundY - 90) - cur.y };
+    for (const b of this.bike.parts) {
+      Matter.Body.translate(b, off);
+      Matter.Body.setVelocity(b, { x: 0, y: 0 });
+      Matter.Body.setAngularVelocity(b, 0);
+    }
+    Matter.Body.setAngle(this.bike.chassis, 0);
+  }
+
   _end(reason) {
+    if (this.ended || this._reviving) return;
+    if (this._canOfferRevive(reason)) { this._offerRevive(reason); return; }
+    this._finalize(reason);
+  }
+
+  // 게임을 멈추고 부활 제안 콜백을 띄운다. true면 이어가기, 아니면 종료.
+  _offerRevive(reason) {
+    this._reviving = true;
+    this.running = false;
+    cancelAnimationFrame(this._raf);
+    audio.stopEngine();
+    Promise.resolve(this._reviveCb(reason)).then((ok) => {
+      if (ok && !this.ended) this._doRevive();
+      else { this._reviving = false; this._finalize(reason); }
+    }).catch(() => { this._reviving = false; this._finalize(reason); });
+  }
+
+  // 이어가기 — 연료 회복 + 바이크 복구 + 루프 재개.
+  _doRevive() {
+    this._revivesLeft -= 1;
+    this.fuel = CONFIG.GAME.fuelSeconds;
+    this._respawnBike();
+    this._crashTimer = 0;
+    this._chassisTouching = false;
+    this._wasAir = false;
+    this._reviveGraceUntil = performance.now() + 1800;   // 복구 후 잠깐 종료판정 유예
+    this.lastTs = performance.now();
+    this._reviving = false;
+    this.ended = false;
+    this.running = true;
+    audio.startEngine();
+    this._loop();
+  }
+
+  _finalize(reason) {
     if (this.ended) return;
     this.ended = true;
     this.running = false;

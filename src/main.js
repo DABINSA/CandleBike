@@ -232,7 +232,50 @@ function startGame(series, symbol, name, opts = {}) {
   const canvas = $('game-canvas');
   if (game) { try { game.stop(); } catch {} }   // 이전 게임 정리(재시작 시)
   game = new Game(canvas);
+  game._reviveCb = offerRevive;   // 미완주 시 '광고 보고 이어가기' 제안
   game.start(series, symbol, name, onGameEnd, opts);
+}
+
+// 부활 제안 — Game이 미완주 종료 직전 호출. true 반환 시 이어가기(연료 회복+복구).
+// 광고 보고 이어가기 / 그만하기 / 8초 무응답 자동 포기.
+function offerRevive(reason) {
+  return new Promise((resolve) => {
+    const ov = $('revive-overlay');
+    if (!ov) { resolve(false); return; }
+    const msg = $('revive-msg');
+    if (msg) msg.textContent = reason === 'fuel' ? t.reviveFuel : t.reviveCrash;
+    const yes = $('btn-revive-ad'), no = $('btn-revive-skip'), bar = $('revive-bar');
+    ov.classList.add('active');
+    if (bar) bar.style.width = '100%';
+
+    let done = false;
+    let remain = 8;
+    const tick = setInterval(() => {
+      remain -= 0.1;
+      if (bar) bar.style.width = `${Math.max(0, (remain / 8) * 100)}%`;
+    }, 100);
+    const finish = async (watch) => {
+      if (done) return; done = true;
+      clearInterval(tick); clearTimeout(to);
+      yes.onclick = null; no.onclick = null;
+      ov.classList.remove('active');
+      if (!watch) { resolve(false); return; }
+      resolve(await watchRewardForRevive());
+    };
+    const to = setTimeout(() => finish(false), 8000);
+    yes.onclick = () => finish(true);
+    no.onclick = () => finish(false);
+  });
+}
+
+// 부활용 광고 시청 → 보상(이어가기) 여부.
+// 웹: 하우스 리워드 스텁(screen-ad). 토스: 추후 리워드광고 브리지(광고그룹 발급 후 결선).
+async function watchRewardForRevive() {
+  show('ad');
+  let ok = false;
+  try { ok = await showRewardedAd(); } catch { ok = false; }
+  show('play');
+  return ok;
 }
 
 // 플레이 중 재시작 — 결과까지 안 기다리고 같은 코스를 즉시 다시
