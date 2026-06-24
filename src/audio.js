@@ -87,6 +87,7 @@ export const sfx = {
   flip()       { [0, 0.07, 0.14].forEach((w, i) => tone({ type: 'triangle', freq: 520 + i * 190, dur: 0.13, gain: 0.2, when: w })); },
   checkpoint() { tone({ type: 'sine', freq: 660, dur: 0.12, gain: 0.25 }); tone({ type: 'sine', freq: 990, dur: 0.2, gain: 0.22, when: 0.1 }); },
   crash()      { noiseBurst({ dur: 0.5, gain: 0.5, freq: 700 }); tone({ type: 'sawtooth', freq: 180, to: 55, dur: 0.55, gain: 0.35, filterFreq: 500 }); },
+  boost()      { tone({ type: 'sawtooth', freq: 200, to: 900, dur: 0.3, gain: 0.32, filterFreq: 2800 }); noiseBurst({ dur: 0.24, gain: 0.2, freq: 1900 }); tone({ type: 'square', freq: 880, dur: 0.1, gain: 0.16, when: 0.06, filterFreq: 3000 }); },
   finish()     { [523, 659, 784, 1047].forEach((f, i) => tone({ type: 'triangle', freq: f, dur: 0.32, gain: 0.26, when: i * 0.12, filterFreq: 3500 })); },
   gameover()   { tone({ type: 'sawtooth', freq: 330, to: 98, dur: 0.7, gain: 0.3, filterFreq: 900 }); },
   click()      { tone({ type: 'square', freq: 540, dur: 0.06, gain: 0.14, filterFreq: 2200 }); },

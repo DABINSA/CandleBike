@@ -216,9 +216,12 @@ export class Game {
       this.flipBonusM = (this.flipBonusM || 0) + Math.round(flips * FLIP_METERS * (trick.back ? 1.6 : 1));
       if (this.multi) {
         // 멀티(레이스): 연료 대신 전방 부스트(카트라이더식) — 트릭으로 순위 추월.
-        const power = (3 + flips * 2) * (trick.back ? 1.4 : 1);
+        const power = (7 + flips * 3.5) * (trick.back ? 1.5 : 1);   // 더 강하게
         this.bike.boost(power);
+        this._shake = Math.max(this._shake || 0, 0.8);             // 화면 흔들림
+        this._boostFx = 1;                                         // 청록 부스트 플래시
         this._showTrick(flips, trick.back, 0, true);
+        audio.sfx.boost();
       } else {
         // 싱글(생존): 연료 보상. 1회 +2, 2회 +5, 3회 +9초 …
         let secs = 0;
@@ -226,8 +229,8 @@ export class Game {
         if (trick.back) secs = Math.round(secs * 1.6);
         this.fuel += secs;
         this._showTrick(flips, trick.back, secs, false);
+        audio.sfx.flip();
       }
-      audio.sfx.flip();
     }
     this._wasAir = !grounded;
 
@@ -263,6 +266,7 @@ export class Game {
     // 효과 감쇠 / 지나간 장애물 제거 (+ 깔끔히 넘으면 보너스)
     this._flash = Math.max(0, this._flash - dt * 1.4);
     this._shake = Math.max(0, this._shake - dt * 1.8);
+    this._boostFx = Math.max(0, (this._boostFx || 0) - dt * 2.2);
     const tnow = performance.now();
     this._eventBodies = this._eventBodies.filter((eb) => {
       // 벽 중심을 지나는 순간, 차체가 벽 위로 넘어갔는지 기록(터널링/관통은 보너스 제외)
@@ -662,6 +666,24 @@ export class Game {
     if (this._flash > 0) {
       ctx.fillStyle = `rgba(255,40,60,${this._flash * 0.4})`;
       ctx.fillRect(0, 0, vw, vh);
+    }
+
+    // 부스트 임팩트 — 좌우 청록 비네트 + 전방 스피드 스트릭
+    if (this._boostFx > 0) {
+      const a = this._boostFx;
+      const grad = ctx.createLinearGradient(0, 0, vw, 0);
+      grad.addColorStop(0, `rgba(44,230,196,${a * 0.4})`);
+      grad.addColorStop(0.28, 'rgba(44,230,196,0)');
+      grad.addColorStop(0.72, 'rgba(44,230,196,0)');
+      grad.addColorStop(1, `rgba(44,230,196,${a * 0.4})`);
+      ctx.fillStyle = grad; ctx.fillRect(0, 0, vw, vh);
+      ctx.strokeStyle = `rgba(255,255,255,${a * 0.5})`;
+      ctx.lineWidth = 2; ctx.lineCap = 'round';
+      for (let i = 0; i < 7; i++) {
+        const y = (i + 0.5) * (vh / 7) + (Math.random() - 0.5) * 20;
+        const len = 60 + Math.random() * 120 * a;
+        ctx.beginPath(); ctx.moveTo(vw - 10, y); ctx.lineTo(vw - 10 - len, y); ctx.stroke();
+      }
     }
   }
 
