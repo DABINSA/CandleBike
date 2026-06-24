@@ -125,6 +125,16 @@ async function launch(item) {
 }
 $('btn-start').onclick = () => launch(selected);
 
+// ---------------- 공유 링크로 진입 (?c=종목) → 바로 그 종목 도전 ----------------
+// 친구가 공유 카드를 눌러 들어오면 해당 종목 코스로 즉시 시작 → 곧장 '같이 도전'.
+(function deepLinkStart() {
+  const c = new URLSearchParams(location.search).get('c');
+  if (!c) return;
+  const symbol = c.trim().toUpperCase();
+  if (!/^[A-Z0-9.\-]{1,15}$/.test(symbol)) return;
+  launch({ symbol, name: lookupName(symbol) });
+})();
+
 // ---------------- 실시간 추천 종목 ----------------
 let trendingMode = 'gainers';   // 'gainers'(급등주) | 'volume'(거래량)
 
@@ -316,8 +326,7 @@ $('btn-share').onclick = async () => {
   if (!lastResult) return;
   if (regPromise) { try { await regPromise; } catch {} }   // 순위 등록 완료 후 공유 (기록 정확히 반영)
   const r = await shareResult(lastResult);
-  if (r === 'downloaded') alert(t.savedAlert);
-  else if (r === 'shared-copied') showToast(t.shareLinkCopied);
+  if (r === 'shared-copied') showToast(t.shareLinkCopied);
 };
 
 // 가벼운 비차단 토스트(공유 안내·데모 알림 등). top:true 면 상단(플레이 중 하단 조작버튼 회피).

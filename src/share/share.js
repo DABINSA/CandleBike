@@ -97,36 +97,38 @@ function canvasToBlob(cv) {
   return new Promise((res) => cv.toBlob(res, 'image/png'));
 }
 
+// 결과별 공유 URL — 이 링크를 공유하면 메신저가 OG 카드(미리보기 + 클릭→플레이)로 펼친다.
+// (이미지 파일을 직접 첨부하면 카카오 등이 링크를 버리므로, '링크'를 공유하는 게 핵심.)
+function buildShareUrl(result) {
+  const rec = result.completed
+    ? t.timeFmt(result.timeMs)
+    : `${(result.distance || 0).toLocaleString()}m`;
+  const p = new URLSearchParams({ c: result.symbol, r: rec });
+  if (result.name) p.set('n', result.name);
+  if (result.completed && result.rank != null) p.set('rank', `${result.rank}위`);
+  return `${SITE_URL}/api/s?${p.toString()}`;
+}
+
 export async function shareResult(result) {
-  const cv = drawResultCard(result);
-  const blob = await canvasToBlob(cv);
-  const file = new File([blob], 'candlebike.png', { type: 'image/png' });
+  const shareUrl = buildShareUrl(result);
   const caption = result.completed
-    ? t.shareCaptionTime(result.symbol, t.timeFmt(result.timeMs), result.rank, SITE_URL)
-    : t.shareCaption(result.symbol, (result.distance || 0).toLocaleString(), '–', SITE_URL);
+    ? t.shareCaptionTime(result.symbol, t.timeFmt(result.timeMs), result.rank, shareUrl)
+    : t.shareCaption(result.symbol, (result.distance || 0).toLocaleString(), '–', shareUrl);
 
-  // 🔴 카카오톡 등은 이미지(파일) 첨부 시 본문 텍스트/URL을 버려서 '사진만' 공유된다.
-  //    → 공유 직전에 링크(캡션)를 클립보드에 복사해 두면, 채팅에 붙여넣어 링크도 함께 보낼 수 있다.
+  // 링크를 클립보드에도 복사 — 공유 대상이 url을 무시해도 채팅에 붙여넣어 보낼 수 있다.
   let copied = false;
-  try { await navigator.clipboard.writeText(caption); copied = true; } catch {}
+  try { await navigator.clipboard.writeText(shareUrl); copied = true; } catch {}
 
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+  // 링크(url) 공유 — 카카오/메신저가 OG 카드로 펼치고, 친구가 눌러 바로 그 종목에 도전.
+  if (navigator.share) {
     try {
-      // url 필드도 함께 전달 — 링크를 인식하는 공유 대상에선 클릭 가능한 링크로 붙는다.
-      await navigator.share({ files: [file], text: caption, url: SITE_URL, title: 'CandleBike' });
+      await navigator.share({ title: 'CandleBike', text: caption, url: shareUrl });
       return copied ? 'shared-copied' : 'shared';
     } catch (e) { if (e.name === 'AbortError') return 'cancelled'; }
   }
 
-  // 파일 공유 불가(주로 데스크톱) → 링크만이라도 공유 시도, 안 되면 이미지 다운로드 + 캡션 복사
-  if (navigator.share) {
-    try {
-      await navigator.share({ text: caption, url: SITE_URL, title: 'CandleBike' });
-      return 'shared';
-    } catch (e) { if (e.name === 'AbortError') return 'cancelled'; }
-  }
-  saveCard(result);
-  return 'downloaded';
+  // 공유 API 없음(주로 데스크톱) → 링크 복사로 마무리(붙여넣어 초대 가능).
+  return copied ? 'shared-copied' : 'failed';
 }
 
 export async function saveCard(result) {
