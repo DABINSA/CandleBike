@@ -44,6 +44,11 @@ export const CONFIG = {
   ADSENSE_CLIENT: 'ca-pub-3716603498723289',
   REWARD_AD_SECONDS: 5,      // 결과 보기 전 강제 시청 시간(초)
 
+  // ---- 분석: Microsoft Clarity (히트맵/세션 리플레이) ----
+  // clarity.microsoft.com 에서 프로젝트 생성 후 받은 Project ID 를 넣으세요.
+  // 비워두면 로드 안 함(no-op). 토스 인앱은 외부 스크립트 금지 → 웹(비-토스)에서만 로드.
+  CLARITY_PROJECT_ID: 'xc65q1l0jn',
+
   // 토스 인앱 배너 광고 그룹 ID (WebView SDK). 🔴 광고그룹 발급 후 실 ID로 교체.
   // 그 전엔 토스 제공 테스트 ID(미집계). 토스 환경에서만 동작(웹 영향 0).
   TOSS_BANNER_AD_GROUP: 'ait-ad-test-banner-id',

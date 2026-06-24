@@ -14,6 +14,7 @@ import { quickDifficulty } from './difficulty.js';
 import { MOCK_SYMBOLS } from './stock/mockData.js';
 import * as audio from './audio.js';
 import { IS_TOSS, effectiveAdMode, requestTossLogin } from './toss.js';
+import { initClarity } from './analytics/clarity.js';
 import './tune.js';   // ?tune=1 일 때만 물리 튜닝 패널 표시
 
 // 토스 인앱에서는 외부광고 금지 → 광고/결과 게이트 'off'(결과 즉시 공개).
@@ -52,6 +53,7 @@ let lastResult = null;    // { symbol, distance, flips, score }
 let multiGhostRows = [];  // 멀티 결과 순위표에 표시용으로 합칠 고스트 기록(완주자) — DB엔 저장 안 함
 
 applyStatic();           // 정적 텍스트를 접속 언어로 채움
+initClarity();           // Microsoft Clarity (웹에서만, 토스 인앱 제외)
 
 // ---------------- 사운드 ----------------
 // 자동재생 정책: 첫 사용자 제스처에서 오디오 컨텍스트 깨우기
