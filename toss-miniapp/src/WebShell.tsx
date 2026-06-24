@@ -7,7 +7,7 @@ import { useBackHandler } from '@granite-js/react-native';
 import { WebView } from '@granite-js/native/react-native-webview';
 import { appLogin } from '@apps-in-toss/framework';
 
-const SITE = 'https://candlebike.vercel.app';
+const SITE = 'https://candlerider.2nt4soft.com';
 
 // 페이지 로드 전 주입: 사이트가 토스 인앱 환경을 감지(src/toss.js)해
 // 외부광고(AdSense/하우스 자리)를 끄고 결과 게이트를 건너뛰도록 마커 설정.

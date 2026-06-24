@@ -17,7 +17,7 @@ const ascii = (s) => String(s || '').replace(/[^\x20-\x7E]/g, '').trim();
 // 렌더할 텍스트에 필요한 글자만 골라 Google Fonts 서브셋(TTF)을 받아온다.
 // Windows 7 UA → css2 가 woff2 대신 truetype URL 을 준다(Satori 는 woff2 미지원).
 async function loadKoreanFont(text) {
-  const chars = Array.from(new Set((text + 'candlebike.vercel.app 0123456789.,%·').split(''))).join('');
+  const chars = Array.from(new Set((text + 'abcdefghijklmnopqrstuvwxyz0123456789.,%·- ').split(''))).join('');
   const api =
     `https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700&text=${encodeURIComponent(chars)}`;
   const css = await (await fetch(api, {
@@ -31,7 +31,7 @@ async function loadKoreanFont(text) {
 export default async function handler(req) {
   const u = new URL(req.url);
   const { searchParams } = u;
-  const host = u.host || 'candlebike.vercel.app';   // 이미지 하단 도메인 — 요청 호스트 따라감
+  const host = u.host || 'candlerider.2nt4soft.com';   // 이미지 하단 도메인 — 요청 호스트 따라감
   const c = (searchParams.get('c') || 'STOCK').slice(0, 15);
   const r = String(searchParams.get('r') || '').slice(0, 16) || '—';       // "35.9초" · "1,128m"
   const n = String(searchParams.get('n') || '').slice(0, 40);              // 종목명(한글 가능)

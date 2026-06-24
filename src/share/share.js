@@ -7,9 +7,9 @@
 import { t } from '../i18n.js';
 
 const W = 1080, H = 1350;
-const SITE_HOST = (typeof location !== 'undefined' && location.host) ? location.host : 'candlebike.vercel.app';
+const SITE_HOST = (typeof location !== 'undefined' && location.host) ? location.host : 'candlerider.2nt4soft.com';
 const SITE_URL = (typeof location !== 'undefined' && location.origin && location.origin.startsWith('http'))
-  ? location.origin : 'https://candlebike.vercel.app';
+  ? location.origin : 'https://candlerider.2nt4soft.com';
 
 function roundRectPath(ctx, x, y, w, h, r) {
   ctx.beginPath();
