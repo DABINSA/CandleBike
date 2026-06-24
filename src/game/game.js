@@ -715,7 +715,9 @@ export class Game {
       if (g.finished) { g.obAir = 0; g.flip = 0; g._speedScale = 1; continue; }
       const x = this.startX + g.progress * L;
       const slope = Math.atan2(this._terrainYAt(x + 30) - this._terrainYAt(x - 30), 60);
-      let scale = 1 + Math.max(-0.35, Math.min(0.5, slope * 0.8));   // 지형 반응
+      // 평지=순항(풀가속), 오르막↓ 내리막↑ — 평지/횡보에서도 플레이어 순항 속도를 따라간다.
+      const cruise = CONFIG.MULTI?.aiCruise ?? 1.3;
+      let scale = cruise + Math.max(-0.55, Math.min(0.3, slope * 0.8));
       g._stumble = Math.max(0, (g._stumble || 0) - dt);
       if (g._stumble > 0) scale *= 0.3;                              // 걸림 중엔 확 느려짐(시간 손해)
       g._boost = Math.max(0, (g._boost || 0) - dt / 1.2);           // 트릭 부스트 감쇠
