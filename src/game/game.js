@@ -558,6 +558,7 @@ export class Game {
     // 멀티 — 다른 라이더(고스트) 위치 점
     if (this.multi) {
       for (const g of this.ghosts) {
+        if (g.finished) continue;                  // 완주한 고스트는 미니맵에서도 제거
         const gx = padX + Math.max(0, Math.min(1, g.progress)) * (w - 2 * padX);
         ctx.fillStyle = g.color;
         ctx.shadowColor = g.color; ctx.shadowBlur = 5;
@@ -758,6 +759,7 @@ export class Game {
   _drawGhosts(ctx, camX, vw) {
     const L = this.finishX - this.startX;
     for (const g of this.ghosts) {
+      if (g.finished) continue;                              // 결승선 통과 → 안 보이게
       const x = this.startX + g.progress * L;
       if (x < camX - 200 || x > camX + vw + 200) continue;   // 화면 밖은 스킵
       let py = this._terrainYAt(x) - 50;                     // 바퀴가 지면에 닿도록(플레이어와 동일 기준)
