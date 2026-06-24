@@ -211,15 +211,22 @@ export class Game {
         this._badLandCd = 2.5;
       }
     } else if (flips > 0) {
-      // 플립 성공(깨끗한 착지) = 거리 보너스. 뒷구르기(백플립)는 더 어려우니 1.6배.
+      // 플립 성공(깨끗한 착지). 뒷구르기(백플립)는 더 어려우니 1.6배.
       this.flips += flips;
       this.flipBonusM = (this.flipBonusM || 0) + Math.round(flips * FLIP_METERS * (trick.back ? 1.6 : 1));
-      // 연료 보상: 한 번에 여러 바퀴일수록 회당 가산(콤보). 1회 +2, 2회 +5, 3회 +9초 …
-      let secs = 0;
-      for (let i = 1; i <= flips; i++) secs += FLIP_TIME + (i - 1);
-      if (trick.back) secs = Math.round(secs * 1.6);   // 백플립 가산(거리와 동일 정책)
-      this.fuel += secs;
-      this._showTrick(flips, trick.back, secs);
+      if (this.multi) {
+        // 멀티(레이스): 연료 대신 전방 부스트(카트라이더식) — 트릭으로 순위 추월.
+        const power = (3 + flips * 2) * (trick.back ? 1.4 : 1);
+        this.bike.boost(power);
+        this._showTrick(flips, trick.back, 0, true);
+      } else {
+        // 싱글(생존): 연료 보상. 1회 +2, 2회 +5, 3회 +9초 …
+        let secs = 0;
+        for (let i = 1; i <= flips; i++) secs += FLIP_TIME + (i - 1);
+        if (trick.back) secs = Math.round(secs * 1.6);
+        this.fuel += secs;
+        this._showTrick(flips, trick.back, secs, false);
+      }
       audio.sfx.flip();
     }
     this._wasAir = !grounded;
@@ -566,9 +573,10 @@ export class Game {
     ctx.shadowBlur = 0;
   }
 
-  _showTrick(n, back, secs) {
+  _showTrick(n, back, secs, boost) {
     const name = back ? t.backflip : t.frontflip;
-    this._toast(`${back ? '🔄 ' : ''}${t.flipCombo(n, name)}! +${secs}s`, back ? '#ffd34d' : '#5b8cff');
+    const reward = boost ? `🚀 ${t.boostTrick}` : `+${secs}s`;
+    this._toast(`${back ? '🔄 ' : ''}${t.flipCombo(n, name)}! ${reward}`, back ? '#ffd34d' : '#5b8cff');
   }
 
   _triggerEvent(ev) {
@@ -676,7 +684,7 @@ export class Game {
     }
   }
 
-  // 고스트 연출/물리감 — 지형 반응 속도 + 장애물 점프(확정) + 평지 백플립(믿을 만한 속도).
+  // 고스트 연출/물리감 — 지형 반응 속도 + 장애물(실제 벽 기준, 가끔 걸림) + 평지 백플립.
   _updateGhostFx(dt) {
     const L = this.finishX - this.startX;
     const JW = 78;   // 장애물 점프 존 반폭(px)
@@ -684,28 +692,39 @@ export class Game {
       if (g.finished) { g.obAir = 0; g.flip = 0; g._speedScale = 1; continue; }
       const x = this.startX + g.progress * L;
       const slope = Math.atan2(this._terrainYAt(x + 30) - this._terrainYAt(x - 30), 60);
-      // 지형 반응: 내리막/평지 가속, 오르막 감속(평균 ~1)
-      g._speedScale = 1 + Math.max(-0.35, Math.min(0.5, slope * 0.8));
+      let scale = 1 + Math.max(-0.35, Math.min(0.5, slope * 0.8));   // 지형 반응
+      g._stumble = Math.max(0, (g._stumble || 0) - dt);
+      if (g._stumble > 0) scale *= 0.3;                              // 걸림 중엔 확 느려짐(시간 손해)
+      g._speedScale = scale;
 
-      // 장애물 통과 — 위치 기반 아치로 '확실히' 넘긴다(실제 함정 위를 그냥 통과 X)
-      let air = 0;
-      if (this._events) {
-        for (const ev of this._events) {
-          const d = x - ev.x;
-          if (d >= -JW && d <= JW) air = Math.max(air, Math.sin(((d + JW) / (2 * JW)) * Math.PI));
-        }
+      // 장애물 — 플레이어가 보는 실제 벽(_eventBodies)만 기준. 진입 시 한 번 판단: 넘김/걸림.
+      let lift = 0, near = null, nearD = JW + 1;
+      for (const eb of this._eventBodies) {
+        const d = x - eb.x;
+        if (Math.abs(d) <= JW && Math.abs(d) < Math.abs(nearD)) { near = eb; nearD = d; }
       }
-      g.obAir = air;
+      if (near) {
+        if (g._wallX !== near.x) { g._wallX = near.x; g._wallMiss = Math.random() < 0.18; }  // ~18% 실수(걸림)
+        const phase = Math.sin(((nearD + JW) / (2 * JW)) * Math.PI);
+        if (g._wallMiss) {
+          lift = 16 * phase;                                         // 못 넘고 살짝 들썩
+          if (Math.abs(nearD) < 16 && g._stumble <= 0) g._stumble = 0.55;   // 부딪힘 → 감속
+        } else {
+          lift = ((near.h || 60) + 55) * phase;                      // 벽 높이+여유만큼 깔끔히 넘김
+        }
+      } else {
+        g._wallX = null;
+      }
+      g.obAir = lift;
 
-      // 평지 플레어 백플립 — 가끔, 1바퀴를 ~1초에(천천히). 장애물/경사 구간엔 안 함.
+      // 평지 플레어 백플립 — 가끔, 0.8s/바퀴(플레이어 수준). 장애물/경사/걸림 중엔 안 함.
       g._cool = Math.max(0, (g._cool || 0) - dt);
       if (g.flip > 0) {
         g.flip += dt / g.flipDur;
         if (g.flip >= 1) g.flip = 0;
-      } else if (g._cool <= 0 && air < 0.05 && Math.abs(slope) < 0.22 && Math.random() < dt * 0.05) {
+      } else if (g._cool <= 0 && lift < 2 && g._stumble <= 0 && Math.abs(slope) < 0.22 && Math.random() < dt * 0.05) {
         const turns = Math.random() < 0.25 ? 2 : 1;
-        g.flip = 0.0001; g.flipTurns = turns; g.flipDur = turns * 0.8;   // 0.8s/바퀴 — 일정 속도(플레이어 수준)
-        g.flipDir = -1;                                                  // 백플립
+        g.flip = 0.0001; g.flipTurns = turns; g.flipDur = turns * 0.8; g.flipDir = -1;
         g._cool = 3 + Math.random() * 3;
       }
     }
@@ -719,7 +738,7 @@ export class Game {
       if (x < camX - 200 || x > camX + vw + 200) continue;   // 화면 밖은 스킵
       let py = this._terrainYAt(x) - 50;                     // 바퀴가 지면에 닿도록(플레이어와 동일 기준)
       let ang = Math.atan2(this._terrainYAt(x + 30) - this._terrainYAt(x - 30), 60);
-      if (g.obAir > 0) py -= g.obAir * 102;                  // 장애물 점프(벽 충분히 넘김)
+      if (g.obAir > 0) py -= g.obAir;                        // 장애물 점프(벽 높이만큼, px)
       if (g.flip > 0) {                                       // 평지 백플립: 자체 아치 + 일정 속도 회전
         py -= Math.sin(g.flip * Math.PI) * (70 + g.flipTurns * 16);
         ang += g.flipDir * 2 * Math.PI * g.flipTurns * g.flip;

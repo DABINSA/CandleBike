@@ -39,8 +39,9 @@ export function createGhosts(count, parTime, names) {
     _phase: Math.random() * Math.PI * 2,
     _wob: 0.7 + Math.random() * 0.8,     // 완만한 흔들림 주기
     _speedScale: 1,                       // 지형 반응 속도(내리막↑/오르막↓) — game이 매 프레임 갱신
-    // 연출 상태(시각용 — 페이스 무관): 장애물 점프 아치 / 플레어 백플립
+    // 연출 상태: 장애물 점프 아치(px) / 걸림 감속 / 플레어 백플립
     obAir: 0, flip: 0, flipDur: 0, flipDir: 0, flipTurns: 0, _cool: 0,
+    _wallX: null, _wallMiss: false, _stumble: 0,
   }));
 }
 

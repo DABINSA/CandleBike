@@ -120,6 +120,14 @@ export function createBike(world, x, y) {
       }
     },
 
+    // 부스트 — 트릭 보상(멀티): 전방으로 순간 가속(카트라이더 부스터 느낌) + 가속상태 충전.
+    boost(power) {
+      for (const b of [chassis, rear, front]) {
+        Matter.Body.setVelocity(b, { x: b.velocity.x + power, y: b.velocity.y });
+      }
+      this._boost = Math.min(1, (this._boost || 0) + 0.7);
+    },
+
     // grounded 변화에 따라 공중 회전 누적 → 착지 시 { n: 회전수, back: 뒷구르기(백플립) 여부 } 반환
     trackTrick(grounded) {
       let n = 0, back = false;
