@@ -291,6 +291,7 @@ let playCtx = null;   // 재시작용 — 현재 플레이 중인 코스
 function startGame(series, symbol, name, opts = {}) {
   playCtx = { series, symbol, name, opts };
   $('pause-menu')?.classList.remove('active');
+  try { history.pushState({ play: 1 }, ''); } catch {}   // 뒤로가기 가로채기용 버퍼
   show('play');
   initPlayBanner();
   const canvas = $('game-canvas');
@@ -348,21 +349,37 @@ function restartPlay() {
   startGame(playCtx.series, playCtx.symbol, playCtx.name, playCtx.opts);
 }
 
-// 게임 중 설정(톱니) 메뉴 — 열면 일시정지, 다시 하기 / 나가기.
+// 게임 중 일시정지/메뉴 — 톱니 버튼 또는 모바일 뒤로가기로 연다.
+// 멀티는 라이브라 일시정지(계속하기) 없이 다시 하기 / 다른 종목만 노출.
+function openPauseMenu() {
+  const menu = $('pause-menu');
+  if (menu.classList.contains('active')) return;
+  $('pm-resume').style.display = (game && game.multi) ? 'none' : '';
+  menu.classList.add('active');
+  if (game && !game.multi) game.pause();
+}
 function closePauseMenu(resume) {
   $('pause-menu').classList.remove('active');
   if (resume && game && !game.multi) game.resume();   // 일시정지는 싱글만
 }
-$('btn-pause')?.addEventListener('click', () => {
-  const open = $('pause-menu').classList.toggle('active');
-  if (game && !game.multi) { open ? game.pause() : game.resume(); }   // 멀티는 라이브 — 정지 없음
-});
+function togglePauseMenu() {
+  if ($('pause-menu').classList.contains('active')) closePauseMenu(true);
+  else openPauseMenu();
+}
+$('btn-pause')?.addEventListener('click', togglePauseMenu);
 $('pm-resume')?.addEventListener('click', () => closePauseMenu(true));
 $('pm-restart')?.addEventListener('click', () => { closePauseMenu(false); restartPlay(); });
 $('pm-quit')?.addEventListener('click', () => {
   closePauseMenu(false);
   if (game) { try { game.stop(); } catch {} }
   show('home');
+});
+
+// 모바일 뒤로가기 → 그냥 나가지 말고 일시정지 메뉴(플레이 중일 때만 가로채기).
+window.addEventListener('popstate', () => {
+  if (!$('screen-play').classList.contains('active')) return;
+  history.pushState({ play: 1 }, '');   // 뒤로가기 소비를 막고 다음에도 가로채게 재무장
+  togglePauseMenu();
 });
 
 // ?tune=1 테스트 코스 — 다양한 지형(직진·상승·하락·횡보·램프·범프) 무제한 주행
