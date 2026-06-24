@@ -80,16 +80,6 @@ export function drawResultCard({ symbol, name, distance, completed, timeMs, rank
   ctx.fillStyle = '#ff8da0';
   ctx.fillText(chText, W / 2, chY);
 
-  // ---- CTA + 도메인 (같이 도전하러 오게) ----
-  ctx.fillStyle = '#2ce6c4';
-  ctx.font = '800 56px sans-serif';
-  ctx.shadowColor = 'rgba(44,230,196,0.5)'; ctx.shadowBlur = 24;
-  ctx.fillText(t.cardCta, W / 2, H - 156);
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = '#cfe9e2';
-  ctx.font = '800 46px sans-serif';
-  ctx.fillText(SITE_HOST, W / 2, H - 92);
-
   return cv;
 }
 
@@ -105,7 +95,11 @@ function buildShareUrl(result) {
     : `${(result.distance || 0).toLocaleString()}m`;
   const p = new URLSearchParams({ c: result.symbol, r: rec });
   if (result.name) p.set('n', result.name);
-  if (result.completed && result.rank != null) p.set('rank', `${result.rank}위`);
+  if (result.completed && result.rank != null) {
+    p.set('rank', `${result.rank}위`);
+    p.set('rl', t.cardRank(result.rank, result.percentile));   // "전체 1위 · 상위 100%"
+  }
+  // 미완주는 순위 줄 생략(이미지엔 거리 + 도전 배지만) — 깔끔하게.
   return `${SITE_URL}/api/s?${p.toString()}`;
 }
 

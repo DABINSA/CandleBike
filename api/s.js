@@ -19,17 +19,18 @@ export default async function handler(req, res) {
   const name = String(q.n || '').slice(0, 40);
   const rec = String(q.r || '').slice(0, 16); // "562m" 또는 "42.3초"
   const rank = String(q.rank || '').slice(0, 12);
+  const rl = String(q.rl || '').slice(0, 40); // "전체 1위 · 상위 100%"
 
   const title = c
     ? `${name ? name + ' ' : ''}${c}${rec ? ' · ' + rec : ''} 🏍️`
     : '캔들바이크 — 변동성을 버텨라 🏍️📈';
   const desc = c
-    ? `${rank ? '전체 ' + rank + ' — ' : ''}이 기록 깰 수 있어? 캔들바이크에서 ${c} 차트를 오토바이로 달려봐! 👉 지금 도전`
+    ? `${rl ? rl + ' — ' : ''}이 기록 깰 수 있어? 캔들바이크에서 ${c} 차트를 오토바이로 달려봐! 👉 지금 도전`
     : '검색한 주식의 3년 차트가 코스! 변동성을 버티고 순위에 도전.';
 
   // OG 미리보기 이미지 — 결과별 동적 카드(/api/og). 종목 없으면 기본 og.png.
   const img = c
-    ? `${SITE}/api/og?${new URLSearchParams({ c, n: name, r: rec, rank }).toString()}`
+    ? `${SITE}/api/og?${new URLSearchParams({ c, n: name, r: rec, rl }).toString()}`
     : `${SITE}/assets/og.png`;
   const playUrl = c ? `${SITE}/?c=${encodeURIComponent(c)}` : SITE;
   const shareUrl = `${SITE}/api/s?${new URLSearchParams(q).toString()}`;
