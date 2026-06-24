@@ -186,10 +186,14 @@ export class Game {
       if (a > Math.PI) a -= 2 * Math.PI; else if (a < -Math.PI) a += 2 * Math.PI;
       badLand = Math.abs(a) > 2.0;     // ~115°+ 기울어진 채 착지 = 등/머리로 떨어짐
     }
+    this._badLandCd = Math.max(0, (this._badLandCd || 0) - dt);
     if (badLand) {
-      this.fuel = Math.max(0, this.fuel - 3);   // 착지 실패 패널티: -3초 (트릭 보너스 없음)
-      this._toast(`🙃 ${t.badLand} -3s`, '#ff5d6e');
-      audio.sfx.crash();
+      if (this._badLandCd <= 0) {      // 쿨다운: 착지 실패 1회 후 2.5초간은 재패널티 없음(튕김 연타 방지)
+        this.fuel = Math.max(0, this.fuel - 3);   // 착지 실패 패널티: -3초 (트릭 보너스 없음)
+        this._toast(`🙃 ${t.badLand} -3s`, '#ff5d6e');
+        audio.sfx.crash();
+        this._badLandCd = 2.5;
+      }
     } else if (flips > 0) {
       this.flips += flips;             // 플립 성공(깨끗한 착지) = 거리/점수 보너스
       this._showTrick(flips);
