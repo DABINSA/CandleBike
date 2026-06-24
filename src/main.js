@@ -346,7 +346,23 @@ function restartPlay() {
   if (!playCtx) return;
   startGame(playCtx.series, playCtx.symbol, playCtx.name, playCtx.opts);
 }
-$('btn-restart-play')?.addEventListener('click', restartPlay);
+
+// 게임 중 설정(톱니) 메뉴 — 열면 일시정지, 다시 하기 / 나가기.
+function closePauseMenu(resume) {
+  $('pause-menu').classList.remove('active');
+  if (resume) game?.resume();
+}
+$('btn-pause')?.addEventListener('click', () => {
+  const open = $('pause-menu').classList.toggle('active');
+  if (open) game?.pause(); else game?.resume();
+});
+$('pm-resume')?.addEventListener('click', () => closePauseMenu(true));
+$('pm-restart')?.addEventListener('click', () => { closePauseMenu(false); restartPlay(); });
+$('pm-quit')?.addEventListener('click', () => {
+  closePauseMenu(false);
+  if (game) { try { game.stop(); } catch {} }
+  show('home');
+});
 
 // ?tune=1 테스트 코스 — 다양한 지형(직진·상승·하락·횡보·램프·범프) 무제한 주행
 if (new URLSearchParams(location.search).get('tune') === '1') {

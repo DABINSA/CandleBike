@@ -307,7 +307,7 @@ export class Game {
 
   // 미완주 종료 직전, 광고 보고 '이어가기'를 제안할 수 있으면 제안한다.
   _canOfferRevive(reason) {
-    return !this.testMode && reason !== 'finish' && this._revivesLeft > 0
+    return !this.testMode && !this.multi && reason !== 'finish' && this._revivesLeft > 0
       && typeof this._reviveCb === 'function';
   }
 
@@ -432,6 +432,27 @@ export class Game {
     this._cleanupInput();
     window.removeEventListener('resize', this._resizeHandler);
   }
+
+  // 일시정지/재개 (설정 메뉴) — 경과시간에 멈춘 시간이 포함되지 않게 startTime 보정.
+  pause() {
+    if (!this.running || this.ended) return;
+    this.running = false;
+    cancelAnimationFrame(this._raf);
+    audio.stopEngine();
+    this._pausedAt = performance.now();
+  }
+  resume() {
+    if (this.running || this.ended || !this._pausedAt) return;
+    const d = performance.now() - this._pausedAt;
+    this.startTime += d;
+    if (this._reviveGraceUntil) this._reviveGraceUntil += d;
+    this._pausedAt = 0;
+    this.lastTs = performance.now();
+    this.running = true;
+    audio.startEngine();
+    this._loop();
+  }
+  isPaused() { return !this.running && !this.ended && !!this._pausedAt; }
 
   _cleanupInput() {
     if (this._key) {
