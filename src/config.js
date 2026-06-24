@@ -44,6 +44,10 @@ export const CONFIG = {
   ADSENSE_CLIENT: 'ca-pub-XXXXXXXXXXXXXXXX',
   REWARD_AD_SECONDS: 5,      // 결과 보기 전 강제 시청 시간(초)
 
+  // 토스 인앱 배너 광고 그룹 ID (WebView SDK). 🔴 광고그룹 발급 후 실 ID로 교체.
+  // 그 전엔 토스 제공 테스트 ID(미집계). 토스 환경에서만 동작(웹 영향 0).
+  TOSS_BANNER_AD_GROUP: 'ait-ad-test-banner-id',
+
   // ---- 게임 튜닝 ----
   GAME: {
     fuelSeconds: 60,         // 연료(시간) 한도 — 빠듯하게(near-miss 자극)

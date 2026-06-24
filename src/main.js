@@ -322,6 +322,7 @@ async function onGameEnd(result) {
 let regPromise = null;
 async function showResult(result) {
   show('result');
+  renderHouseAd($('ad-result'), 'result');   // 결과 화면 배너(토스: 토스 배너 / 웹: 하우스·애드센스)
   rememberName(result.symbol, result.name);
   $('rc-symbol').textContent = result.name ? `${result.name} (${result.symbol})` : result.symbol;
   if (result.diff) {

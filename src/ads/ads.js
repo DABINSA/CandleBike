@@ -7,9 +7,11 @@
 
 import { CONFIG } from '../config.js';
 import { t } from '../i18n.js';
-import { effectiveAdMode } from '../toss.js';
+import { IS_TOSS, effectiveAdMode } from '../toss.js';
+import { attachTossBanner } from '../tossAds.js';
 
-// 토스 인앱에서는 외부광고 금지 → 'off' 로 강제. 그 외엔 CONFIG.AD_MODE 그대로.
+// 토스 인앱에서는 외부광고(AdSense/하우스) 금지 → 'off' 로 강제. 그 외엔 CONFIG.AD_MODE 그대로.
+// 단, 토스에선 토스 인앱 배너 광고(TossAds)를 슬롯에 붙인다(플레이 하단 · 결과 화면).
 const AD_MODE = effectiveAdMode(CONFIG.AD_MODE);
 
 // 하우스 광고 마크업 (variant: 'banner' | 'reward' | 'result')
@@ -32,6 +34,11 @@ export function houseAdMarkup(variant = 'banner') {
 
 export function renderHouseAd(el, variant) {
   if (!el) return;
+  if (IS_TOSS) {                                  // 토스: 결과 화면만 토스 배너, 홈 등은 숨김
+    if (variant === 'result') attachTossBanner(el);
+    else el.style.display = 'none';
+    return;
+  }
   if (AD_MODE === 'off') { el.style.display = 'none'; return; }
   el.style.display = '';
   el.innerHTML = houseAdMarkup(variant);
@@ -41,6 +48,7 @@ export function renderHouseAd(el, variant) {
 export function initPlayBanner() {
   const banner = document.getElementById('ad-banner');
   if (!banner) return;
+  if (IS_TOSS) { banner.style.display = 'flex'; attachTossBanner(banner); return; }  // 토스 배너
   if (AD_MODE === 'off') { banner.style.display = 'none'; return; }
   banner.style.display = 'flex';
 
