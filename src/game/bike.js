@@ -58,7 +58,7 @@ export function createBike(world, x, y) {
       if (brake) this._boost = Math.max(0, this._boost - dt / 0.6);
       const b = this._boost;
 
-      const torque = 0.44 + b * 0.22;  // 가속력 강화 + 부스트 가산
+      const torque = 0.42 + b * 0.16;  // 가속력(부스트 가산 완화 → 고속에서 과도한 윌리 방지)
       const reverse = 0.32;            // 뒤로 주행 힘 (전진보다 약하게)
 
       if (grounded) {
@@ -74,14 +74,29 @@ export function createBike(world, x, y) {
         const maxRev = 0.95;
         if (rear.angularVelocity < -maxRev) Matter.Body.setAngularVelocity(rear, -maxRev);
         if (front.angularVelocity < -maxRev) Matter.Body.setAngularVelocity(front, -maxRev);
-        // 지상 회전 제한 — 윌리/전복 억제 (부스트 영향 축소)
-        const maxSpin = 0.2 + b * 0.1;
-        if (chassis.angularVelocity < -maxSpin) Matter.Body.setAngularVelocity(chassis, -maxSpin);
-        if (chassis.angularVelocity > maxSpin) Matter.Body.setAngularVelocity(chassis, maxSpin);
-        // ★ 지형 경사보다 앞이 더 들리면(진짜 윌리) 앞을 눌러 복원 → 뒤로 넘어가는 것 방지
-        if (chassis.angle < -0.95) {
-          Matter.Body.setAngularVelocity(chassis, Math.max(chassis.angularVelocity, 0.12));
+
+        // ── 윌리(앞들림) 부드럽게 억제 — 흐름 끊김의 핵심 수정 ──
+        // 두 바퀴를 잇는 선 = 바이크가 놓인 '지형 경사'. 차체가 이 선을 따르면 자연스럽고(언덕 오르기 정상),
+        // 그 선보다 더 앞들리면(=진짜 윌리) 흐름이 끊긴다. 경사 추종은 유지하고 초과분만 미리 복원.
+        const wheelAngle = Math.atan2(front.position.y - rear.position.y, front.position.x - rear.position.x);
+        let pitch = chassis.angle - wheelAngle;       // 음수 = 바퀴선보다 앞들림(윌리)
+        while (pitch > Math.PI) pitch -= 2 * Math.PI;
+        while (pitch < -Math.PI) pitch += 2 * Math.PI;
+        const BACK = -0.20;   // 바퀴선보다 ~11° 이상 앞들림(윌리)
+        const FWD = 0.34;     // 바퀴선보다 ~19° 이상 앞숙임(앞으로 꼬꾸라짐) — 약간 여유
+        if (pitch < BACK) {
+          // 앞으로 살짝 눌러(양의 각속도) 복원 → 뒤로 젖혀짐 없이 전진 흐름 유지
+          Matter.Body.setAngularVelocity(chassis, chassis.angularVelocity + Math.min(0.5, (BACK - pitch) * 1.1));
+        } else if (pitch > FWD) {
+          // 뒤로 살짝 당겨 복원 → 범프에서 앞으로 고꾸라지는 것 방지
+          Matter.Body.setAngularVelocity(chassis, chassis.angularVelocity - Math.min(0.5, (pitch - FWD) * 1.1));
         }
+
+        // 절대 각속도 상한(부드러움 보조) — 앞숙임은 여유, 뒤젖힘은 더 빡빡하게
+        const maxSpinFwd = 0.30 + b * 0.08;
+        const maxSpinBack = 0.18 + b * 0.05;
+        if (chassis.angularVelocity > maxSpinFwd) Matter.Body.setAngularVelocity(chassis, maxSpinFwd);
+        if (chassis.angularVelocity < -maxSpinBack) Matter.Body.setAngularVelocity(chassis, -maxSpinBack);
       } else {
         // 공중: 차체 회전 (gas=백플립, brake=프론트플립)
         // 느리게 — 평지 깡총 점프로는 한 바퀴 안 돌고, 진짜 점프대/낙폭에서만 완성
