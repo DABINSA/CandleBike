@@ -97,14 +97,14 @@ const US_MAJOR = new Set(['NMS', 'NGM', 'NCM', 'NYQ', 'NYS']); // NASDAQ(GS/GM/C
 function pickUsMajor(quotes) {
   const eq = (quotes || []).filter((x) => x.symbol && x.quoteType === 'EQUITY');
   const major = eq.filter((x) => US_MAJOR.has(x.exchange));
-  return (major.length >= 4 ? major : eq).slice(0, 8);
+  return major.length >= 4 ? major : eq;   // 슬라이스는 호출부에서
 }
 
 async function yahooTrending() {
   // 실제 급등주(당일 상승률 상위) — S&P+나스닥 주요 종목, 변동률 포함
   const j = await yfetch('https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=25&scrIds=day_gainers');
   const quotes = (j.finance && j.finance.result && j.finance.result[0] && j.finance.result[0].quotes) || [];
-  const list = pickUsMajor(quotes).map((x) => {
+  const list = pickUsMajor(quotes).slice(0, 8).map((x) => {
     const chg = x.regularMarketChangePercent != null ? +(+x.regularMarketChangePercent).toFixed(1) : null;
     return { symbol: x.symbol, name: x.shortName || x.longName || x.symbol, change: chg, hot: (chg || 0) >= 5 };
   });
@@ -112,24 +112,29 @@ async function yahooTrending() {
   return list;
 }
 
-// 거래량 표기 압축 (12,300,000 → 12.3M)
-function fmtVol(v) {
+// 거래대금($) 표기 압축 (2,680,000,000 → $2.7B)
+function fmtUsd(v) {
   v = +v;
   if (!isFinite(v) || v <= 0) return '';
-  if (v >= 1e9) return (v / 1e9).toFixed(1) + 'B';
-  if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
-  if (v >= 1e3) return Math.round(v / 1e3) + 'K';
-  return '' + v;
+  if (v >= 1e12) return '$' + (v / 1e12).toFixed(1) + 'T';
+  if (v >= 1e9) return '$' + (v / 1e9).toFixed(1) + 'B';
+  if (v >= 1e6) return '$' + Math.round(v / 1e6) + 'M';
+  return '$' + Math.round(v);
 }
 
-// 미국 거래량 상위 (Yahoo most_actives — dayvolume 정렬, S&P+나스닥 주요 종목)
+// 미국 거래대금 상위 (Yahoo most_actives 후보 → 가격×거래량으로 거래대금 재정렬, S&P+나스닥)
 async function yahooActives() {
   const j = await yfetch('https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=25&scrIds=most_actives');
   const quotes = (j.finance && j.finance.result && j.finance.result[0] && j.finance.result[0].quotes) || [];
-  const list = pickUsMajor(quotes).map((x) => {
-    const chg = x.regularMarketChangePercent != null ? +(+x.regularMarketChangePercent).toFixed(1) : null;
-    return { symbol: x.symbol, name: x.shortName || x.longName || x.symbol, change: chg, hot: false, volText: fmtVol(x.regularMarketVolume) };
-  });
+  const list = pickUsMajor(quotes)
+    .map((x) => {
+      const chg = x.regularMarketChangePercent != null ? +(+x.regularMarketChangePercent).toFixed(1) : null;
+      const val = (+x.regularMarketPrice || 0) * (+x.regularMarketVolume || 0);   // 거래대금 = 가격×거래량
+      return { symbol: x.symbol, name: x.shortName || x.longName || x.symbol, change: chg, hot: false, volText: fmtUsd(val), _val: val };
+    })
+    .sort((a, b) => b._val - a._val)
+    .slice(0, 8)
+    .map(({ _val, ...x }) => x);
   if (!list.length) throw new Error('no actives');
   return list;
 }
