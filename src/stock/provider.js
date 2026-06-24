@@ -91,17 +91,23 @@ async function yahooHistory(symbol) {
   }
   return out;
 }
+// 미국 주요 거래소(나스닥 + 뉴욕증권거래소 = S&P 종목들이 거래되는 무대)만 추림.
+// OTC/핑크시트/마이크로캡 제외 → 알 만한 종목 위주. 필터 후 너무 적으면 원본 유지(빈 목록 방지).
+const US_MAJOR = new Set(['NMS', 'NGM', 'NCM', 'NYQ', 'NYS']); // NASDAQ(GS/GM/CM) + NYSE
+function pickUsMajor(quotes) {
+  const eq = (quotes || []).filter((x) => x.symbol && x.quoteType === 'EQUITY');
+  const major = eq.filter((x) => US_MAJOR.has(x.exchange));
+  return (major.length >= 4 ? major : eq).slice(0, 8);
+}
+
 async function yahooTrending() {
-  // 실제 급등주(당일 상승률 상위) — 주식만, 변동률 포함
-  const j = await yfetch('https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=16&scrIds=day_gainers');
+  // 실제 급등주(당일 상승률 상위) — S&P+나스닥 주요 종목, 변동률 포함
+  const j = await yfetch('https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=25&scrIds=day_gainers');
   const quotes = (j.finance && j.finance.result && j.finance.result[0] && j.finance.result[0].quotes) || [];
-  const list = quotes
-    .filter((x) => x.symbol && x.quoteType === 'EQUITY')
-    .map((x) => {
-      const chg = x.regularMarketChangePercent != null ? +(+x.regularMarketChangePercent).toFixed(1) : null;
-      return { symbol: x.symbol, name: x.shortName || x.longName || x.symbol, change: chg, hot: (chg || 0) >= 5 };
-    })
-    .slice(0, 8);
+  const list = pickUsMajor(quotes).map((x) => {
+    const chg = x.regularMarketChangePercent != null ? +(+x.regularMarketChangePercent).toFixed(1) : null;
+    return { symbol: x.symbol, name: x.shortName || x.longName || x.symbol, change: chg, hot: (chg || 0) >= 5 };
+  });
   if (!list.length) throw new Error('no gainers');
   return list;
 }
@@ -116,17 +122,14 @@ function fmtVol(v) {
   return '' + v;
 }
 
-// 미국 거래량 상위 (Yahoo most_actives — dayvolume 정렬)
+// 미국 거래량 상위 (Yahoo most_actives — dayvolume 정렬, S&P+나스닥 주요 종목)
 async function yahooActives() {
-  const j = await yfetch('https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=16&scrIds=most_actives');
+  const j = await yfetch('https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?count=25&scrIds=most_actives');
   const quotes = (j.finance && j.finance.result && j.finance.result[0] && j.finance.result[0].quotes) || [];
-  const list = quotes
-    .filter((x) => x.symbol && x.quoteType === 'EQUITY')
-    .map((x) => {
-      const chg = x.regularMarketChangePercent != null ? +(+x.regularMarketChangePercent).toFixed(1) : null;
-      return { symbol: x.symbol, name: x.shortName || x.longName || x.symbol, change: chg, hot: false, volText: fmtVol(x.regularMarketVolume) };
-    })
-    .slice(0, 8);
+  const list = pickUsMajor(quotes).map((x) => {
+    const chg = x.regularMarketChangePercent != null ? +(+x.regularMarketChangePercent).toFixed(1) : null;
+    return { symbol: x.symbol, name: x.shortName || x.longName || x.symbol, change: chg, hot: false, volText: fmtVol(x.regularMarketVolume) };
+  });
   if (!list.length) throw new Error('no actives');
   return list;
 }
