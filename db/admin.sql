@@ -63,6 +63,11 @@ declare
   v_today   date   := (now() at time zone 'Asia/Seoul')::date;
   v_toss    jsonb  := jsonb_build_object('total', 0, 'new_today', 0, 'new_7d', 0, 'recent', '[]'::jsonb);
   v_courses bigint := 0;
+  -- 출시 전 활성화용 시드(가짜) 닉네임(scripts/cap/seed-leaderboard.mjs). 어드민 지표에선 제외.
+  -- (순위판/DB엔 그대로 둔다 — 어드민 숫자만 실유저 기준으로 보기 위함)
+  v_seed text[] := array[
+    '질주본능','차트마스터','백플립장인','풀악셀','라이더킹','칼바람','도파민러',
+    '한방질주','야수의심장','변동성헌터','슈퍼바이크','칼치기','초보라이더','느긋한주행'];
 begin
   -- 토스 로그인 계정(= 우리 서비스의 '가입 유저') — 테이블이 있을 때만
   if to_regclass('public.toss_users') is not null then
@@ -112,36 +117,36 @@ begin
       )
     ),
 
-    -- 플레이(완주 = scores 1행)
+    -- 플레이(완주 = scores 1행) — 시드 닉 제외(실유저 기준)
     'plays', jsonb_build_object(
-      'today',         coalesce((select count(*) from scores where (created_at at time zone 'Asia/Seoul')::date = v_today), 0),
-      'last7',         coalesce((select count(*) from scores where created_at > now() - interval '7 days'), 0),
-      'total',         coalesce((select count(*) from scores), 0),
-      'players_today', coalesce((select count(distinct nick) from scores where (created_at at time zone 'Asia/Seoul')::date = v_today), 0),
-      'players_total', coalesce((select count(distinct nick) from scores), 0)
+      'today',         coalesce((select count(*) from scores where nick <> all(v_seed) and (created_at at time zone 'Asia/Seoul')::date = v_today), 0),
+      'last7',         coalesce((select count(*) from scores where nick <> all(v_seed) and created_at > now() - interval '7 days'), 0),
+      'total',         coalesce((select count(*) from scores where nick <> all(v_seed)), 0),
+      'players_today', coalesce((select count(distinct nick) from scores where nick <> all(v_seed) and (created_at at time zone 'Asia/Seoul')::date = v_today), 0),
+      'players_total', coalesce((select count(distinct nick) from scores where nick <> all(v_seed)), 0)
     ),
 
-    -- 가장 많이 플레이(완주)된 종목 — 전체 / 오늘
+    -- 가장 많이 플레이(완주)된 종목 — 전체 / 오늘 (시드 제외)
     'top_symbols', (
       select coalesce(jsonb_agg(t), '[]'::jsonb) from (
         select symbol, count(*) plays, min(score) best_ms
-        from scores group by symbol order by count(*) desc, symbol limit 10
+        from scores where nick <> all(v_seed) group by symbol order by count(*) desc, symbol limit 10
       ) t
     ),
     'top_symbols_today', (
       select coalesce(jsonb_agg(t), '[]'::jsonb) from (
         select symbol, count(*) plays
-        from scores where (created_at at time zone 'Asia/Seoul')::date = v_today
+        from scores where nick <> all(v_seed) and (created_at at time zone 'Asia/Seoul')::date = v_today
         group by symbol order by count(*) desc, symbol limit 10
       ) t
     ),
 
     'toss_users', v_toss,
 
-    -- 최근 활동
+    -- 최근 활동 (시드 제외)
     'recent_scores', (
       select coalesce(jsonb_agg(t), '[]'::jsonb) from (
-        select nick, symbol, score, created_at from scores order by created_at desc limit 25
+        select nick, symbol, score, created_at from scores where nick <> all(v_seed) order by created_at desc limit 25
       ) t
     ),
 

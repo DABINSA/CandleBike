@@ -347,9 +347,20 @@ async function watchRewardForRevive() {
   return ok;
 }
 
-// 플레이 중 재시작 — 결과까지 안 기다리고 같은 코스를 즉시 다시
-function restartPlay() {
+// 플레이 중 재시작 — 같은 코스를 다시. 멀티는 바로 재시작하면 가짜 티가 나므로
+// '다른 라이더 찾는 중' 매칭 연출을 다시 거치고(새 경쟁자) 시작한다.
+async function restartPlay() {
   if (!playCtx) return;
+  if (playCtx.opts && playCtx.opts.multi) {
+    if (game) { try { game.stop(); } catch {} }
+    const count = 3 + Math.floor(Math.random() * 4);
+    const ghostNames = pickGhostNames(count);
+    const myNick = getNick() || t.anon;
+    await runMatchmaking(myNick, ghostNames);
+    startGame(playCtx.series, playCtx.symbol, playCtx.name,
+      { multi: true, nick: myNick, ghostCount: count, ghostNames });
+    return;
+  }
   startGame(playCtx.series, playCtx.symbol, playCtx.name, playCtx.opts);
 }
 
