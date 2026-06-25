@@ -157,7 +157,7 @@ export function activeMarket() {
 }
 
 // 추천 종목 — 서버 엔드포인트(엣지 캐시)로 받아 전 유저가 스냅샷 공유. 타임아웃으로 멈춤 방지.
-//   /api/kr-gainers(네이버) · /api/us-trending(야후) 둘 다 동일 도메인이라 CORS 없음.
+//   /api/trending?market=kr|us (네이버/야후 통합) — 동일 도메인이라 CORS 없음.
 async function apiTrending(path) {
   const ctrl = new AbortController();
   const to = setTimeout(() => ctrl.abort(), 6000);   // 6초 안에 응답 없으면 폴백/목으로
@@ -167,10 +167,10 @@ async function apiTrending(path) {
     return await r.json();
   } finally { clearTimeout(to); }
 }
-async function krGainers() { return apiTrending('/api/kr-gainers'); }
-async function krVolume() { return apiTrending('/api/kr-gainers?type=volume'); }
-async function usGainers() { return apiTrending('/api/us-trending'); }
-async function usVolume() { return apiTrending('/api/us-trending?type=volume'); }
+async function krGainers() { return apiTrending('/api/trending?market=kr'); }
+async function krVolume() { return apiTrending('/api/trending?market=kr&type=volume'); }
+async function usGainers() { return apiTrending('/api/trending?market=us'); }
+async function usVolume() { return apiTrending('/api/trending?market=us&type=volume'); }
 
 // 열린 장 + 모드(급등주/거래량)에 맞춰 선택 (실패 시 반대 장으로 폴백)
 async function marketTrending(mode = 'gainers') {
