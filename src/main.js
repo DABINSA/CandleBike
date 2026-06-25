@@ -228,33 +228,61 @@ function renderPreview() {
   cv.style.display = '';
   try { drawPreview(cv.getContext('2d'), Items.equippedVehicle(), Items.equippedColor(), cv.width, cv.height); } catch {}
 }
+// 탈것 기본 퍽 → 소모품 이모지+이름 배지 텍스트
+function perkText(perk) {
+  return Object.keys(perk || {}).map((id) => {
+    const c = Items.CONSUMABLES.find((x) => x.id === id);
+    return c ? `${c.emoji} ${escapeHtml(Items.itemName(c))}` : '';
+  }).filter(Boolean).join(' · ');
+}
+// 토큰 잔액 칩 + 광고 버튼 라벨 갱신
+function updateTokenUI() {
+  const n = $('garage-tok-n'); if (n) n.textContent = Items.getTokens();
+  const ad = $('garage-ad-tokens');
+  if (ad) ad.innerHTML = `🎬 ${t.adGet} <span class="coin"></span> +${Items.AD_REWARD}`;
+}
+// 카드 안 탈것 캔버스 썸네일을 실제 게임 아트로 그림
+function paintVehicleThumbs() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  document.querySelectorAll('#garage-body .veh-thumb').forEach((cv) => {
+    const W = 118, H = 80;
+    cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    try { drawPreview(ctx, cv.dataset.veh, Items.equippedColor(), W, H); } catch {}
+  });
+}
 function renderGarage() {
   const body = $('garage-body');
+  updateTokenUI();
   if (garageTab === 'vehicles') {
     body.innerHTML = Items.VEHICLES.map((v) => {
       const owned = Items.ownsVehicle(v.id);
       const on = Items.equippedVehicle() === v.id;
+      const afford = Items.getTokens() >= (v.cost || 0);
       const btn = owned
         ? `<button class="item-btn ${on ? 'ghost' : 'primary'}" data-eqveh="${v.id}" ${on ? 'disabled' : ''}>${on ? t.equipped : t.equip}</button>`
-        : `<button class="item-btn" data-getveh="${v.id}">${t.getByAd}</button>`;
+        : `<button class="item-btn buy-btn" data-buyveh="${v.id}" ${afford ? '' : 'disabled'}><span class="coin"></span> ${v.cost}</button>`;
+      const perk = perkText(v.perk);
       return `<div class="item-card ${on ? 'on' : ''}">
-        <span class="item-emoji">${v.emoji}</span>
+        <canvas class="veh-thumb" data-veh="${v.id}"></canvas>
         <span class="item-name">${escapeHtml(Items.itemName(v))}</span>
-        <span class="item-sub"></span>${btn}</div>`;
+        <span class="item-perk">${perk || '&nbsp;'}</span>
+        <div class="item-actions">${btn}</div></div>`;
     }).join('');
   } else {
     body.innerHTML = Items.CONSUMABLES.map((c) => {
       const cnt = Items.consumCount(c.id);
       const eq = Items.isEquipped(c.id);
+      const afford = Items.getTokens() >= (c.cost || 0);
       const bringBtn = cnt > 0
         ? `<button class="item-btn ${eq ? 'primary' : 'ghost'}" data-bring="${c.id}">${eq ? t.bringing : t.bring}</button>`
-        : `<button class="item-btn" disabled>${t.bring}</button>`;
+        : '';
       return `<div class="item-card ${eq ? 'on' : ''}">
         <span class="item-emoji">${c.emoji}</span>
         <span class="item-name">${escapeHtml(Items.itemName(c))}</span>
         <span class="item-sub">${escapeHtml(Items.itemDesc(c))} · ${t.haveN(cnt)}</span>
-        ${bringBtn}
-        <button class="item-btn" data-getconsum="${c.id}">${t.getByAd}</button></div>`;
+        <div class="item-actions">${bringBtn}
+        <button class="item-btn buy-btn" data-buyconsum="${c.id}" ${afford ? '' : 'disabled'}><span class="coin"></span> ${c.cost}</button></div></div>`;
     }).join('');
   }
   // 공유 리워드 — 토스 + 공유 브리지 + 오늘 미수령일 때만, 차고 상단에.
@@ -280,11 +308,13 @@ function renderGarage() {
     shareChoosing = false;   // 노출 조건이 사라지면 선택 상태도 해제
   }
   renderPreview();
+  if (garageTab === 'vehicles') paintVehicleThumbs();
 }
 function openGarage(tab) {
   garageTab = tab || garageTab;
   document.querySelectorAll('.garage-tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === garageTab));
   updateGarageLogin();
+  updateTokenUI();
   renderGarage();
   garageModal.classList.add('active');
 }
@@ -333,39 +363,52 @@ async function doShareReward(itemId) {
   showToast(t.adReward(Items.itemName(item)));
 }
 
-// 광고 보고 획득 — 토스: 실제 리워드 광고(끝까지 봐야 지급), 웹/원스토어: 기존 5초 게이트.
-// permanent=true(탈것/색상)인데 비로그인 게스트면, 시청 후 로그인(영구 보관)을 유도.
-async function acquireItem(grantFn, name, permanent) {
+// 리워드 광고 보고 토큰 적립 — 토스: 실제 리워드 광고(끝까지 봐야 지급), 웹/원스토어: 5초 게이트.
+async function watchAdForTokens() {
   if (acquiring) return;
   acquiring = true;
   if (IS_TOSS && IS_TOSS_REWARD_READY && CONFIG.TOSS_AD?.reward) {
-    // 토스 실 리워드 광고 — 끝까지 본 경우(rewarded)만 지급
     try {
       const r = await requestTossRewardAd(CONFIG.TOSS_AD.reward);
       if (!r || !r.rewarded) { showToast(t.adNotComplete); acquiring = false; return; }
     } catch (e) { console.warn('리워드 광고', e); showToast(t.adFailed); acquiring = false; return; }
-    grantFn();
+    Items.addTokens(Items.AD_REWARD);
     renderGarage();
   } else if (!IS_TOSS && AD_MODE !== 'off') {
     closeGarage();
     show('ad');
     try { await showRewardedAd(); } catch {}
-    grantFn();
+    Items.addTokens(Items.AD_REWARD);
     show('home');
     openGarage();
   } else {
-    // 토스 구버전 셸(마커 없음)/광고그룹 미설정 또는 광고 off → 즉시 지급(임시)
-    grantFn();
+    // 광고 off(토스 구버전/미설정) → 즉시 지급(임시)
+    Items.addTokens(Items.AD_REWARD);
     renderGarage();
   }
   syncPush();
-  logTossEvent('item_get', { permanent: !!permanent });
+  logTossEvent('ad_tokens', { amount: Items.AD_REWARD });
   acquiring = false;
-  showToast(t.adReward(name));
-  // 영구 아이템인데 게스트(비-토스·비로그인) → 영구 보관 안내(차고 로그인 버튼 강조)
-  if (permanent && !IS_TOSS && !googleUser) {
-    setTimeout(() => showToast(t.loginHint), 1600);
-  }
+  showToast(t.tokenGain(Items.AD_REWARD));
+}
+
+// 토큰으로 구매(탈것/소모품). 부족하면 안내.
+function buyVehicle(id) {
+  const v = Items.VEHICLES.find((x) => x.id === id);
+  if (!v) return;
+  if (!Items.buyVehicle(id)) { showToast(t.notEnoughTokens); return; }
+  renderGarage(); syncPush();
+  logTossEvent('buy_vehicle', { id, cost: v.cost });
+  showToast(t.bought(Items.itemName(v)));
+  if (!IS_TOSS && !googleUser) setTimeout(() => showToast(t.loginHint), 1600);   // 영구=로그인 보관 안내
+}
+function buyConsumable(id) {
+  const c = Items.CONSUMABLES.find((x) => x.id === id);
+  if (!c) return;
+  if (!Items.buyConsum(id)) { showToast(t.notEnoughTokens); return; }
+  renderGarage(); syncPush();
+  logTossEvent('buy_consum', { id, cost: c.cost });
+  showToast(t.bought(Items.itemName(c)));
 }
 
 $('garage-body').addEventListener('click', async (e) => {
@@ -375,15 +418,10 @@ $('garage-body').addEventListener('click', async (e) => {
   if (el.dataset.sharecancel) { shareChoosing = false; renderGarage(); return; }
   if (el.dataset.eqveh) { Items.equipVehicle(el.dataset.eqveh); renderGarage(); syncPush(); return; }
   if (el.dataset.bring) { Items.toggleEquip(el.dataset.bring); renderGarage(); syncPush(); return; }
-  if (el.dataset.getveh) {
-    const v = Items.VEHICLES.find((x) => x.id === el.dataset.getveh);
-    await acquireItem(() => Items.grantVehicle(v.id), Items.itemName(v), true);   // 탈것=영구
-  }
-  if (el.dataset.getconsum) {
-    const c = Items.CONSUMABLES.find((x) => x.id === el.dataset.getconsum);
-    await acquireItem(() => Items.grantConsum(c.id), Items.itemName(c));
-  }
+  if (el.dataset.buyveh) { buyVehicle(el.dataset.buyveh); return; }
+  if (el.dataset.buyconsum) { buyConsumable(el.dataset.buyconsum); return; }
 });
+$('garage-ad-tokens').onclick = () => watchAdForTokens();
 $('btn-garage').onclick = () => openGarage('consum');
 $('garage-close').onclick = closeGarage;
 document.querySelectorAll('.garage-tab').forEach((b) => { b.onclick = () => openGarage(b.dataset.tab); });
@@ -611,9 +649,14 @@ document.getElementById('tab-volume')?.addEventListener('click', () => setTrendi
 
 let playCtx = null;   // 재시작용 — 현재 플레이 중인 코스
 function startGame(series, symbol, name, opts = {}) {
-  // 아이템 — 장착 스킨 색 + 소모품 적용(소모품은 여기서 1회 소모). 재시작 시 중복 소모 방지(_items).
+  // 아이템 — 장착 소모품(여기서 1회 소모) + 탈것 기본 퍽을 합산해 적용. 재시작 시 중복 소모 방지(_items).
   if (!opts.test && !opts._items) {
-    opts = { ...opts, _items: true, skinColor: Items.equippedColor(), vehicle: Items.equippedVehicle(), consum: Items.consumeEquipped() };
+    const used = Items.consumeEquipped();   // {id:true} — 장착 소모품 소모
+    const perk = Items.equippedPerk();      // {id:count} — 탈것 기본 퍽(무료)
+    const consum = {};
+    for (const id in used) consum[id] = (consum[id] || 0) + 1;
+    for (const id in perk) consum[id] = (consum[id] || 0) + (perk[id] || 0);
+    opts = { ...opts, _items: true, skinColor: Items.equippedColor(), vehicle: Items.equippedVehicle(), consum };
     syncPush();   // 소모품 사용분 클라우드 반영
   }
   playCtx = { series, symbol, name, opts };
@@ -751,6 +794,13 @@ async function onGameEnd(result) {
   // 핵심지표 — game_complete(완주)가 대표 전환. game_end는 보조(완주율 분모).
   logTossEvent('game_end', { symbol: result.symbol, completed: !!result.completed });
   if (result.completed) logTossEvent('game_complete', { symbol: result.symbol });
+  // 완주 보상 — 토큰 적립(한 게임당 1회). 클라우드 동기화.
+  if (result.completed && !result._rewarded) {
+    result._rewarded = true;
+    Items.addTokens(Items.FINISH_REWARD);
+    syncPush();
+    showToast(t.finishReward(Items.FINISH_REWARD), { top: true });
+  }
   if (IS_TOSS && CONFIG.TOSS_AD?.bannerPre) {
     show('ad');
     await tossPreResultGate();   // 토스: 결과 보기 전 배너(이미지 강조) + 2초

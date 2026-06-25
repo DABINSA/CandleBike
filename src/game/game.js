@@ -62,18 +62,21 @@ export class Game {
     // 아이템 — 스킨(외형색·탈것) + 소모품(완주보조).
     this.skinColor = opts.skinColor || '#2ce6c4';
     this.vehicle = opts.vehicle || 'moto';
+    // 소모품(차고 장착) + 탈것 기본 퍽이 합산된 개수맵(main.js). 테스트 모드는 효과 끔.
     const consum = opts.consum || {};
-    this._pendingBoost = !!consum.boost && !this.testMode;   // 출발 직후 1회 가속
-    this._noBadLand = !!consum.softland && !this.testMode;   // 착지 보호: 나쁜 착지 1회 무효(소진)
-    this._phaseObstacles = !!consum.phase && !this.testMode; // 장애물 통과: 폭락 캔들 1회 통과(소진)
-    this._airJumpsLeft = (consum.dbljump && !this.testMode) ? 1 : 0;  // 더블 점프: 공중 1회 재점프
-    this._freeRevives = (consum.revive && !this.testMode) ? 1 : 0;  // 추가 이어가기: 광고 없이 부활
+    const C = (id) => (this.testMode ? 0 : (consum[id] || 0));
+    this._pendingBoost = C('boost') > 0;     // 출발 직후 1회 가속
+    this._softLandLeft = C('softland');      // 착지 보호: 나쁜 착지 무효(횟수, 소진)
+    this._phaseLeft = C('phase');            // 장애물 통과: 폭락 캔들 통과(횟수, 소진)
+    this._dblJump = C('dbljump') > 0;        // 더블 점프: 한 판 내내(착지마다 재충전)
+    this._airJumpsLeft = this._dblJump ? 1 : 0;
+    this._freeRevives = C('revive');         // 추가 이어가기: 광고 없이 부활(횟수)
 
     // 상태
     this.distanceM = 0;
     this.flips = 0;
     this.flipBonusM = 0;   // 플립 거리 보너스(백플립 가중) 누적
-    this.fuel = CONFIG.GAME.fuelSeconds + (consum.fuel && !this.testMode ? 5 : 0);   // 연료 +5초 소모품
+    this.fuel = CONFIG.GAME.fuelSeconds + C('fuel') * 5;   // 연료 +5초 소모품(개수만큼 누적)
     this.lastTs = performance.now();
     this.groundedThisStep = false;
     this._crashTimer = 0;
@@ -206,8 +209,8 @@ export class Game {
 
     // 점프 — 버퍼(누른 직후 잠깐 기억) + 코요테(땅 떠난 직후 잠깐 허용)로 씹힘 방지.
     //   가속 중 범프로 바퀴가 잠깐 떠도, 상승 램프 끝에서 눌러도 점프가 확실히 발동한다.
-    // 테스트 코스: 더블 점프를 자유롭게 체감하도록 착지마다 공중 점프 1회 재충전(실게임은 소모품 1회).
-    if (this.testMode && grounded) this._airJumpsLeft = Math.max(this._airJumpsLeft || 0, 1);
+    // 더블 점프(상시) — 능력 보유 시 착지마다 공중 점프 1회 재충전(한 판 내내). 테스트 코스도 항상.
+    if ((this.testMode || this._dblJump) && grounded) this._airJumpsLeft = Math.max(this._airJumpsLeft || 0, 1);
     const jumpEdge = this.bike.input.jump && !this._prevJump;
     if (jumpEdge) this._jumpBuf = 0.16;
     else this._jumpBuf = Math.max(0, (this._jumpBuf || 0) - dt);
@@ -236,9 +239,9 @@ export class Game {
       badLand = Math.abs(a) > 2.0;     // ~115°+ 기울어진 채 착지 = 등/머리로 떨어짐
     }
     this._badLandCd = Math.max(0, (this._badLandCd || 0) - dt);
-    if (badLand && this._noBadLand) {
-      // 착지 보호(소모품) — 나쁜 착지 1회 무효 후 소진(다음 착지부터 다시 패널티)
-      this._noBadLand = false;
+    if (badLand && this._softLandLeft > 0) {
+      // 착지 보호(소모품/퍽) — 나쁜 착지 1회 무효 후 소진(다음 착지부터 다시 패널티)
+      this._softLandLeft -= 1;
       this._toast(`🪂 ${t.itemSoftland}`, '#2ce6c4');
     } else if (badLand) {
       if (this._badLandCd <= 0) {      // 쿨다운: 착지 실패 1회 후 2.5초간은 재패널티 없음(튕김 연타 방지)
@@ -479,9 +482,9 @@ export class Game {
   applyTuneConsum(id) {
     if (id === 'boost') { this.bike.boost(9); this._boostFx = 1; this._toast(`🚀 ${t.itemBoost}`, '#2ce6c4'); audio.sfx.boost(); }
     else if (id === 'fuel') { this.fuel += 5; this._toast('⛽ +5s', '#2ce6c4'); }
-    else if (id === 'softland') { this._noBadLand = true; this._toast(`🪂 ${t.itemSoftland}`, '#2ce6c4'); }
-    else if (id === 'phase') { this._phaseObstacles = true; this._toast(`👻 ${t.itemPhase}`, '#2ce6c4'); }
-    else if (id === 'dbljump') { this._airJumpsLeft = (this._airJumpsLeft || 0) + 1; this._toast(`⏫ ${t.itemDbljump}`, '#2ce6c4'); }
+    else if (id === 'softland') { this._softLandLeft = (this._softLandLeft || 0) + 1; this._toast(`🪂 ${t.itemSoftland}`, '#2ce6c4'); }
+    else if (id === 'phase') { this._phaseLeft = (this._phaseLeft || 0) + 1; this._toast(`👻 ${t.itemPhase}`, '#2ce6c4'); }
+    else if (id === 'dbljump') { this._dblJump = true; this._airJumpsLeft = Math.max(this._airJumpsLeft || 0, 1); this._toast(`⏫ ${t.itemDbljump}`, '#2ce6c4'); }
     else if (id === 'revive') { this._freeRevives += 1; this._toast(`❤️ ${t.itemRevive} +1`, '#2ce6c4'); }
   }
 
@@ -660,9 +663,9 @@ export class Game {
 
   _triggerEvent(ev) {
     const isTest = ev.event && ev.event.test;
-    // 장애물 통과(소모품) — 이번 1개만 sensor(통과) 후 소진. 다음 장애물부터 다시 막힘.
-    const phasing = !!this._phaseObstacles;
-    if (phasing) { this._phaseObstacles = false; this._toast(`👻 ${t.itemPhase}`, '#2ce6c4'); }
+    // 장애물 통과(소모품/퍽) — 이번 1개만 sensor(통과) 후 소진. 다음 장애물부터 다시 막힘.
+    const phasing = this._phaseLeft > 0;
+    if (phasing) { this._phaseLeft -= 1; this._toast(`👻 ${t.itemPhase}`, '#2ce6c4'); }
     else {
       if (!isTest) { this._flash = 0.85; this._shake = 1; audio.sfx.crash(); }   // 실제 폭락만 충격 효과(통과 시 생략)
       this._toast(`${ev.event.emoji} ${isTest ? t.obstacle : eventName(ev.event)}`, isTest ? '#ffd34d' : '#ff4d6d');
