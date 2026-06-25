@@ -183,7 +183,7 @@ function drawCamel(ctx, accent, phase) {
   rider(ctx, accent, -12, -8);
 }
 
-// 사자 — 4개 다리, 큰 갈기(accent)로 머리 강조, 꼬리 술(accent).
+// 사자 — 4개 다리, 뾰족한 갈기(accent)로 머리 둘레 강조, 꼬리 술(accent).
 function drawLion(ctx, accent, phase) {
   const C = '#c8893b';
   legs(ctx, shade(C, -26), [-22, -8, 12, 24], 34, phase);
@@ -194,15 +194,29 @@ function drawLion(ctx, accent, phase) {
   // 몸통
   ctx.fillStyle = C; ctx.beginPath(); ctx.ellipse(-4, 4, 32, 16, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = shade(C, -16); ctx.beginPath(); ctx.ellipse(-4, 11, 28, 8, 0, 0, Math.PI * 2); ctx.fill();
-  // 갈기(accent) → 머리
-  ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(31, -10, 18, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = C; ctx.beginPath(); ctx.arc(34, -10, 12, 0, Math.PI * 2); ctx.fill();
-  // 주둥이 + 귀 + 눈/코
-  ctx.fillStyle = shade(C, 14); ctx.beginPath(); ctx.ellipse(42, -6, 6, 5, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = C; ctx.beginPath(); ctx.arc(27, -22, 4, 0, Math.PI * 2); ctx.fill();
+  // 갈기(accent) — 머리 둘레를 뾰족뾰족 두르는 술
+  const hx = 33, hy = -9, mr = 12;
+  ctx.fillStyle = accent; ctx.beginPath();
+  const spikes = 11;
+  for (let i = 0; i <= spikes * 2; i++) {
+    const ang = (i / (spikes * 2)) * Math.PI * 2;
+    const rad = (i % 2 === 0) ? mr + 9 : mr + 1;
+    const px = hx + Math.cos(ang) * rad, py = hy + Math.sin(ang) * rad;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.closePath(); ctx.fill();
+  // 갈기 안쪽 음영(accent 어둡게) — 입체감
+  ctx.fillStyle = shade(accent, -40); ctx.beginPath(); ctx.arc(hx, hy, mr + 2, 0, Math.PI * 2); ctx.fill();
+  // 얼굴
+  ctx.fillStyle = C; ctx.beginPath(); ctx.arc(hx, hy, mr, 0, Math.PI * 2); ctx.fill();
+  // 귀(갈기 위로 살짝)
+  ctx.fillStyle = C;
+  ctx.beginPath(); ctx.arc(hx - 7, hy - 11, 3.5, 0, Math.PI * 2); ctx.arc(hx + 7, hy - 11, 3.5, 0, Math.PI * 2); ctx.fill();
+  // 주둥이 + 눈 + 코
+  ctx.fillStyle = shade(C, 16); ctx.beginPath(); ctx.ellipse(hx + 7, hy + 4, 6, 5, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#1d2735';
-  ctx.beginPath(); ctx.arc(37, -12, 2, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(44, -7, 1.8, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(hx + 2, hy - 1, 2, 0, Math.PI * 2); ctx.fill();        // 눈
+  ctx.beginPath(); ctx.arc(hx + 9, hy + 2, 1.8, 0, Math.PI * 2); ctx.fill();      // 코
   rider(ctx, accent, -8, -12);
 }
 
