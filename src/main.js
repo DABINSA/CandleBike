@@ -287,25 +287,10 @@ function renderGarage() {
   }
   // 공유 리워드 — 토스 + 공유 브리지 + 오늘 미수령일 때만, 차고 상단에.
   if (shareRewardAvailable()) {
-    if (shareChoosing) {
-      // 받을 아이템 선택 칩 — 고르면 공유 시작.
-      const chips = shareRewardChoices().map((c) =>
-        `<button class="item-btn primary" data-sharepick="${c.id}">${c.emoji} ${escapeHtml(Items.itemName(c))}</button>`
-      ).join('');
-      body.insertAdjacentHTML('afterbegin',
-        `<div class="share-pick" style="grid-column:1/-1">` +
-          `<div class="share-pick-title">${t.sharePickTitle}</div>` +
-          `<div class="share-pick-grid">${chips}</div>` +
-          `<button class="item-btn ghost" data-sharecancel="1">${t.closeBtn}</button>` +
-        `</div>`);
-    } else {
-      body.insertAdjacentHTML('afterbegin',
-        `<button class="item-btn primary" id="share-reward-btn" style="grid-column:1/-1">${t.shareReward}</button>`);
-      const srb = $('share-reward-btn');
-      if (srb) srb.onclick = () => { shareChoosing = true; renderGarage(); };
-    }
-  } else if (shareChoosing) {
-    shareChoosing = false;   // 노출 조건이 사라지면 선택 상태도 해제
+    body.insertAdjacentHTML('afterbegin',
+      `<button class="item-btn primary" id="share-reward-btn" style="grid-column:1/-1">${t.shareReward}</button>`);
+    const srb = $('share-reward-btn');
+    if (srb) srb.onclick = () => doShareReward();
   }
   renderPreview();
   if (garageTab === 'vehicles') paintVehicleThumbs();
@@ -321,32 +306,19 @@ function openGarage(tab) {
 function closeGarage() { garageModal.classList.remove('active'); }
 
 // ── 공유 리워드(토스 contactsViral) ───────────────────────────────────────
-// 친구에게 공유 완료 시 소모품 1개 지급(일 1회). 토스 + 새 .ait(공유 브리지)에서만 노출.
-// 바이럴↑ 위해 '받을 아이템을 직접 선택' → 공유 → 지급 흐름. 선택지는 CONFIG.TOSS_SHARE.choices.
-// (revive는 광고 부활을 대체해 리워드 광고 수익을 잠식하므로 기본 선택지에서 제외)
+// 친구에게 공유 완료 시 토큰 지급(일 1회). 토스 + 새 .ait(공유 브리지)에서만 노출.
+// 토큰 경제와 일치 — 받은 토큰으로 차고에서 원하는 아이템을 산다(콘솔 단위 '토큰'/수량과 동일).
 const SHARE_DAY_KEY = 'cr_share_reward_day';
-let shareChoosing = false;   // 차고에서 '아이템 고르는 중' 상태
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 function shareRewardClaimedToday() { try { return localStorage.getItem(SHARE_DAY_KEY) === todayStr(); } catch { return false; } }
 function shareRewardAvailable() {
   return IS_TOSS && IS_TOSS_SHARE_READY && !!CONFIG.TOSS_SHARE?.reward && !shareRewardClaimedToday();
 }
-// 공유 보상으로 '고를 수 있는' 소모품 — 실제 게임에 적용되는 현재 카탈로그만 노출.
-//  config.choices 가 비어 있으면 자동: 현 소모품 전체에서 revive 제외(광고부활 잠식 방지).
-//  config.choices 를 지정하면 그 목록(존재하는 것만)으로 고정.
-const SHARE_REWARD_EXCLUDE = ['revive'];
-function shareRewardChoices() {
-  const ids = (CONFIG.TOSS_SHARE?.choices && CONFIG.TOSS_SHARE.choices.length)
-    ? CONFIG.TOSS_SHARE.choices
-    : Items.CONSUMABLES.map((c) => c.id).filter((id) => !SHARE_REWARD_EXCLUDE.includes(id));
-  return ids.map((id) => Items.CONSUMABLES.find((c) => c.id === id)).filter(Boolean);
-}
-// 선택한 아이템(itemId)으로 공유 → 성공 시 그 아이템 1개 지급.
-async function doShareReward(itemId) {
+function shareRewardTokens() { return CONFIG.TOSS_SHARE?.tokens || Items.AD_REWARD; }
+// 친구 공유 → 성공 시 토큰 지급(일 1회).
+async function doShareReward() {
   if (acquiring || !CONFIG.TOSS_SHARE?.reward) return;
-  if (shareRewardClaimedToday()) { shareChoosing = false; renderGarage(); showToast(t.shareRewardDone); return; }
-  const item = Items.CONSUMABLES.find((c) => c.id === itemId) || shareRewardChoices()[0];
-  if (!item) return;
+  if (shareRewardClaimedToday()) { showToast(t.shareRewardDone); return; }
   acquiring = true;
   let shared = false;
   try {
@@ -354,13 +326,13 @@ async function doShareReward(itemId) {
     shared = !!(r && r.shared);
   } catch (e) { console.warn('공유 리워드', e); }
   acquiring = false;
-  shareChoosing = false;
-  if (!shared) { renderGarage(); return; }   // 공유 안 함/취소 → 보상 없음(조용히)
+  if (!shared) return;   // 공유 안 함/취소 → 보상 없음(조용히)
   try { localStorage.setItem(SHARE_DAY_KEY, todayStr()); } catch {}
-  Items.grantConsum(item.id);
-  logTossEvent('share_reward', { item: item.id });
+  const amount = shareRewardTokens();
+  Items.addTokens(amount);
+  logTossEvent('share_reward', { tokens: amount });
   renderGarage(); syncPush();
-  showToast(t.adReward(Items.itemName(item)));
+  showToast(t.tokenGain(amount));
 }
 
 // 리워드 광고 보고 토큰 적립 — 토스: 실제 리워드 광고(끝까지 봐야 지급), 웹/원스토어: 5초 게이트.
@@ -414,8 +386,6 @@ function buyConsumable(id) {
 $('garage-body').addEventListener('click', async (e) => {
   const el = e.target.closest('button');
   if (!el) return;
-  if (el.dataset.sharepick) { await doShareReward(el.dataset.sharepick); return; }
-  if (el.dataset.sharecancel) { shareChoosing = false; renderGarage(); return; }
   if (el.dataset.eqveh) { Items.equipVehicle(el.dataset.eqveh); renderGarage(); syncPush(); return; }
   if (el.dataset.bring) { Items.toggleEquip(el.dataset.bring); renderGarage(); syncPush(); return; }
   if (el.dataset.buyveh) { buyVehicle(el.dataset.buyveh); return; }
@@ -794,12 +764,11 @@ async function onGameEnd(result) {
   // 핵심지표 — game_complete(완주)가 대표 전환. game_end는 보조(완주율 분모).
   logTossEvent('game_end', { symbol: result.symbol, completed: !!result.completed });
   if (result.completed) logTossEvent('game_complete', { symbol: result.symbol });
-  // 완주 보상 — 토큰 적립(한 게임당 1회). 클라우드 동기화.
+  // 완주 보상 — 토큰 적립(한 게임당 1회). 클라우드 동기화. 연출은 결과 화면에서(아래 showResult).
   if (result.completed && !result._rewarded) {
     result._rewarded = true;
     Items.addTokens(Items.FINISH_REWARD);
     syncPush();
-    showToast(t.finishReward(Items.FINISH_REWARD), { top: true });
   }
   if (IS_TOSS && CONFIG.TOSS_AD?.bannerPre) {
     show('ad');
@@ -837,6 +806,11 @@ function renderMultiResult(result) {
 let regPromise = null;
 async function showResult(result) {
   show('result');
+  // 완주 보상 연출 — 폭죽 + "+10" 카운트업(한 번만)
+  if (result.completed && !result._celebrated) {
+    result._celebrated = true;
+    setTimeout(() => celebrateTokens(Items.FINISH_REWARD), 250);
+  }
   renderHouseAd($('ad-result'), 'result');   // 결과 화면 배너(토스: 토스 배너 / 웹: 하우스·애드센스)
   renderMultiResult(result);                 // 멀티면 등수 표시
   // 멀티: 완주한 고스트를 순위표에 함께 표시(진짜 같이 한 것처럼). DB엔 저장 안 함.
@@ -949,6 +923,70 @@ function showToast(msg, { top = false } = {}) {
   el.classList.add('show');
   clearTimeout(el._t);
   el._t = setTimeout(() => el.classList.remove('show'), 3800);
+}
+
+// 완주 토큰 보상 연출 — 폭죽(confetti) + 중앙 "+N" 카운트업. ~2.2초 후 사라짐.
+function celebrateTokens(amount) {
+  const layer = document.createElement('div');
+  layer.className = 'token-cele';
+  layer.innerHTML =
+    `<canvas class="tc-canvas"></canvas>` +
+    `<div class="tc-pop"><span class="coin tc-coin"></span>` +
+    `<div class="tc-amt">+0</div><div class="tc-label">${t.tokenEarned}</div></div>`;
+  document.body.appendChild(layer);
+  try { audio.sfx && audio.sfx.boost && audio.sfx.boost(); } catch {}
+
+  // 카운트업 +0 → +amount
+  const amtEl = layer.querySelector('.tc-amt');
+  const t0 = performance.now(), dur = 700;
+  (function countUp() {
+    const p = Math.min(1, (performance.now() - t0) / dur);
+    amtEl.textContent = '+' + Math.round(p * amount);
+    if (p < 1) requestAnimationFrame(countUp);
+  })();
+
+  // 폭죽 confetti
+  const cv = layer.querySelector('.tc-canvas');
+  const ctx = cv.getContext('2d');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const W = window.innerWidth, H = window.innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr; ctx.scale(dpr, dpr);
+  const COLORS = ['#2ce6c4', '#ffd34d', '#ff5d6e', '#a78bfa', '#ffffff', '#5b8cff'];
+  const parts = [];
+  const burst = (cx, cy, n) => {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, sp = 3 + Math.random() * 7.5;
+      parts.push({ x: cx, y: cy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 3.5,
+        c: COLORS[(Math.random() * COLORS.length) | 0], s: 5 + Math.random() * 6,
+        rot: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.45, life: 1 });
+    }
+  };
+  burst(W / 2, H * 0.42, 100);
+  setTimeout(() => burst(W * 0.28, H * 0.36, 55), 220);
+  setTimeout(() => burst(W * 0.72, H * 0.36, 55), 380);
+
+  let raf; const start = performance.now();
+  (function loop() {
+    const elapsed = performance.now() - start;
+    ctx.clearRect(0, 0, W, H);
+    for (const p of parts) {
+      if (p.life <= 0) continue;
+      p.vy += 0.16; p.vx *= 0.99;
+      p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life -= 0.0075;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.fillStyle = p.c;
+      ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.62);
+      ctx.restore();
+    }
+    if (elapsed < 2300) raf = requestAnimationFrame(loop);
+  })();
+
+  setTimeout(() => {
+    layer.classList.add('out');
+    setTimeout(() => { cancelAnimationFrame(raf); layer.remove(); }, 500);
+  }, 1900);
 }
 $('btn-save-card').onclick = async () => {
   if (!lastResult) return;

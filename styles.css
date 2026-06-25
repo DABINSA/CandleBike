@@ -170,10 +170,17 @@ body {
 }
 .item-btn.buy-btn { background: linear-gradient(180deg, #1b3a36, #13302c); border-color: var(--gold); color: var(--gold); display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
 .item-btn.buy-btn:disabled { background: var(--bg); border-color: var(--panel-border); color: var(--muted); }
+
+/* 완주 토큰 보상 연출 — 폭죽 + "+N" 팝 */
+.token-cele { position: fixed; inset: 0; z-index: 100000; pointer-events: none; display: flex; align-items: center; justify-content: center; transition: opacity .5s; }
+.token-cele.out { opacity: 0; }
+.tc-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.tc-pop { position: relative; text-align: center; animation: tc-pop .5s cubic-bezier(.2,1.7,.4,1) both; }
+.tc-coin { width: 56px; height: 56px; margin: 0 auto; box-shadow: inset 0 0 0 5px rgba(255,255,255,.25), 0 0 32px rgba(245,184,32,.75); }
+.tc-amt { font-size: 54px; font-weight: 900; color: var(--gold); line-height: 1; margin-top: 10px; text-shadow: 0 2px 16px rgba(245,184,32,.6); }
+.tc-label { font-size: 16px; font-weight: 800; color: #fff; margin-top: 6px; text-shadow: 0 1px 6px rgba(0,0,0,.6); }
+@keyframes tc-pop { 0% { transform: scale(.2); opacity: 0; } 60% { opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
 /* 공유 리워드 — 받을 아이템 선택 패널 */
-.share-pick { background: rgba(44,230,196,.06); border: 1px solid var(--panel-border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-.share-pick-title { font-size: 13px; font-weight: 800; color: var(--neon); text-align: center; }
-.share-pick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
 /* ===== 홈 ===== */
 .home-inner { width: 100%; max-width: 420px; text-align: center; }
