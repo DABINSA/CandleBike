@@ -63,6 +63,22 @@ export function toggleEquip(id) {
   else if (consumCount(id) > 0) state.equipped.push(id);
   persist();
 }
+// ── 계정 동기화(클라우드) ──────────────────────────────────
+export function exportState() { return JSON.parse(JSON.stringify(state)); }
+// 클라우드 데이터와 로컬을 병합(스킨 합집합·소모품 최대치) — 로그인/첫 바인딩 시.
+export function mergeFrom(cloud) {
+  if (!cloud || typeof cloud !== 'object') return;
+  const owned = [...new Set([...(state.owned || []), ...(cloud.owned || [])])];
+  const consum = { ...state.consum };
+  for (const k in (cloud.consum || {})) consum[k] = Math.max(consum[k] || 0, cloud.consum[k] || 0);
+  state = {
+    ...state, owned, consum,
+    color: cloud.color || state.color,
+    equipped: Array.isArray(cloud.equipped) ? cloud.equipped : state.equipped,
+  };
+  persist();
+}
+
 // 경기 시작 시 호출 — 장착된(보유>0) 소모품을 소모하고 { boost, fuel, shield } 반환.
 export function consumeEquipped() {
   const active = {};

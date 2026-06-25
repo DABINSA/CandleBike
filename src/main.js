@@ -104,6 +104,33 @@ if (IS_TOSS) {
   $('btn-nick').style.display = 'none';
 }
 
+// ---------------- 인벤토리 계정 동기화 (토스) ----------------
+// 토스 토큰이 있으면 아이템을 클라우드(계정)에 저장/병합 → 재설치·기기변경에도 유지.
+// 게스트(토큰 없음)는 호출 안 함 → localStorage(같은 기기 영구)만.
+let invToken = null;
+function invPush() {
+  if (!invToken) return;
+  fetch('/api/inventory', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: invToken, data: Items.exportState() }),
+  }).catch(() => {});
+}
+async function invPull(token) {
+  if (!token) return;
+  invToken = token;
+  try {
+    const r = await fetch('/api/inventory', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    if (r.ok) {
+      const j = await r.json();
+      if (j && j.data && Object.keys(j.data).length) { Items.mergeFrom(j.data); updateNickButton(); }
+    }
+  } catch { /* 동기화 실패는 조용히 — 게스트처럼 계속 동작 */ }
+  invPush();   // 병합 결과(또는 첫 바인딩)를 클라우드에 반영
+}
+
 // ---------------- 차고 / 아이템 ----------------
 const garageModal = $('garage-modal');
 let garageTab = 'skins';
@@ -162,6 +189,7 @@ async function acquireItem(grantFn, name) {
     grantFn();
     renderGarage();
   }
+  invPush();
   acquiring = false;
   showToast(t.adReward(name));
 }
@@ -169,8 +197,8 @@ async function acquireItem(grantFn, name) {
 $('garage-body').addEventListener('click', async (e) => {
   const el = e.target.closest('button');
   if (!el) return;
-  if (el.dataset.equip) { Items.equipSkin(el.dataset.equip); renderGarage(); return; }
-  if (el.dataset.bring) { Items.toggleEquip(el.dataset.bring); renderGarage(); return; }
+  if (el.dataset.equip) { Items.equipSkin(el.dataset.equip); renderGarage(); invPush(); return; }
+  if (el.dataset.bring) { Items.toggleEquip(el.dataset.bring); renderGarage(); invPush(); return; }
   if (el.dataset.getskin) {
     const s = Items.SKINS.find((x) => x.id === el.dataset.getskin);
     await acquireItem(() => Items.grantSkin(s.id), Items.itemName(s));
@@ -321,7 +349,7 @@ async function tossLoginFlow() {
     });
     if (!res.ok) { console.warn('토스 로그인 API', res.status); return 'none'; }
     const data = await res.json();
-    if (data.token) localStorage.setItem(TOSS_TOKEN_LS, data.token);
+    if (data.token) { localStorage.setItem(TOSS_TOKEN_LS, data.token); invPull(data.token); }
     if (data.nick) { setNick(data.nick); updateNickButton(); return 'set'; }  // 계정 기본닉 자동 적용
     promptNick((n) => saveNick(n));                          // 첫 로그인 → 닉 1회 입력(+서버 저장)
     return 'prompted';
@@ -339,6 +367,8 @@ async function firstRunNick() {
   if (!getNick()) promptNick((n) => saveNick(n));   // 토스 로그인 브리지/API 실패 폴백
 }
 firstRunNick();
+// 재방문 토스 유저(이미 로그인됨): 저장된 토큰으로 인벤토리 클라우드 동기화.
+if (IS_TOSS) { try { const _tk = localStorage.getItem(TOSS_TOKEN_LS); if (_tk) invPull(_tk); } catch {} }
 
 // ---------------- 공유 링크로 진입 (?c=종목) → 바로 그 종목 도전 ----------------
 // 친구가 공유 카드를 눌러 들어오면 해당 종목 코스로 즉시 시작 → 곧장 '같이 도전'.
@@ -406,6 +436,7 @@ function startGame(series, symbol, name, opts = {}) {
   // 아이템 — 장착 스킨 색 + 소모품 적용(소모품은 여기서 1회 소모). 재시작 시 중복 소모 방지(_items).
   if (!opts.test && !opts._items) {
     opts = { ...opts, _items: true, skinColor: Items.equippedColor(), consum: Items.consumeEquipped() };
+    invPush();   // 소모품 사용분 클라우드 반영
   }
   playCtx = { series, symbol, name, opts };
   $('pause-menu')?.classList.remove('active');
