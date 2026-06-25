@@ -95,8 +95,13 @@ function saveNick(n) {
     }).catch((e) => console.warn('닉 저장 실패', e));
   }
 }
-$('btn-nick').onclick = () => promptNick((n) => saveNick(n), { prefill: getNick() });
-updateNickButton();
+// 홈 닉네임 칩(변경)은 토스(로그인 진입)에서만. 웹/원스토어는 숨김(완주 시에만 닉 입력).
+if (IS_TOSS) {
+  $('btn-nick').onclick = () => promptNick((n) => saveNick(n), { prefill: getNick() });
+  updateNickButton();
+} else {
+  $('btn-nick').style.display = 'none';
+}
 
 // ---------------- 홈: 검색 ----------------
 const input = $('symbol-input');
@@ -244,12 +249,13 @@ async function tossLoginFlow() {
     return 'none';
   }
 }
-// 최초 1회 닉 입력 — 토스는 계정 기본닉 우선, 없거나(웹/원스토어/토스 브리지 실패) 직접 입력받는다.
-// 닉이 한 번이라도 정해지면(익명 포함) 다시 묻지 않고, 변경은 홈의 닉네임 칩에서.
+// 최초 1회 닉 입력 — '토스(로그인 진입)'에서만. 웹/원스토어는 첫 진입 프롬프트 없이
+// 완주 시점에 닉을 입력받는다(아래 결과 처리). 변경은 토스 홈의 닉네임 칩에서.
 async function firstRunNick() {
+  if (!IS_TOSS) return;
   const r = await tossLoginFlow();
   if (r === 'has' || r === 'set' || r === 'prompted') return;
-  if (!getNick()) promptNick((n) => saveNick(n));
+  if (!getNick()) promptNick((n) => saveNick(n));   // 토스 로그인 브리지/API 실패 폴백
 }
 firstRunNick();
 
