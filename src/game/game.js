@@ -63,6 +63,9 @@ export class Game {
     const consum = opts.consum || {};
     this._pendingBoost = !!consum.boost && !this.testMode;   // 출발 직후 1회 가속
     this._shield = !!consum.shield && !this.testMode;        // 충돌/추락 1회 무효
+    this._noBadLand = !!consum.softland && !this.testMode;   // 착지 보호: 나쁜 착지 패널티 무효
+    this._phaseObstacles = !!consum.phase && !this.testMode; // 장애물 통과: 폭락 캔들 통과
+    this._freeRevives = (consum.revive && !this.testMode) ? 1 : 0;  // 추가 이어가기: 광고 없이 부활
 
     // 상태
     this.distanceM = 0;
@@ -223,7 +226,9 @@ export class Game {
       badLand = Math.abs(a) > 2.0;     // ~115°+ 기울어진 채 착지 = 등/머리로 떨어짐
     }
     this._badLandCd = Math.max(0, (this._badLandCd || 0) - dt);
-    if (badLand) {
+    if (badLand && this._noBadLand) {
+      // 착지 보호(소모품): 나쁜 착지여도 패널티/보너스 없음 — 그냥 넘어감
+    } else if (badLand) {
       if (this._badLandCd <= 0) {      // 쿨다운: 착지 실패 1회 후 2.5초간은 재패널티 없음(튕김 연타 방지)
         this.fuel = Math.max(0, this.fuel - 3);   // 착지 실패 패널티: -3초 (트릭 보너스 없음)
         this._toast(`🙃 ${t.badLand} -3s`, '#ff5d6e');
@@ -377,6 +382,14 @@ export class Game {
 
   _end(reason) {
     if (this.ended || this._reviving) return;
+    // 추가 이어가기(소모품) — 완주 외 종료 시 광고 없이 즉시 1회 부활(실행 중 루프가 그대로 이어감)
+    if (reason !== 'finish' && this._freeRevives > 0) {
+      this._freeRevives -= 1;
+      this._toast(`❤️ ${t.itemRevive}`, '#2ce6c4');
+      audio.sfx.boost();
+      this._reviveNow(false);
+      return;
+    }
     if (this._canOfferRevive(reason)) { this._offerRevive(reason); return; }
     this._finalize(reason);
   }
@@ -393,9 +406,12 @@ export class Game {
     }).catch(() => { this._reviving = false; this._finalize(reason); });
   }
 
-  // 이어가기 — 연료 회복 + 바이크 복구 + 루프 재개.
-  _doRevive() {
-    this._revivesLeft -= 1;
+  // 이어가기(광고) — 부활 1회 차감 후 복구. 루프가 멈춰 있으므로 재시작(restart=true).
+  _doRevive() { this._revivesLeft -= 1; this._reviveNow(true); }
+
+  // 부활 실행 — 연료 회복 + 바이크 복구. restart=true 면 루프 재시작(광고 부활처럼 루프가 멈춘 경우),
+  // false 면 실행 중인 루프 안에서 호출된 것(무광고 부활)이라 현재 루프가 그대로 이어가게 둔다.
+  _reviveNow(restart) {
     this.fuel = CONFIG.GAME.fuelSeconds;
     this._respawnBike();
     this._crashTimer = 0;
@@ -407,7 +423,7 @@ export class Game {
     this.ended = false;
     this.running = true;
     audio.startEngine();
-    this._loop();
+    if (restart) this._loop();
   }
 
   _finalize(reason) {
@@ -635,7 +651,8 @@ export class Game {
     // 점프로 넘어야 하는 장애물 — 높고(점프 강제) 넓게(고속 터널링 방지)
     const h = 74, w = 46;
     const wall = Matter.Bodies.rectangle(ev.x, ev.y - h / 2, w, h, {
-      isStatic: true, friction: 1, label: 'event-wall', render: { visible: false },
+      // 장애물 통과(소모품): sensor 로 만들어 물리 충돌 없이 그냥 통과
+      isStatic: true, isSensor: !!this._phaseObstacles, friction: 1, label: 'event-wall', render: { visible: false },
     });
     Matter.Composite.add(this.world, wall);
     this._eventBodies.push({ body: wall, x: ev.x, y: ev.y, h, event: ev.event, born: performance.now() });

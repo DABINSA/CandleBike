@@ -21,6 +21,9 @@ export const CONSUMABLES = [
   { id: 'boost',  ko: '시작 부스터', en: 'Starter Boost', emoji: '🚀', koDesc: '출발 직후 가속', enDesc: 'Burst at the start' },
   { id: 'fuel',   ko: '연료 +5초',   en: 'Fuel +5s',      emoji: '⛽', koDesc: '시작 연료 +5초',  enDesc: '+5s starting fuel' },
   { id: 'shield', ko: '보호막',      en: 'Shield',        emoji: '🛡️', koDesc: '충돌/추락 1회 무효', enDesc: 'Survive one crash/fall' },
+  { id: 'softland', ko: '착지 보호', en: 'Soft Landing',  emoji: '🪂', koDesc: '나쁜 착지 패널티 무효', enDesc: 'No bad-landing penalty' },
+  { id: 'phase',  ko: '장애물 통과', en: 'Phase Through', emoji: '👻', koDesc: '폭락 캔들 그냥 통과',  enDesc: 'Pass through crash candles' },
+  { id: 'revive', ko: '추가 이어가기', en: 'Extra Revive', emoji: '❤️', koDesc: '광고 없이 1회 부활',  enDesc: 'Revive once, no ad' },
 ];
 
 export function itemName(it) { return LANG === 'en' ? it.en : it.ko; }
