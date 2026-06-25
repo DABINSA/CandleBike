@@ -10,6 +10,7 @@ import { initPlayBanner, showRewardedAd, renderHouseAd } from './ads/ads.js';
 import { submitScore, topScores, getNick, setNick, isRemote } from './leaderboard/leaderboard.js';
 import { shareResult, saveCard } from './share/share.js';
 import * as Items from './items/items.js';
+import { getClient } from './supabaseClient.js';
 import { pickGhostNames } from './game/ghosts.js';
 import { quickDifficulty } from './difficulty.js';
 import { MOCK_SYMBOLS } from './stock/mockData.js';
@@ -131,6 +132,73 @@ async function invPull(token) {
   invPush();   // 병합 결과(또는 첫 바인딩)를 클라우드에 반영
 }
 
+// ---------------- 구글 로그인 (Supabase Auth) — 웹/원스토어 영구 귀속 ----------------
+// 토스는 위 토스 토큰 경로를 쓰므로 구글 로그인은 비-토스에서만.
+let googleUser = null;   // Supabase auth user (로그인 시)
+async function initGoogleAuth() {
+  if (IS_TOSS) return;
+  const supa = await getClient();
+  if (!supa) return;
+  try {
+    const { data } = await supa.auth.getSession();
+    googleUser = data?.session?.user || null;
+    if (googleUser) await googlePull();
+    supa.auth.onAuthStateChange((_e, session) => {
+      const was = googleUser?.id;
+      googleUser = session?.user || null;
+      updateGarageLogin();
+      if (googleUser && googleUser.id !== was) googlePull();
+    });
+  } catch (e) { console.warn('구글 인증 초기화', e); }
+  updateGarageLogin();
+}
+async function googlePull() {
+  const supa = await getClient(); if (!supa || !googleUser) return;
+  const owner = 'google:' + googleUser.id;
+  try {
+    const { data } = await supa.from('inventory').select('data').eq('owner', owner).maybeSingle();
+    if (data?.data && Object.keys(data.data).length) { Items.mergeFrom(data.data); updateNickButton(); }
+  } catch (e) { console.warn('인벤토리 조회', e); }
+  await googlePush();   // 병합/첫 바인딩 반영
+}
+async function googlePush() {
+  const supa = await getClient(); if (!supa || !googleUser) return;
+  try {
+    await supa.from('inventory').upsert({ owner: 'google:' + googleUser.id, data: Items.exportState(), updated_at: new Date().toISOString() });
+  } catch (e) { console.warn('인벤토리 저장', e); }
+}
+async function googleLogin() {
+  const supa = await getClient(); if (!supa) { showToast(t.loginUnavailable); return; }
+  try {
+    await supa.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
+  } catch (e) { console.warn('구글 로그인', e); showToast(t.loginUnavailable); }
+}
+async function googleLogout() {
+  const supa = await getClient(); if (!supa) return;
+  try { await supa.auth.signOut(); } catch {}
+  googleUser = null; updateGarageLogin();
+}
+
+// 변경분을 활성 계정(토스/구글)에 반영. 게스트면 아무것도 안 함(localStorage만).
+function syncPush() { if (invToken) invPush(); else if (googleUser) googlePush(); }
+
+// 차고 로그인 행 렌더 (토스는 계정 자동이라 숨김)
+function updateGarageLogin() {
+  const row = $('garage-login-row');
+  if (!row) return;
+  if (IS_TOSS) { row.classList.remove('show'); row.innerHTML = ''; return; }
+  row.classList.add('show');
+  if (googleUser) {
+    row.innerHTML = `<div class="login-status">${escapeHtml(t.loginedAs(googleUser.email || 'Google'))} · <button id="g-logout" class="link-btn"></button></div>`;
+    $('g-logout').textContent = t.logout;
+    $('g-logout').onclick = () => googleLogout();
+  } else {
+    row.innerHTML = `<button class="btn btn-primary" id="g-login"></button>`;
+    $('g-login').textContent = t.loginSave;
+    $('g-login').onclick = () => googleLogin();
+  }
+}
+
 // ---------------- 차고 / 아이템 ----------------
 const garageModal = $('garage-modal');
 let garageTab = 'skins';
@@ -169,13 +237,15 @@ function renderGarage() {
 function openGarage(tab) {
   garageTab = tab || garageTab;
   document.querySelectorAll('.garage-tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === garageTab));
+  updateGarageLogin();
   renderGarage();
   garageModal.classList.add('active');
 }
 function closeGarage() { garageModal.classList.remove('active'); }
 
 // 광고 보고 직접 지급 — 웹/원스토어는 기존 5초 리워드 게이트, 토스는 2단계(실 리워드 광고) 전까지 바로 지급.
-async function acquireItem(grantFn, name) {
+// permanent=true(스킨)인데 비로그인 게스트면, 광고 시청 후 적용 시점에 로그인(영구 보관)을 유도.
+async function acquireItem(grantFn, name, permanent) {
   if (acquiring) return;
   acquiring = true;
   if (!IS_TOSS && AD_MODE !== 'off') {
@@ -189,19 +259,23 @@ async function acquireItem(grantFn, name) {
     grantFn();
     renderGarage();
   }
-  invPush();
+  syncPush();
   acquiring = false;
   showToast(t.adReward(name));
+  // 영구 아이템인데 게스트(비-토스·비로그인) → 영구 보관 안내(차고 로그인 버튼 강조)
+  if (permanent && !IS_TOSS && !googleUser) {
+    setTimeout(() => showToast(t.loginHint), 1600);
+  }
 }
 
 $('garage-body').addEventListener('click', async (e) => {
   const el = e.target.closest('button');
   if (!el) return;
-  if (el.dataset.equip) { Items.equipSkin(el.dataset.equip); renderGarage(); invPush(); return; }
-  if (el.dataset.bring) { Items.toggleEquip(el.dataset.bring); renderGarage(); invPush(); return; }
+  if (el.dataset.equip) { Items.equipSkin(el.dataset.equip); renderGarage(); syncPush(); return; }
+  if (el.dataset.bring) { Items.toggleEquip(el.dataset.bring); renderGarage(); syncPush(); return; }
   if (el.dataset.getskin) {
     const s = Items.SKINS.find((x) => x.id === el.dataset.getskin);
-    await acquireItem(() => Items.grantSkin(s.id), Items.itemName(s));
+    await acquireItem(() => Items.grantSkin(s.id), Items.itemName(s), true);   // 스킨=영구
   }
   if (el.dataset.getconsum) {
     const c = Items.CONSUMABLES.find((x) => x.id === el.dataset.getconsum);
@@ -369,6 +443,7 @@ async function firstRunNick() {
 firstRunNick();
 // 재방문 토스 유저(이미 로그인됨): 저장된 토큰으로 인벤토리 클라우드 동기화.
 if (IS_TOSS) { try { const _tk = localStorage.getItem(TOSS_TOKEN_LS); if (_tk) invPull(_tk); } catch {} }
+else initGoogleAuth();   // 웹/원스토어: 구글 로그인 세션 복원 + 인벤토리 동기화
 
 // ---------------- 공유 링크로 진입 (?c=종목) → 바로 그 종목 도전 ----------------
 // 친구가 공유 카드를 눌러 들어오면 해당 종목 코스로 즉시 시작 → 곧장 '같이 도전'.
@@ -436,7 +511,7 @@ function startGame(series, symbol, name, opts = {}) {
   // 아이템 — 장착 스킨 색 + 소모품 적용(소모품은 여기서 1회 소모). 재시작 시 중복 소모 방지(_items).
   if (!opts.test && !opts._items) {
     opts = { ...opts, _items: true, skinColor: Items.equippedColor(), consum: Items.consumeEquipped() };
-    invPush();   // 소모품 사용분 클라우드 반영
+    syncPush();   // 소모품 사용분 클라우드 반영
   }
   playCtx = { series, symbol, name, opts };
   $('pause-menu')?.classList.remove('active');

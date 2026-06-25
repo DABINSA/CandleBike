@@ -10,4 +10,16 @@ create table if not exists inventory (
   updated_at timestamptz default now()
 );
 alter table inventory enable row level security;
--- 정책 0개 → anon 완전 차단. /api/inventory 가 service_role 로 수행(토스 토큰 검증 후).
+-- 토스: /api/inventory 가 service_role 로 수행(RLS 우회) → owner='toss:<user_key>'.
+-- 구글(Supabase Auth): 로그인 유저가 본인 행만 직접 읽기/쓰기 → owner='google:<auth.uid()>'.
+--   anon 은 auth.uid() 가 null 이라 전부 거부. service_role 은 RLS 우회.
+drop policy if exists "inv_sel_own" on inventory;
+drop policy if exists "inv_ins_own" on inventory;
+drop policy if exists "inv_upd_own" on inventory;
+create policy "inv_sel_own" on inventory for select to authenticated
+  using (owner = 'google:' || auth.uid()::text);
+create policy "inv_ins_own" on inventory for insert to authenticated
+  with check (owner = 'google:' || auth.uid()::text);
+create policy "inv_upd_own" on inventory for update to authenticated
+  using (owner = 'google:' || auth.uid()::text)
+  with check (owner = 'google:' || auth.uid()::text);
