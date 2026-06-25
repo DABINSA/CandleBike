@@ -85,13 +85,14 @@ body {
 
 /* 홈 닉네임 칩 (현재 닉 표시 + 클릭 시 변경) */
 .nick-chip {
-  display: inline-flex; align-items: center; gap: 6px; margin: 4px auto 0;
-  max-width: 80%; padding: 7px 14px; border-radius: 999px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px; margin: 16px auto 14px;
+  max-width: 86%; padding: 9px 16px; border-radius: 999px; cursor: pointer;
   background: var(--panel); border: 1px solid var(--panel-border);
-  color: var(--text); font-size: 13px; font-weight: 700;
+  color: var(--muted); font-size: 13px; font-weight: 700;
 }
 .nick-chip:active { transform: scale(.96); }
-.nick-chip .nick-val { color: var(--neon); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nick-chip .nick-val { color: var(--neon); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nick-chip .nick-edit { color: var(--muted); font-size: 12px; opacity: .9; }
 
 /* ===== 홈 ===== */
 .home-inner { width: 100%; max-width: 420px; text-align: center; }
@@ -185,8 +186,8 @@ body {
 
 /* 5년 차트 미니맵 */
 .minimap-wrap {
-  position: absolute; top: calc(var(--sat) + 8px); left: 62px; right: 12px;
-  height: 54px; z-index: 6;   /* left 62px: 좌상단 사운드 버튼 자리 확보 */
+  position: absolute; top: calc(max(var(--sat), 12px) + 8px); left: 62px; right: 12px;
+  height: 54px; z-index: 6;   /* left 62px: 좌상단 사운드 버튼 자리 확보. 상단 최소 여백 보장(원스토어 등 inset 0) */
 }
 .minimap {
   width: 100%; height: 100%; display: block;
@@ -200,7 +201,7 @@ body {
 .hud-sub { font-size: 11px; color: var(--gold); font-weight: 700; }
 
 .hud {
-  position: absolute; top: calc(var(--sat) + 68px); left: 0; right: 0; z-index: 5;
+  position: absolute; top: calc(max(var(--sat), 12px) + 68px); left: 0; right: 0; z-index: 5;
   display: flex; justify-content: space-between; gap: 10px;
   padding: 0 16px 12px;
 }
