@@ -114,7 +114,139 @@ function drawGiraffe(ctx, accent, phase) {
   rider(ctx, accent, -2, -12);
 }
 
-// type: 'bike' | 'horse' | 'giraffe' (moto 는 game.js 상세 렌더 사용)
+// 타조 — 2개 긴 다리, 둥근 몸통, 긴 목 + 작은 머리/부리, 꼬리 깃(accent).
+function drawOstrich(ctx, accent, phase) {
+  const C = '#3a4252';
+  legs(ctx, '#d9a05a', [-6, 8], 36, phase);
+  // 꼬리 깃(accent)
+  ctx.fillStyle = accent;
+  ctx.beginPath(); ctx.moveTo(-18, -4); ctx.quadraticCurveTo(-44, -12, -42, 8);
+  ctx.quadraticCurveTo(-30, 0, -16, 6); ctx.closePath(); ctx.fill();
+  // 몸통
+  ctx.fillStyle = C; ctx.beginPath(); ctx.ellipse(-2, 0, 26, 18, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = shade(C, -18); ctx.beginPath(); ctx.ellipse(-4, 6, 22, 10, 0, 0, Math.PI * 2); ctx.fill();
+  // 긴 목
+  ctx.strokeStyle = '#d9a05a'; ctx.lineWidth = 7; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(16, -6); ctx.quadraticCurveTo(36, -28, 39, -46); ctx.stroke();
+  // 머리 + 부리 + 눈
+  ctx.fillStyle = '#d9a05a'; ctx.beginPath(); ctx.arc(40, -50, 7, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffb74d'; ctx.beginPath(); ctx.moveTo(46, -52); ctx.lineTo(57, -49); ctx.lineTo(46, -46); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#1d2735'; ctx.beginPath(); ctx.arc(41, -52, 1.8, 0, Math.PI * 2); ctx.fill();
+  rider(ctx, accent, -6, -14);
+}
+
+// 코끼리 — 4개 두꺼운 다리, 큰 몸통, 큰 귀(accent) + 코 + 상아.
+function drawElephant(ctx, accent, phase) {
+  const C = '#9aa3b2';
+  legs(ctx, shade(C, -28), [-22, -8, 12, 24], 34, phase);
+  // 몸통
+  ctx.fillStyle = C; ctx.beginPath(); ctx.ellipse(-2, 2, 34, 20, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = shade(C, -16); ctx.beginPath(); ctx.ellipse(-2, 10, 30, 11, 0, 0, Math.PI * 2); ctx.fill();
+  // 꼬리(accent)
+  ctx.strokeStyle = accent; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-34, -2); ctx.quadraticCurveTo(-44, 6, -42, 18); ctx.stroke();
+  // 머리
+  ctx.fillStyle = C; ctx.beginPath(); ctx.ellipse(30, -6, 18, 17, 0, 0, Math.PI * 2); ctx.fill();
+  // 귀(accent)
+  ctx.fillStyle = accent; ctx.beginPath(); ctx.ellipse(23, -8, 11, 13, 0.2, 0, Math.PI * 2); ctx.fill();
+  // 코
+  ctx.strokeStyle = C; ctx.lineWidth = 9;
+  ctx.beginPath(); ctx.moveTo(44, -10); ctx.quadraticCurveTo(57, 2, 52, 22); ctx.stroke();
+  // 상아
+  ctx.strokeStyle = '#eef3f7'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(42, 4); ctx.quadraticCurveTo(48, 12, 46, 19); ctx.stroke();
+  ctx.fillStyle = '#1d2735'; ctx.beginPath(); ctx.arc(34, -8, 2, 0, Math.PI * 2); ctx.fill();
+  rider(ctx, accent, -6, -16);
+}
+
+// 로보트 — 2개 기계 다리, 블록 몸통/머리, 바이저·코어·안테나(accent).
+function drawRobot(ctx, accent, phase) {
+  const M = '#5b6675';
+  ctx.strokeStyle = shade(M, -20); ctx.lineWidth = 7; ctx.lineCap = 'round';
+  [-10, 12].forEach((x, i) => {
+    const sw = Math.sin(phase + i * Math.PI) * 6;
+    ctx.beginPath(); ctx.moveTo(x, 2); ctx.lineTo(x + sw, 34); ctx.stroke();
+    ctx.fillStyle = '#1d2735'; rr(ctx, x + sw - 6, 33, 13, 6, 2); ctx.fill();
+  });
+  // 몸통
+  ctx.fillStyle = M; rr(ctx, -18, -20, 36, 32, 6); ctx.fill();
+  ctx.fillStyle = shade(M, 18); rr(ctx, -12, -14, 24, 12, 4); ctx.fill();
+  ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(0, -4, 4, 0, Math.PI * 2); ctx.fill();   // 코어
+  // 팔
+  ctx.strokeStyle = shade(M, -10); ctx.lineWidth = 6;
+  ctx.beginPath(); ctx.moveTo(16, -12); ctx.lineTo(27, -2); ctx.lineTo(31, 8); ctx.stroke();
+  // 머리 + 바이저(accent) + 안테나
+  ctx.fillStyle = shade(M, 10); rr(ctx, -10, -38, 20, 18, 4); ctx.fill();
+  ctx.fillStyle = accent; rr(ctx, -7, -33, 14, 5, 2); ctx.fill();
+  ctx.strokeStyle = accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, -38); ctx.lineTo(0, -46); ctx.stroke();
+  ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(0, -47, 2.5, 0, Math.PI * 2); ctx.fill();
+  rider(ctx, accent, -6, -22);
+}
+
+// 공룡(티라노) — 2개 강한 다리, 두꺼운 꼬리, 큰 머리/이빨, 등 가시(accent).
+function drawDino(ctx, accent, phase) {
+  const C = '#4a8c5a';
+  legs(ctx, shade(C, -24), [-6, 10], 35, phase);
+  // 꼬리
+  ctx.fillStyle = C;
+  ctx.beginPath(); ctx.moveTo(-16, -2); ctx.quadraticCurveTo(-44, -2, -54, 10);
+  ctx.quadraticCurveTo(-40, 8, -14, 8); ctx.closePath(); ctx.fill();
+  // 몸통
+  ctx.beginPath(); ctx.ellipse(-2, 0, 26, 18, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = shade(C, -16); ctx.beginPath(); ctx.ellipse(-2, 8, 22, 9, 0, 0, Math.PI * 2); ctx.fill();
+  // 머리 + 벌린 턱
+  ctx.fillStyle = C;
+  ctx.beginPath(); ctx.moveTo(16, -8); ctx.lineTo(40, -18); ctx.lineTo(55, -12); ctx.lineTo(54, -4); ctx.lineTo(40, -2); ctx.lineTo(20, 2); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(40, -2); ctx.lineTo(54, -4); ctx.lineTo(52, 7); ctx.lineTo(40, 4); ctx.closePath(); ctx.fill();
+  // 이빨
+  ctx.fillStyle = '#eef3f7';
+  ctx.beginPath(); ctx.moveTo(42, -3); ctx.lineTo(45, 1); ctx.lineTo(48, -3); ctx.lineTo(51, 1); ctx.lineTo(53, -3); ctx.closePath(); ctx.fill();
+  // 작은 앞발
+  ctx.strokeStyle = shade(C, -10); ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(14, 2); ctx.lineTo(22, 9); ctx.stroke();
+  // 등 가시(accent)
+  ctx.fillStyle = accent;
+  [[-14, -16], [-2, -18], [10, -14]].forEach(([x, y]) => {
+    ctx.beginPath(); ctx.moveTo(x - 4, y + 6); ctx.lineTo(x, y - 4); ctx.lineTo(x + 4, y + 6); ctx.closePath(); ctx.fill();
+  });
+  ctx.fillStyle = '#1d2735'; ctx.beginPath(); ctx.arc(41, -12, 2, 0, Math.PI * 2); ctx.fill();
+  rider(ctx, accent, -6, -14);
+}
+
+// 진격의 거인(목마) — 거대 humanoid, 2개 큰 다리 + 앞으로 뻗은 팔, 빛나는 눈/김(accent).
+function drawTitan(ctx, accent, phase) {
+  const C = '#b07a4a';
+  ctx.strokeStyle = shade(C, -22); ctx.lineWidth = 11; ctx.lineCap = 'round';
+  [-8, 12].forEach((x, i) => {
+    const sw = Math.sin(phase + i * Math.PI) * 8;
+    ctx.beginPath(); ctx.moveTo(x, 2); ctx.lineTo(x + sw, 36); ctx.stroke();
+  });
+  // 몸통
+  ctx.fillStyle = C; ctx.beginPath();
+  ctx.moveTo(-14, -10); ctx.lineTo(14, -10); ctx.lineTo(18, 8); ctx.lineTo(-16, 8); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = shade(C, -14); ctx.beginPath();
+  ctx.moveTo(-11, -2); ctx.lineTo(12, -2); ctx.lineTo(14, 8); ctx.lineTo(-13, 8); ctx.closePath(); ctx.fill();
+  // 팔(앞으로 뻗음 — 진격 느낌)
+  ctx.strokeStyle = C; ctx.lineWidth = 9; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(10, -6); ctx.lineTo(30, -2); ctx.lineTo(45, 5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-10, -6); ctx.lineTo(-22, 5); ctx.stroke();
+  // 목 + 머리
+  ctx.fillStyle = C; ctx.fillRect(-3, -22, 10, 8);
+  ctx.beginPath(); ctx.arc(2, -30, 11, 0, Math.PI * 2); ctx.fill();
+  // 드러낸 이빨
+  ctx.fillStyle = '#eef3f7'; rr(ctx, -3, -27, 12, 3, 1); ctx.fill();
+  // 빛나는 눈(accent)
+  ctx.fillStyle = accent; ctx.shadowColor = accent; ctx.shadowBlur = 6;
+  ctx.beginPath(); ctx.arc(-1, -32, 1.8, 0, Math.PI * 2); ctx.arc(6, -32, 1.8, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0;
+  // 수증기(accent)
+  ctx.strokeStyle = accent; ctx.globalAlpha = 0.4; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(-13, -12); ctx.quadraticCurveTo(-19, -22, -12, -30); ctx.stroke();
+  ctx.globalAlpha = 1;
+  rider(ctx, accent, -10, -16);
+}
+
+// type: 'horse'|'giraffe'|'ostrich'|'elephant'|'robot'|'dino'|'titan' (moto 는 game.js 상세 렌더 사용)
 export function drawVehicle(ctx, type, pose, accent, alpha = 1) {
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -123,6 +255,11 @@ export function drawVehicle(ctx, type, pose, accent, alpha = 1) {
   const phase = pose.phase || 0;
   if (type === 'horse') drawHorse(ctx, accent, phase);
   else if (type === 'giraffe') drawGiraffe(ctx, accent, phase);
+  else if (type === 'ostrich') drawOstrich(ctx, accent, phase);
+  else if (type === 'elephant') drawElephant(ctx, accent, phase);
+  else if (type === 'robot') drawRobot(ctx, accent, phase);
+  else if (type === 'dino') drawDino(ctx, accent, phase);
+  else if (type === 'titan') drawTitan(ctx, accent, phase);
   else drawBike(ctx, accent, phase);
   ctx.restore();
 }

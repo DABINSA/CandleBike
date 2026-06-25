@@ -64,9 +64,9 @@ export class Game {
     this.vehicle = opts.vehicle || 'moto';
     const consum = opts.consum || {};
     this._pendingBoost = !!consum.boost && !this.testMode;   // 출발 직후 1회 가속
-    this._shield = !!consum.shield && !this.testMode;        // 충돌/추락 1회 무효
-    this._noBadLand = !!consum.softland && !this.testMode;   // 착지 보호: 나쁜 착지 패널티 무효
-    this._phaseObstacles = !!consum.phase && !this.testMode; // 장애물 통과: 폭락 캔들 통과
+    this._noBadLand = !!consum.softland && !this.testMode;   // 착지 보호: 나쁜 착지 1회 무효(소진)
+    this._phaseObstacles = !!consum.phase && !this.testMode; // 장애물 통과: 폭락 캔들 1회 통과(소진)
+    this._airJumpsLeft = (consum.dbljump && !this.testMode) ? 1 : 0;  // 더블 점프: 공중 1회 재점프
     this._freeRevives = (consum.revive && !this.testMode) ? 1 : 0;  // 추가 이어가기: 광고 없이 부활
 
     // 상태
@@ -213,6 +213,12 @@ export class Game {
     if (this._jumpBuf > 0 && this._coyote > 0) {
       this.bike.jump(); audio.sfx.jump();
       this._jumpBuf = 0; this._coyote = 0;
+    } else if (jumpEdge && !grounded && this._coyote <= 0 && this._airJumpsLeft > 0) {
+      // 더블 점프(소모품) — 공중에서 탭하면 1회 추가 점프 후 소진
+      this.bike.jump(); audio.sfx.jump();
+      this._airJumpsLeft -= 1; this._jumpBuf = 0;
+      this._boostFx = Math.max(this._boostFx || 0, 0.6);
+      this._toast(`⏫ ${t.itemDbljump}`, '#2ce6c4');
     }
     this._prevJump = this.bike.input.jump;
     audio.setThrottle(!!this.bike.input.gas);
@@ -229,7 +235,9 @@ export class Game {
     }
     this._badLandCd = Math.max(0, (this._badLandCd || 0) - dt);
     if (badLand && this._noBadLand) {
-      // 착지 보호(소모품): 나쁜 착지여도 패널티/보너스 없음 — 그냥 넘어감
+      // 착지 보호(소모품) — 나쁜 착지 1회 무효 후 소진(다음 착지부터 다시 패널티)
+      this._noBadLand = false;
+      this._toast(`🪂 ${t.itemSoftland}`, '#2ce6c4');
     } else if (badLand) {
       if (this._badLandCd <= 0) {      // 쿨다운: 착지 실패 1회 후 2.5초간은 재패널티 없음(튕김 연타 방지)
         this.fuel = Math.max(0, this.fuel - 3);   // 착지 실패 패널티: -3초 (트릭 보너스 없음)
@@ -331,15 +339,6 @@ export class Game {
     else if (this.fuel <= 0) reason = 'fuel';
     else if (this.bike.position.x >= this.terrain.worldWidth - 120) reason = 'finish';
     else if (this._crashTimer > 2.5) reason = 'crash';
-    // 보호막(소모품) — 충돌/추락 1회 무효: 그 자리에서 부활시키고 종료 취소(완주/연료엔 미적용)
-    if ((reason === 'crash' || reason === 'fell') && this._shield) {
-      this._shield = false;
-      this._respawnBike();
-      this._crashTimer = 0; this._chassisTouching = false; this._wasAir = false;
-      this._reviveGraceUntil = performance.now() + 1500;
-      this._toast(`🛡️ ${t.itemShield}`, '#2ce6c4'); audio.sfx.boost();
-      return;
-    }
     if (reason) { console.log('[게임오버]', reason); this._end(reason); }
   }
 
@@ -474,12 +473,13 @@ export class Game {
   }
 
   // 튜닝 패널(?tune=1) 전용 — 플레이 중 차고 소모품 효과를 즉시 적용(테스트). 인벤토리는 소모 안 함.
+  // 1회성(착지 보호·장애물 통과·더블 점프)은 탭마다 1회분 재충전 → 다시 탭하면 또 적용(테스트=사실상 무한).
   applyTuneConsum(id) {
     if (id === 'boost') { this.bike.boost(9); this._boostFx = 1; this._toast(`🚀 ${t.itemBoost}`, '#2ce6c4'); audio.sfx.boost(); }
     else if (id === 'fuel') { this.fuel += 5; this._toast('⛽ +5s', '#2ce6c4'); }
-    else if (id === 'shield') { this._shield = true; this._toast(`🛡️ ${t.itemShield}`, '#2ce6c4'); audio.sfx.boost(); }
-    else if (id === 'softland') { this._noBadLand = true; this._toast('🪂 착지 보호', '#2ce6c4'); }
-    else if (id === 'phase') { this._phaseObstacles = true; this._toast('👻 장애물 통과', '#2ce6c4'); }
+    else if (id === 'softland') { this._noBadLand = true; this._toast(`🪂 ${t.itemSoftland}`, '#2ce6c4'); }
+    else if (id === 'phase') { this._phaseObstacles = true; this._toast(`👻 ${t.itemPhase}`, '#2ce6c4'); }
+    else if (id === 'dbljump') { this._airJumpsLeft = (this._airJumpsLeft || 0) + 1; this._toast(`⏫ ${t.itemDbljump}`, '#2ce6c4'); }
     else if (id === 'revive') { this._freeRevives += 1; this._toast(`❤️ ${t.itemRevive} +1`, '#2ce6c4'); }
   }
 
@@ -658,13 +658,17 @@ export class Game {
 
   _triggerEvent(ev) {
     const isTest = ev.event && ev.event.test;
-    if (!isTest) { this._flash = 0.85; this._shake = 1; audio.sfx.crash(); }   // 실제 폭락만 충격 효과
-    this._toast(`${ev.event.emoji} ${isTest ? t.obstacle : eventName(ev.event)}`, isTest ? '#ffd34d' : '#ff4d6d');
+    // 장애물 통과(소모품) — 이번 1개만 sensor(통과) 후 소진. 다음 장애물부터 다시 막힘.
+    const phasing = !!this._phaseObstacles;
+    if (phasing) { this._phaseObstacles = false; this._toast(`👻 ${t.itemPhase}`, '#2ce6c4'); }
+    else {
+      if (!isTest) { this._flash = 0.85; this._shake = 1; audio.sfx.crash(); }   // 실제 폭락만 충격 효과(통과 시 생략)
+      this._toast(`${ev.event.emoji} ${isTest ? t.obstacle : eventName(ev.event)}`, isTest ? '#ffd34d' : '#ff4d6d');
+    }
     // 점프로 넘어야 하는 장애물 — 높고(점프 강제) 넓게(고속 터널링 방지)
     const h = 74, w = 46;
     const wall = Matter.Bodies.rectangle(ev.x, ev.y - h / 2, w, h, {
-      // 장애물 통과(소모품): sensor 로 만들어 물리 충돌 없이 그냥 통과
-      isStatic: true, isSensor: !!this._phaseObstacles, friction: 1, label: 'event-wall', render: { visible: false },
+      isStatic: true, isSensor: phasing, friction: 1, label: 'event-wall', render: { visible: false },
     });
     Matter.Composite.add(this.world, wall);
     this._eventBodies.push({ body: wall, x: ev.x, y: ev.y, h, event: ev.event, born: performance.now() });
