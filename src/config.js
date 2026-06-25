@@ -27,8 +27,8 @@ export const CONFIG = {
   // proxy 모드에서 사용 — /search?q=, /history?symbol= 를 제공하는 엔드포인트
   PROXY_BASE: 'https://your-proxy.example.com',
 
-  // 불러올 과거 데이터 기간(년)
-  HISTORY_YEARS: 3,
+  // 불러올 과거 데이터 기간(년) — 코스 길이가 이 값에 비례(5년이면 3년의 ≈1.67배).
+  HISTORY_YEARS: 5,
 
   // ---- 리더보드 (Supabase) ----
   // 비워두면 자동으로 localStorage(기기 내) 순위로 동작합니다.

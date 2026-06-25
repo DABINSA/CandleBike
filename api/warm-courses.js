@@ -1,11 +1,11 @@
-// 코스 미리 받기(워밍) — 인기 종목의 3년 차트를 서버가 미리 받아 courses 캐시에 넣어둔다.
+// 코스 미리 받기(워밍) — 인기 종목의 5년 차트를 서버가 미리 받아 courses 캐시에 넣어둔다.
 // 최초 플레이어도 즉시 로드되도록(특히 홈 화면에서 자주 누르는 종목).
 //   - Vercel Cron 이 하루 1회 호출(아래 vercel.json crons). 주간 캐시라 하루 1회면 충분.
 //   - 수동 실행: GET /api/warm-courses?secret=<CRON_SECRET>
 // 보호: CRON_SECRET 환경변수. Vercel Cron 은 Authorization: Bearer <CRON_SECRET> 로 호출.
 import { sb, supaReady } from './_supa.js';
 
-const HISTORY_YEARS = 3;
+const HISTORY_YEARS = 5;   // 코스 길이 = 데이터 기간에 비례. src/config.js 와 일치시킬 것.
 // 인기 종목(시총/거래대금 상위) — 홈에서 가장 많이 눌리는 축. 필요시 가감.
 const KR = [
   '005930.KS','000660.KS','373220.KS','207940.KS','005380.KS','000270.KS','068270.KS','035420.KS',

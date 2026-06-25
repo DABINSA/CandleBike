@@ -6,7 +6,7 @@ import { sb, supaReady, clientIp, rateLimit } from './_supa.js';
 
 const SYMBOL_RE = /^[A-Z0-9.\-]{1,15}$/;
 const PERIOD_RE = /^\d{4}-(W\d{2}|\d{2})$/;        // 2026-W24 또는 2026-06
-const MAX_POINTS = 2000;                           // 3년 일봉 ≈ 750. 넉넉히 상한.
+const MAX_POINTS = 2000;                           // 5년 일봉 ≈ 1250. 넉넉히 상한.
 
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
