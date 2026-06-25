@@ -22,6 +22,8 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4    # 깊은 점검 스크립트(.github/scripts/linkcheck.mjs) 사용
+
       - name: Restore state
         uses: actions/cache/restore@v4
         with:
@@ -41,14 +43,26 @@ jobs:
           else
             code=$(curl -s -o /dev/null -m 25 -w "%{http_code}" "$APP_URL" || echo 000)
           fi
-          echo "HTTP $code (prev fails=$fails alerted=$alerted)"
 
           up=0
           case "$code" in 2*|3*|4*) up=1 ;; esac
+          reason="앱 응답 없음/오류 (HTTP $code)"
+
+          # 깊은 점검 — HTTP 200 이어도 main.js 모듈 import 가 깨지면(export 누락) JS 가
+          # 통째로 안 돌아 앱이 죽는다. HTTP 핑만으론 못 잡는 사각지대를 메운다.
+          if [ "$up" = "1" ]; then
+            link=$(node .github/scripts/linkcheck.mjs "$APP_URL" 2>/dev/null || echo "CHECKERR")
+            echo "linkcheck: $link"
+            if echo "$link" | grep -q '^LINKBROKEN'; then
+              up=0
+              reason="JS 모듈 링크 에러 — HTTP 200이지만 앱 미실행 ($link)"
+            fi
+          fi
+          echo "HTTP $code up=$up (prev fails=$fails alerted=$alerted)"
 
           if [ "$up" = "1" ]; then
             if [ "$alerted" = "1" ]; then
-              printf '{"service":"%s","level":"recovered","reason":"앱 응답 정상 복구 (HTTP %s)","detail":"%s"}' \
+              printf '{"service":"%s","level":"recovered","reason":"앱 정상 복구 (HTTP %s)","detail":"%s"}' \
                 "$SERVICE_NAME" "$code" "$APP_URL" > payload.json
               curl -s -H 'Content-Type: application/json' --data-binary @payload.json "$RELAY_URL" || true
             fi
@@ -58,8 +72,8 @@ jobs:
             fails=$((fails + 1))
             echo "$fails" > hc-state/fails
             if [ "$fails" -ge "$FAIL_THRESHOLD" ] && [ "$alerted" != "1" ]; then
-              printf '{"service":"%s","level":"down","reason":"앱 응답 없음/오류 (HTTP %s, 연속 %s회)","detail":"%s"}' \
-                "$SERVICE_NAME" "$code" "$fails" "$APP_URL" > payload.json
+              printf '{"service":"%s","level":"down","reason":"%s (연속 %s회)","detail":"%s"}' \
+                "$SERVICE_NAME" "$reason" "$fails" "$APP_URL" > payload.json
               curl -s -H 'Content-Type: application/json' --data-binary @payload.json "$RELAY_URL" || true
               echo 1 > hc-state/alerted
             fi

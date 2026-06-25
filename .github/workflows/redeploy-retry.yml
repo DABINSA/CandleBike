@@ -1,0 +1,54 @@
+name: redeploy-retry
+
+# 배포 한도(Vercel Hobby 100/day) 초과로 막힌 수정본을, 한도가 풀리면 자동 재배포하고
+# 성공해서 앱이 정상 복구되면 중앙 에러알림 Relay로 '복구됨'을 보낸다.
+#   판정 기준: live /src/toss.js 에 logTossEvent 가 있으면 = 수정본 배포 성공(앱 정상).
+#   재배포는 새 커밋 없이 deploy-vercel 워크플로를 workflow_dispatch 로 재실행.
+#   이미 정상이면 아무것도 안 함(중복 배포·중복 알림 방지). 6시간마다 시도 → 한도 풀리면 1회 복구.
+on:
+  schedule:
+    - cron: '0 */6 * * *'      # 6시간마다 (≈ +6h/+12h/+18h/+24h 커버)
+  workflow_dispatch:
+
+permissions:
+  actions: write              # deploy 워크플로를 트리거하기 위해
+  contents: read
+
+env:
+  APP_URL: https://candlebike.vercel.app
+  RELAY_URL: https://primary-production-956de.up.railway.app/webhook/service-alert
+  MARKER: logTossEvent        # live toss.js 에 있으면 수정본 배포 성공
+  SERVICE_NAME: CandleBike
+
+jobs:
+  retry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retry deploy if app still broken, alert on recovery
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          have=$(curl -s -m 25 "$APP_URL/src/toss.js" | grep -c "$MARKER" || true)
+          if [ "${have:-0}" -ge 1 ]; then
+            echo "이미 정상(수정본 배포됨) — 할 일 없음"; exit 0
+          fi
+          echo "앱 비정상(수정본 미배포) — deploy-vercel 재실행"
+          gh workflow run deploy.yml --ref main || { echo "deploy 트리거 실패"; exit 0; }
+
+          echo "Vercel 빌드/배포 대기..."
+          ok=0
+          for i in $(seq 1 24); do      # 최대 약 8분 폴링
+            sleep 20
+            now=$(curl -s -m 25 "$APP_URL/src/toss.js" | grep -c "$MARKER" || true)
+            if [ "${now:-0}" -ge 1 ]; then ok=1; break; fi
+          done
+
+          if [ "$ok" = "1" ]; then
+            echo "복구 확인 — 에러알림(복구) 전송"
+            printf '{"service":"%s","level":"recovered","reason":"%s","detail":"%s"}' \
+              "$SERVICE_NAME" "배포 한도 해제 후 재배포 성공 — 앱 정상 복구" "$APP_URL" > payload.json
+            curl -s -H 'Content-Type: application/json' --data-binary @payload.json "$RELAY_URL" || true
+          else
+            echo "아직 한도/빌드 실패 — 다음 스케줄에 재시도"
+          fi
