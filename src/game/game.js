@@ -12,8 +12,6 @@ import * as audio from '../audio.js';
 
 const PX_PER_METER = 9;
 const FLIP_METERS = CONFIG.GAME.flipMeters ?? 50;
-const FLIP_TIME = CONFIG.GAME.flipTimeBonus ?? 2;
-const CP_TIME = CONFIG.GAME.checkpointTime ?? 3;
 const CHECKPOINTS = CONFIG.GAME.checkpoints ?? [0.2, 0.5, 0.8];
 const EVENT_WARN_DIST = 760;    // 폭락 이벤트 '사전 경고' 토스트가 뜨는 거리(px) — 미리 대비
 const EVENT_SPAWN_DIST = 440;   // 폭락 캔들 장애물이 생성·노출되는 거리(px) — 화면에 보이며 다가옴
@@ -211,26 +209,15 @@ export class Game {
         this._badLandCd = 2.5;
       }
     } else if (flips > 0) {
-      // 플립 성공(깨끗한 착지). 뒷구르기(백플립)는 더 어려우니 1.6배.
+      // 플립 성공(깨끗한 착지) = 전방 부스트(카트라이더식). 싱글·멀티 동일. 뒷구르기는 1.5배 강하게.
       this.flips += flips;
       this.flipBonusM = (this.flipBonusM || 0) + Math.round(flips * FLIP_METERS * (trick.back ? 1.6 : 1));
-      if (this.multi) {
-        // 멀티(레이스): 연료 대신 전방 부스트(카트라이더식) — 트릭으로 순위 추월.
-        const power = (7 + flips * 3.5) * (trick.back ? 1.5 : 1);   // 더 강하게
-        this.bike.boost(power);
-        this._shake = Math.max(this._shake || 0, 0.8);             // 화면 흔들림
-        this._boostFx = 1;                                         // 청록 부스트 플래시
-        this._showTrick(flips, trick.back, 0, true);
-        audio.sfx.boost();
-      } else {
-        // 싱글(생존): 연료 보상. 1회 +2, 2회 +5, 3회 +9초 …
-        let secs = 0;
-        for (let i = 1; i <= flips; i++) secs += FLIP_TIME + (i - 1);
-        if (trick.back) secs = Math.round(secs * 1.6);
-        this.fuel += secs;
-        this._showTrick(flips, trick.back, secs, false);
-        audio.sfx.flip();
-      }
+      const power = (7 + flips * 3.5) * (trick.back ? 1.5 : 1);
+      this.bike.boost(power);
+      this._shake = Math.max(this._shake || 0, 0.8);             // 화면 흔들림
+      this._boostFx = 1;                                         // 청록 부스트 플래시
+      this._showTrick(flips, trick.back, 0, true);
+      audio.sfx.boost();
     }
     this._wasAir = !grounded;
 
@@ -239,15 +226,16 @@ export class Game {
     this.distanceM = Math.max(0, Math.floor((this.maxX - this.startX) / PX_PER_METER)) + (this.flipBonusM || 0);
     if (!this.testMode) this.fuel -= dt;   // 테스트 모드: 연료 무제한
 
-    // 체크포인트(20/50/80%) 통과 시 +시간
+    // 체크포인트(20/50/80%) 통과 시 부스트(시간 추가 X — 싱글·멀티 동일)
     const totalW = this.terrain.worldWidth - this.startX;
     const prog = (this.maxX - this.startX) / totalW;
     for (const cp of CHECKPOINTS) {
       if (prog >= cp && !this._cpHit.has(cp)) {
         this._cpHit.add(cp);
-        this.fuel += CP_TIME;
-        this._toast(`🚩 ${t.checkpoint} ${Math.round(cp * 100)}%  +${CP_TIME}s`, '#2ce6c4');
-        audio.sfx.checkpoint();
+        this.bike.boost(11);
+        this._boostFx = Math.max(this._boostFx || 0, 1);
+        this._toast(`🚩 ${t.checkpoint} ${Math.round(cp * 100)}% 🚀`, '#2ce6c4');
+        audio.sfx.boost();
       }
     }
 
