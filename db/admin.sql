@@ -1,7 +1,7 @@
 -- ============================================================
 --  CandleRider 어드민 통계 — Supabase SQL 에디터에서 1회 실행.
---  선행: scores(=완주기록), courses, toss_users(db/toss-users.sql),
---        app_kv(db/security.sql) 가 이미 있어야 함.
+--  선행: scores(=완주기록), courses, app_kv(db/security.sql) 가 이미 있어야 함.
+--        toss_users(db/toss-users.sql)는 없어도 동작(있으면 가입 지표 집계).
 --
 --  구성: (1) visits 테이블 — 방문 비콘(/api/hit) 집계용 (일자×방문자 1행)
 --        (2) record_visit() — 비콘이 호출(서버 service_role 전용, RLS 우회)
@@ -52,6 +52,7 @@ revoke all on function record_visit(text, boolean) from public, anon, authentica
 
 -- ── (3) 어드민 통계 RPC ─────────────────────────────────────
 -- /api/admin/stats 가 토큰 검증 후 service_role 로 호출. 모든 지표를 jsonb 하나로 반환.
+-- toss_users/courses 는 없을 수도 있어 to_regclass 로 존재할 때만 집계(토스 출시 전 안전).
 create or replace function admin_stats()
 returns jsonb
 language plpgsql
@@ -59,8 +60,28 @@ security definer
 set search_path = public
 as $$
 declare
-  v_today date := (now() at time zone 'Asia/Seoul')::date;
+  v_today   date   := (now() at time zone 'Asia/Seoul')::date;
+  v_toss    jsonb  := jsonb_build_object('total', 0, 'new_today', 0, 'new_7d', 0, 'recent', '[]'::jsonb);
+  v_courses bigint := 0;
 begin
+  -- 토스 로그인 계정(= 우리 서비스의 '가입 유저') — 테이블이 있을 때만
+  if to_regclass('public.toss_users') is not null then
+    select jsonb_build_object(
+      'total',     coalesce((select count(*) from toss_users), 0),
+      'new_today', coalesce((select count(*) from toss_users where (created_at at time zone 'Asia/Seoul')::date = v_today), 0),
+      'new_7d',    coalesce((select count(*) from toss_users where created_at > now() - interval '7 days'), 0),
+      'recent', (
+        select coalesce(jsonb_agg(t), '[]'::jsonb) from (
+          select nick, created_at from toss_users order by created_at desc limit 30
+        ) t
+      )
+    ) into v_toss;
+  end if;
+
+  if to_regclass('public.courses') is not null then
+    select count(*) into v_courses from courses;
+  end if;
+
   return jsonb_build_object(
     'generated_at', now(),
     'today', v_today,
@@ -115,17 +136,7 @@ begin
       ) t
     ),
 
-    -- 토스 로그인 계정(= 우리 서비스의 '가입 유저')
-    'toss_users', jsonb_build_object(
-      'total',     coalesce((select count(*) from toss_users), 0),
-      'new_today', coalesce((select count(*) from toss_users where (created_at at time zone 'Asia/Seoul')::date = v_today), 0),
-      'new_7d',    coalesce((select count(*) from toss_users where created_at > now() - interval '7 days'), 0),
-      'recent', (
-        select coalesce(jsonb_agg(t), '[]'::jsonb) from (
-          select nick, created_at from toss_users order by created_at desc limit 30
-        ) t
-      )
-    ),
+    'toss_users', v_toss,
 
     -- 최근 활동
     'recent_scores', (
@@ -134,7 +145,7 @@ begin
       ) t
     ),
 
-    'courses', coalesce((select count(*) from courses), 0)
+    'courses', v_courses
   );
 end $$;
 
