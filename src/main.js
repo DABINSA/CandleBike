@@ -201,7 +201,7 @@ function updateGarageLogin() {
 
 // ---------------- 차고 / 아이템 ----------------
 const garageModal = $('garage-modal');
-let garageTab = 'skins';
+let garageTab = 'consum';   // 기본 탭: 소모품 먼저
 let acquiring = false;
 
 function renderGarage() {
@@ -282,7 +282,7 @@ $('garage-body').addEventListener('click', async (e) => {
     await acquireItem(() => Items.grantConsum(c.id), Items.itemName(c));
   }
 });
-$('btn-garage').onclick = () => openGarage('skins');
+$('btn-garage').onclick = () => openGarage('consum');
 $('garage-close').onclick = closeGarage;
 document.querySelectorAll('.garage-tab').forEach((b) => { b.onclick = () => openGarage(b.dataset.tab); });
 
