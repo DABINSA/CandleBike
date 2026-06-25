@@ -206,6 +206,8 @@ export class Game {
 
     // 점프 — 버퍼(누른 직후 잠깐 기억) + 코요테(땅 떠난 직후 잠깐 허용)로 씹힘 방지.
     //   가속 중 범프로 바퀴가 잠깐 떠도, 상승 램프 끝에서 눌러도 점프가 확실히 발동한다.
+    // 테스트 코스: 더블 점프를 자유롭게 체감하도록 착지마다 공중 점프 1회 재충전(실게임은 소모품 1회).
+    if (this.testMode && grounded) this._airJumpsLeft = Math.max(this._airJumpsLeft || 0, 1);
     const jumpEdge = this.bike.input.jump && !this._prevJump;
     if (jumpEdge) this._jumpBuf = 0.16;
     else this._jumpBuf = Math.max(0, (this._jumpBuf || 0) - dt);

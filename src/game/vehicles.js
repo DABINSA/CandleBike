@@ -159,28 +159,51 @@ function drawElephant(ctx, accent, phase) {
   rider(ctx, accent, -6, -16);
 }
 
-// 로보트 — 2개 기계 다리, 블록 몸통/머리, 바이저·코어·안테나(accent).
-function drawRobot(ctx, accent, phase) {
-  const M = '#5b6675';
-  ctx.strokeStyle = shade(M, -20); ctx.lineWidth = 7; ctx.lineCap = 'round';
-  [-10, 12].forEach((x, i) => {
-    const sw = Math.sin(phase + i * Math.PI) * 6;
-    ctx.beginPath(); ctx.moveTo(x, 2); ctx.lineTo(x + sw, 34); ctx.stroke();
-    ctx.fillStyle = '#1d2735'; rr(ctx, x + sw - 6, 33, 13, 6, 2); ctx.fill();
-  });
+// 낙타 — 4개 다리, 큰 혹(hump), 긴 목 + 머리, 꼬리(accent).
+function drawCamel(ctx, accent, phase) {
+  const C = '#d9a45b';
+  legs(ctx, shade(C, -28), [-22, -10, 12, 24], 36, phase);
+  // 몸통 + 혹
+  ctx.fillStyle = C; ctx.beginPath(); ctx.ellipse(-2, 4, 32, 15, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-14, -4); ctx.quadraticCurveTo(0, -30, 16, -4); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = shade(C, -14); ctx.beginPath(); ctx.ellipse(-2, 12, 28, 7, 0, 0, Math.PI * 2); ctx.fill();
+  // 목
+  ctx.fillStyle = C;
+  ctx.beginPath(); ctx.moveTo(18, -2); ctx.lineTo(34, -34); ctx.lineTo(44, -32); ctx.lineTo(30, 4); ctx.closePath(); ctx.fill();
+  // 머리 + 주둥이 + 귀 + 눈
+  ctx.save(); ctx.translate(40, -36); ctx.rotate(-0.4);
+  ctx.fillStyle = C; rr(ctx, -7, -6, 22, 12, 5); ctx.fill();
+  ctx.fillStyle = shade(C, -16); rr(ctx, 9, -2, 9, 7, 3); ctx.fill();
+  ctx.fillStyle = C; ctx.beginPath(); ctx.moveTo(-4, -6); ctx.lineTo(-7, -13); ctx.lineTo(1, -8); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#1d2735'; ctx.beginPath(); ctx.arc(2, -1, 1.7, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  // 꼬리(accent)
+  ctx.strokeStyle = accent; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-32, 0); ctx.quadraticCurveTo(-42, 6, -40, 18); ctx.stroke();
+  rider(ctx, accent, -12, -8);
+}
+
+// 사자 — 4개 다리, 큰 갈기(accent)로 머리 강조, 꼬리 술(accent).
+function drawLion(ctx, accent, phase) {
+  const C = '#c8893b';
+  legs(ctx, shade(C, -26), [-22, -8, 12, 24], 34, phase);
+  // 꼬리 + 술(accent)
+  ctx.strokeStyle = C; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-32, 0); ctx.quadraticCurveTo(-46, 4, -44, 18); ctx.stroke();
+  ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(-44, 20, 4, 0, Math.PI * 2); ctx.fill();
   // 몸통
-  ctx.fillStyle = M; rr(ctx, -18, -20, 36, 32, 6); ctx.fill();
-  ctx.fillStyle = shade(M, 18); rr(ctx, -12, -14, 24, 12, 4); ctx.fill();
-  ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(0, -4, 4, 0, Math.PI * 2); ctx.fill();   // 코어
-  // 팔
-  ctx.strokeStyle = shade(M, -10); ctx.lineWidth = 6;
-  ctx.beginPath(); ctx.moveTo(16, -12); ctx.lineTo(27, -2); ctx.lineTo(31, 8); ctx.stroke();
-  // 머리 + 바이저(accent) + 안테나
-  ctx.fillStyle = shade(M, 10); rr(ctx, -10, -38, 20, 18, 4); ctx.fill();
-  ctx.fillStyle = accent; rr(ctx, -7, -33, 14, 5, 2); ctx.fill();
-  ctx.strokeStyle = accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, -38); ctx.lineTo(0, -46); ctx.stroke();
-  ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(0, -47, 2.5, 0, Math.PI * 2); ctx.fill();
-  rider(ctx, accent, -6, -22);
+  ctx.fillStyle = C; ctx.beginPath(); ctx.ellipse(-4, 4, 32, 16, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = shade(C, -16); ctx.beginPath(); ctx.ellipse(-4, 11, 28, 8, 0, 0, Math.PI * 2); ctx.fill();
+  // 갈기(accent) → 머리
+  ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(31, -10, 18, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = C; ctx.beginPath(); ctx.arc(34, -10, 12, 0, Math.PI * 2); ctx.fill();
+  // 주둥이 + 귀 + 눈/코
+  ctx.fillStyle = shade(C, 14); ctx.beginPath(); ctx.ellipse(42, -6, 6, 5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = C; ctx.beginPath(); ctx.arc(27, -22, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#1d2735';
+  ctx.beginPath(); ctx.arc(37, -12, 2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(44, -7, 1.8, 0, Math.PI * 2); ctx.fill();
+  rider(ctx, accent, -8, -12);
 }
 
 // 공룡(티라노) — 2개 강한 다리, 두꺼운 꼬리, 큰 머리/이빨, 등 가시(accent).
@@ -213,40 +236,7 @@ function drawDino(ctx, accent, phase) {
   rider(ctx, accent, -6, -14);
 }
 
-// 진격의 거인(목마) — 거대 humanoid, 2개 큰 다리 + 앞으로 뻗은 팔, 빛나는 눈/김(accent).
-function drawTitan(ctx, accent, phase) {
-  const C = '#b07a4a';
-  ctx.strokeStyle = shade(C, -22); ctx.lineWidth = 11; ctx.lineCap = 'round';
-  [-8, 12].forEach((x, i) => {
-    const sw = Math.sin(phase + i * Math.PI) * 8;
-    ctx.beginPath(); ctx.moveTo(x, 2); ctx.lineTo(x + sw, 36); ctx.stroke();
-  });
-  // 몸통
-  ctx.fillStyle = C; ctx.beginPath();
-  ctx.moveTo(-14, -10); ctx.lineTo(14, -10); ctx.lineTo(18, 8); ctx.lineTo(-16, 8); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = shade(C, -14); ctx.beginPath();
-  ctx.moveTo(-11, -2); ctx.lineTo(12, -2); ctx.lineTo(14, 8); ctx.lineTo(-13, 8); ctx.closePath(); ctx.fill();
-  // 팔(앞으로 뻗음 — 진격 느낌)
-  ctx.strokeStyle = C; ctx.lineWidth = 9; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(10, -6); ctx.lineTo(30, -2); ctx.lineTo(45, 5); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(-10, -6); ctx.lineTo(-22, 5); ctx.stroke();
-  // 목 + 머리
-  ctx.fillStyle = C; ctx.fillRect(-3, -22, 10, 8);
-  ctx.beginPath(); ctx.arc(2, -30, 11, 0, Math.PI * 2); ctx.fill();
-  // 드러낸 이빨
-  ctx.fillStyle = '#eef3f7'; rr(ctx, -3, -27, 12, 3, 1); ctx.fill();
-  // 빛나는 눈(accent)
-  ctx.fillStyle = accent; ctx.shadowColor = accent; ctx.shadowBlur = 6;
-  ctx.beginPath(); ctx.arc(-1, -32, 1.8, 0, Math.PI * 2); ctx.arc(6, -32, 1.8, 0, Math.PI * 2); ctx.fill();
-  ctx.shadowBlur = 0;
-  // 수증기(accent)
-  ctx.strokeStyle = accent; ctx.globalAlpha = 0.4; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(-13, -12); ctx.quadraticCurveTo(-19, -22, -12, -30); ctx.stroke();
-  ctx.globalAlpha = 1;
-  rider(ctx, accent, -10, -16);
-}
-
-// type: 'horse'|'giraffe'|'ostrich'|'elephant'|'robot'|'dino'|'titan' (moto 는 game.js 상세 렌더 사용)
+// type: 'horse'|'giraffe'|'ostrich'|'camel'|'lion'|'elephant'|'dino' (moto 는 game.js 상세 렌더 사용)
 export function drawVehicle(ctx, type, pose, accent, alpha = 1) {
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -256,10 +246,10 @@ export function drawVehicle(ctx, type, pose, accent, alpha = 1) {
   if (type === 'horse') drawHorse(ctx, accent, phase);
   else if (type === 'giraffe') drawGiraffe(ctx, accent, phase);
   else if (type === 'ostrich') drawOstrich(ctx, accent, phase);
+  else if (type === 'camel') drawCamel(ctx, accent, phase);
+  else if (type === 'lion') drawLion(ctx, accent, phase);
   else if (type === 'elephant') drawElephant(ctx, accent, phase);
-  else if (type === 'robot') drawRobot(ctx, accent, phase);
   else if (type === 'dino') drawDino(ctx, accent, phase);
-  else if (type === 'titan') drawTitan(ctx, accent, phase);
   else drawBike(ctx, accent, phase);
   ctx.restore();
 }

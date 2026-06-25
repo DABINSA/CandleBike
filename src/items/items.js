@@ -16,10 +16,10 @@ export const VEHICLES = [
   { id: 'horse',    ko: '말',           en: 'Horse',      emoji: '🐎' },
   { id: 'giraffe',  ko: '기린',         en: 'Giraffe',    emoji: '🦒' },
   { id: 'ostrich',  ko: '타조',         en: 'Ostrich',    emoji: '🦤' },
+  { id: 'camel',    ko: '낙타',         en: 'Camel',      emoji: '🐪' },
+  { id: 'lion',     ko: '사자',         en: 'Lion',       emoji: '🦁' },
   { id: 'elephant', ko: '코끼리',       en: 'Elephant',   emoji: '🐘' },
-  { id: 'robot',    ko: '로보트',       en: 'Robot',      emoji: '🤖' },
   { id: 'dino',     ko: '공룡',         en: 'Dinosaur',   emoji: '🦖' },
-  { id: 'titan',    ko: '진격의 거인',  en: 'Titan',      emoji: '🗿' },
 ];
 // 소모품: '완주(클리어)' 보조 위주. 가져가면(사용) 소모.
 export const CONSUMABLES = [
