@@ -54,3 +54,14 @@ export function callBridge(type, params = {}, timeoutMs = 60000) {
 export function requestTossLogin() {
   return callBridge('appLogin');
 }
+
+// 토스 리워드 광고 — 셸 showFullScreenAd 요청 → { rewarded: boolean }(끝까지 봤는지).
+export function requestTossRewardAd(adGroupId, timeoutMs = 120000) {
+  return callBridge('showRewardedAd', { adGroupId }, timeoutMs);
+}
+
+// 셸이 리워드 광고 브리지를 지원하는지(=새 .ait). 구버전 셸이면 false → 웹은 즉시지급 폴백.
+export const IS_TOSS_REWARD_READY = (() => {
+  try { return typeof window !== 'undefined' && window.__APPS_IN_TOSS_REWARD__ === true; }
+  catch { return false; }
+})();

@@ -16,7 +16,7 @@ import { pickGhostNames } from './game/ghosts.js';
 import { quickDifficulty } from './difficulty.js';
 import { MOCK_SYMBOLS } from './stock/mockData.js';
 import * as audio from './audio.js';
-import { IS_TOSS, effectiveAdMode, requestTossLogin } from './toss.js';
+import { IS_TOSS, effectiveAdMode, requestTossLogin, requestTossRewardAd, IS_TOSS_REWARD_READY } from './toss.js';
 import { initClarity } from './analytics/clarity.js';
 import { recordVisit } from './analytics/beacon.js';
 import './tune.js';   // ?tune=1 일 때만 물리 튜닝 패널 표시
@@ -280,12 +280,20 @@ function openGarage(tab) {
 }
 function closeGarage() { garageModal.classList.remove('active'); }
 
-// 광고 보고 직접 지급 — 웹/원스토어는 기존 5초 리워드 게이트, 토스는 2단계(실 리워드 광고) 전까지 바로 지급.
-// permanent=true(스킨)인데 비로그인 게스트면, 광고 시청 후 적용 시점에 로그인(영구 보관)을 유도.
+// 광고 보고 획득 — 토스: 실제 리워드 광고(끝까지 봐야 지급), 웹/원스토어: 기존 5초 게이트.
+// permanent=true(탈것/색상)인데 비로그인 게스트면, 시청 후 로그인(영구 보관)을 유도.
 async function acquireItem(grantFn, name, permanent) {
   if (acquiring) return;
   acquiring = true;
-  if (!IS_TOSS && AD_MODE !== 'off') {
+  if (IS_TOSS && IS_TOSS_REWARD_READY && CONFIG.TOSS_REWARD_AD_GROUP) {
+    // 토스 실 리워드 광고 — 끝까지 본 경우(rewarded)만 지급
+    try {
+      const r = await requestTossRewardAd(CONFIG.TOSS_REWARD_AD_GROUP);
+      if (!r || !r.rewarded) { showToast(t.adNotComplete); acquiring = false; return; }
+    } catch (e) { console.warn('리워드 광고', e); showToast(t.adFailed); acquiring = false; return; }
+    grantFn();
+    renderGarage();
+  } else if (!IS_TOSS && AD_MODE !== 'off') {
     closeGarage();
     show('ad');
     try { await showRewardedAd(); } catch {}
@@ -293,6 +301,7 @@ async function acquireItem(grantFn, name, permanent) {
     show('home');
     openGarage();
   } else {
+    // 토스 구버전 셸(마커 없음)/광고그룹 미설정 또는 광고 off → 즉시 지급(임시)
     grantFn();
     renderGarage();
   }

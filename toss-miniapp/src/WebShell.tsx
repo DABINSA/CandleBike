@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useBackHandler } from '@granite-js/react-native';
 import { WebView } from '@granite-js/native/react-native-webview';
-import { appLogin } from '@apps-in-toss/framework';
+import { appLogin, loadFullScreenAd, showFullScreenAd } from '@apps-in-toss/framework';
 
 const SITE = 'https://candlerider.2nt4soft.com';
 
@@ -13,6 +13,7 @@ const SITE = 'https://candlerider.2nt4soft.com';
 // 외부광고(AdSense/하우스 자리)를 끄고 결과 게이트를 건너뛰도록 마커 설정.
 const INJECT_BEFORE = `
   window.__APPS_IN_TOSS__ = true;
+  window.__APPS_IN_TOSS_REWARD__ = true;
   true;
 `;
 
@@ -55,6 +56,30 @@ export function WebShell({ path }: { path: string }) {
       if (type === 'appLogin') {
         const result = await appLogin();          // { authorizationCode, referrer }
         reply(requestId, true, result);
+      } else if (type === 'showRewardedAd') {
+        // 리워드 광고 — load → loaded 시 show. userEarnedReward=보상확정, dismissed=닫힘.
+        const adGroupId = (msg.params && (msg.params as any).adGroupId) || '';
+        let earned = false; let replied = false;
+        const done = (ok: boolean, data?: unknown, error?: string) => { if (replied) return; replied = true; reply(requestId, ok, data, error); };
+        const evt = (e: any) => (typeof e === 'string' ? e : (e && e.type) || '');
+        loadFullScreenAd({
+          options: { adGroupId },
+          onEvent: (e: any) => {
+            if (evt(e) === 'loaded') {
+              showFullScreenAd({
+                options: { adGroupId },
+                onEvent: (se: any) => {
+                  const tt = evt(se);
+                  if (tt === 'userEarnedReward') earned = true;
+                  else if (tt === 'dismissed') done(true, { rewarded: earned });
+                  else if (tt === 'failedToShow') done(false, undefined, 'failedToShow');
+                },
+                onError: (err: any) => done(false, undefined, (err && err.message) || 'showError'),
+              });
+            }
+          },
+          onError: (err: any) => done(false, undefined, (err && err.message) || 'loadError'),
+        });
       } else {
         reply(requestId, false, undefined, `UNKNOWN_TYPE:${type}`);
       }

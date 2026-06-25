@@ -53,6 +53,11 @@ export const CONFIG = {
   // 그 전엔 토스 제공 테스트 ID(미집계). 토스 환경에서만 동작(웹 영향 0).
   TOSS_BANNER_AD_GROUP: 'ait-ad-test-banner-id',
 
+  // 토스 인앱 '리워드' 광고 그룹 ID (아이템 획득용). 🔴 콘솔에서 리워드 광고그룹 생성 후
+  // 발급된 ID(예: ait.v2.live.xxxx)로 교체. 비우면 토스에서 광고 없이 즉시 지급(임시).
+  // 개발 테스트는 토스 콘솔의 테스트 ID 사용(미집계).
+  TOSS_REWARD_AD_GROUP: '',
+
   // ---- 멀티(가짜 AI 경쟁) ----
   MULTI: {
     // AI 목표 완주시간 = 연료예산 × 이 계수. 낮을수록 AI가 빠름(어려움).
