@@ -49,14 +49,15 @@ export const CONFIG = {
   // 비워두면 로드 안 함(no-op). 토스 인앱은 외부 스크립트 금지 → 웹(비-토스)에서만 로드.
   CLARITY_PROJECT_ID: 'xc65q1l0jn',
 
-  // 토스 인앱 배너 광고 그룹 ID (WebView SDK). 🔴 광고그룹 발급 후 실 ID로 교체.
-  // 그 전엔 토스 제공 테스트 ID(미집계). 토스 환경에서만 동작(웹 영향 0).
-  TOSS_BANNER_AD_GROUP: 'ait-ad-test-banner-id',
-
-  // 토스 인앱 '리워드' 광고 그룹 ID (아이템 획득용). 🔴 콘솔에서 리워드 광고그룹 생성 후
-  // 발급된 ID(예: ait.v2.live.xxxx)로 교체. 비우면 토스에서 광고 없이 즉시 지급(임시).
-  // 개발 테스트는 토스 콘솔의 테스트 ID 사용(미집계).
-  TOSS_REWARD_AD_GROUP: '',
+  // 토스 인앱 광고 그룹 ID — 자리별로 분리(자리별 수익 비교용). 콘솔 발급 ID(ait.v2.live.xxxx)로 교체.
+  // 비우면 그 자리는 노출 안 함(배너) / 즉시 지급(리워드). 토스 환경에서만 동작(웹 영향 0).
+  TOSS_AD: {
+    reward:       '',   // 리워드: 차고 아이템 획득
+    bannerHome:   '',   // 배너: 홈
+    bannerPlay:   '',   // 배너: 플레이 하단
+    bannerResult: '',   // 배너: 결과 화면
+    bannerPre:    '',   // 배너: 결과 보기 전
+  },
 
   // ---- 멀티(가짜 AI 경쟁) ----
   MULTI: {

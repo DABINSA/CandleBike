@@ -6,7 +6,7 @@ import { t, applyStatic, LANG, setLang, ANON_NICKS } from './i18n.js';
 import { searchSymbols, getTrending, getProvider, activeMarket } from './stock/provider.js';
 import { getCourse, getLastCourseSource, currentPeriod } from './courseCache.js';
 import { Game } from './game/game.js';
-import { initPlayBanner, showRewardedAd, renderHouseAd } from './ads/ads.js';
+import { initPlayBanner, showRewardedAd, renderHouseAd, tossPreResultGate } from './ads/ads.js';
 import { submitScore, topScores, getNick, setNick, isRemote } from './leaderboard/leaderboard.js';
 import { shareResult, saveCard } from './share/share.js';
 import * as Items from './items/items.js';
@@ -285,10 +285,10 @@ function closeGarage() { garageModal.classList.remove('active'); }
 async function acquireItem(grantFn, name, permanent) {
   if (acquiring) return;
   acquiring = true;
-  if (IS_TOSS && IS_TOSS_REWARD_READY && CONFIG.TOSS_REWARD_AD_GROUP) {
+  if (IS_TOSS && IS_TOSS_REWARD_READY && CONFIG.TOSS_AD?.reward) {
     // 토스 실 리워드 광고 — 끝까지 본 경우(rewarded)만 지급
     try {
-      const r = await requestTossRewardAd(CONFIG.TOSS_REWARD_AD_GROUP);
+      const r = await requestTossRewardAd(CONFIG.TOSS_AD.reward);
       if (!r || !r.rewarded) { showToast(t.adNotComplete); acquiring = false; return; }
     } catch (e) { console.warn('리워드 광고', e); showToast(t.adFailed); acquiring = false; return; }
     grantFn();
@@ -671,6 +671,7 @@ window.addEventListener('popstate', () => {
 // ?tune=1 테스트 코스 — 다양한 지형(직진·상승·하락·횡보·램프·범프) 무제한 주행
 if (new URLSearchParams(location.search).get('tune') === '1') {
   window.__candleStartTest = () => startGame(genTestCourse(), 'TEST', '테스트 코스', { test: true });
+  window.__candleGame = () => game;   // 튜닝 패널이 현재 플레이 중인 게임에 아이템을 라이브 적용
 }
 function genTestCourse() {
   const pts = [];
@@ -695,9 +696,12 @@ function genTestCourse() {
 // ---------------- 게임 종료 → 리워드 광고 → 결과 ----------------
 async function onGameEnd(result) {
   lastResult = result;
-  if (AD_MODE !== 'off') {
+  if (IS_TOSS && CONFIG.TOSS_AD?.bannerPre) {
     show('ad');
-    await showRewardedAd();    // 결과 보기 전 5초 강제(하우스 광고)
+    await tossPreResultGate();   // 토스: 결과 보기 전 배너(이미지 강조) + 2초
+  } else if (AD_MODE !== 'off') {
+    show('ad');
+    await showRewardedAd();      // 웹: 결과 보기 전 5초 하우스 광고
   }
   await showResult(result);
 }

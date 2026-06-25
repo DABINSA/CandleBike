@@ -34,8 +34,10 @@ export function houseAdMarkup(variant = 'banner') {
 
 export function renderHouseAd(el, variant) {
   if (!el) return;
-  if (IS_TOSS) {                                  // 토스: 결과 화면만 토스 배너, 홈 등은 숨김
-    if (variant === 'result') attachTossBanner(el);
+  if (IS_TOSS) {                                  // 토스: 자리별 토스 배너(홈/결과)
+    const grp = variant === 'result' ? CONFIG.TOSS_AD?.bannerResult
+      : variant === 'banner' ? CONFIG.TOSS_AD?.bannerHome : '';
+    if (grp) { el.style.display = ''; attachTossBanner(el, grp); }
     else el.style.display = 'none';
     return;
   }
@@ -48,7 +50,12 @@ export function renderHouseAd(el, variant) {
 export function initPlayBanner() {
   const banner = document.getElementById('ad-banner');
   if (!banner) return;
-  if (IS_TOSS) { banner.style.display = 'flex'; attachTossBanner(banner); return; }  // 토스 배너
+  if (IS_TOSS) {  // 토스 배너(플레이 자리)
+    const grp = CONFIG.TOSS_AD?.bannerPlay;
+    if (grp) { banner.style.display = 'flex'; attachTossBanner(banner, grp); }
+    else banner.style.display = 'none';
+    return;
+  }
   if (AD_MODE === 'off') { banner.style.display = 'none'; return; }
   banner.style.display = 'flex';
 
@@ -98,5 +105,29 @@ export function showRewardedAd() {
       btn.onclick = null;
       resolve(true);
     };
+  });
+}
+
+// 토스 '결과 보기 전' 배너 게이트 — #screen-ad 에 토스 배너 노출 + 2초 후 '결과 보기'.
+// CONFIG.TOSS_AD.bannerPre 가 있을 때만 main 에서 호출.
+export function tossPreResultGate() {
+  return new Promise((resolve) => {
+    const screen = document.getElementById('screen-ad');
+    const video = screen.querySelector('.ad-reward-video');
+    const timerEl = document.getElementById('ad-timer');
+    const btn = document.getElementById('btn-skip-ad');
+    if (video) {
+      video.innerHTML = `<span class="ad-tag">AD</span><div class="toss-banner-slot"></div>`;
+      attachTossBanner(video.querySelector('.toss-banner-slot'), CONFIG.TOSS_AD?.bannerPre);
+    }
+    let remain = 2;
+    if (timerEl) timerEl.textContent = remain;
+    btn.disabled = true; btn.textContent = t.seeResultsLocked;
+    const iv = setInterval(() => {
+      remain -= 1;
+      if (timerEl) timerEl.textContent = Math.max(0, remain);
+      if (remain <= 0) { clearInterval(iv); btn.disabled = false; btn.textContent = t.seeResultsUnlocked; }
+    }, 1000);
+    btn.onclick = () => { if (btn.disabled) return; btn.onclick = null; resolve(true); };
   });
 }

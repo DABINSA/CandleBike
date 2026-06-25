@@ -3,13 +3,11 @@
 // 웹/비토스나 SDK 미지원(구버전 셸)에선 isSupported()=false 라 조용히 no-op(웹 영향 0).
 //
 // 무빌드 사이트라 SDK 를 ESM CDN(esm.sh)에서 동적 import 한다.
-// 🔴 광고그룹 ID: CONFIG.TOSS_BANNER_AD_GROUP (발급 후 실 ID로 교체, 그 전엔 테스트 ID).
+// 🔴 광고그룹 ID는 호출부에서 자리별로 전달(CONFIG.TOSS_AD.bannerHome/Play/Result/Pre).
 
 import { IS_TOSS } from './toss.js';
-import { CONFIG } from './config.js';
 
 const SDK_URL = 'https://esm.sh/@apps-in-toss/web-framework@2.9.2';
-const AD_GROUP = CONFIG.TOSS_BANNER_AD_GROUP || 'ait-ad-test-banner-id';
 
 let _initPromise = null;          // TossAds | null
 const _attached = new WeakMap();  // el → attach handle
@@ -39,16 +37,16 @@ function ensureInit() {
   return _initPromise;
 }
 
-// 슬롯 엘리먼트에 토스 배너 부착. 토스 아니면/미지원이면 false.
-export async function attachTossBanner(el) {
-  if (!IS_TOSS || !el) return false;
+// 슬롯 엘리먼트에 토스 배너 부착. adGroup(자리별 광고그룹 ID) 필요. 없으면/토스 아니면 false.
+export async function attachTossBanner(el, adGroup) {
+  if (!IS_TOSS || !el || !adGroup) return false;
   const TossAds = await ensureInit();
   if (!TossAds) return false;
   detachTossBanner(el);
   el.innerHTML = '';
   el.style.display = '';
   try {
-    const handle = TossAds.attachBanner(AD_GROUP, el, {
+    const handle = TossAds.attachBanner(adGroup, el, {
       theme: 'auto', tone: 'blackAndWhite', variant: 'expanded',
       callbacks: {
         onNoFill: () => {},                                  // 광고 없음 → 빈 슬롯(무해)
