@@ -117,6 +117,10 @@ body {
 .garage-login-row .btn { width: 100%; max-width: none; margin: 0; }
 .login-status { font-size: 12px; color: var(--muted); text-align: center; }
 .login-status .link-btn { background: none; border: none; color: var(--neon); cursor: pointer; font-size: 12px; font-weight: 700; padding: 0; }
+.garage-preview {
+  width: 100%; height: 120px; border-radius: 12px; background: radial-gradient(120% 100% at 50% 0%, #14202f, #0b1119);
+  border: 1px solid var(--panel-border);
+}
 .garage-tabs { display: flex; gap: 8px; }
 .garage-tab {
   flex: 1; padding: 9px; border-radius: 10px; cursor: pointer; font-weight: 800; font-size: 13px;

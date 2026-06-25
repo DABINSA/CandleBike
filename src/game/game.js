@@ -8,6 +8,7 @@ import { eventName } from '../events.js';
 import { buildTerrain } from './terrain.js';
 import { createBike } from './bike.js';
 import { createGhosts, updateGhosts } from './ghosts.js';
+import { drawVehicle } from './vehicles.js';
 import * as audio from '../audio.js';
 
 const PX_PER_METER = 9;
@@ -58,8 +59,9 @@ export class Game {
     this.bike = createBike(this.world, sp.x + 40, sp.y - 80);
     this._initMinimap();
 
-    // 아이템 — 스킨(외형색) + 소모품(완주보조). consum: { boost, fuel, shield }
+    // 아이템 — 스킨(외형색·탈것) + 소모품(완주보조).
     this.skinColor = opts.skinColor || '#2ce6c4';
+    this.vehicle = opts.vehicle || 'moto';
     const consum = opts.consum || {};
     this._pendingBoost = !!consum.boost && !this.testMode;   // 출발 직후 1회 가속
     this._shield = !!consum.shield && !this.testMode;        // 충돌/추락 1회 무효
@@ -976,11 +978,18 @@ export class Game {
     this._renderBike(ctx, {
       px: chassis.position.x, py: chassis.position.y, ang: chassis.angle,
       wheels: [{ pos: toWorld(-44, 26), ang: rear.angle }, { pos: toWorld(44, 26), ang: front.angle }],
-    }, this.skinColor || '#2ce6c4', 1);
+    }, this.skinColor || '#2ce6c4', 1, this.vehicle);
   }
 
-  // 플레이어/고스트 공용 — 포즈(px,py,ang,wheels[rear,front]) + accent 색으로 디테일 바이크를 그린다.
-  _renderBike(ctx, pose, accent, alpha = 1) {
+  // 플레이어/고스트 공용 — 포즈(px,py,ang,wheels[rear,front]) + accent 색. vehicle≠moto면 다른 탈것 렌더.
+  _renderBike(ctx, pose, accent, alpha = 1, vehicle = 'moto') {
+    if (vehicle && vehicle !== 'moto') {
+      drawVehicle(ctx, vehicle, {
+        px: pose.px, py: pose.py, ang: pose.ang,
+        phase: (pose.wheels && pose.wheels[0]) ? pose.wheels[0].ang : 0,
+      }, accent, alpha);
+      return;
+    }
     const { px, py, ang, wheels } = pose;
     const WR = 24;
     const rx = -44, fx = 44, wy = 26;  // 로컬 바퀴 위치

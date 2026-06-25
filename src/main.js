@@ -10,6 +10,7 @@ import { initPlayBanner, showRewardedAd, renderHouseAd } from './ads/ads.js';
 import { submitScore, topScores, getNick, setNick, isRemote } from './leaderboard/leaderboard.js';
 import { shareResult, saveCard } from './share/share.js';
 import * as Items from './items/items.js';
+import { drawPreview } from './game/vehicles.js';
 import { getClient } from './supabaseClient.js';
 import { pickGhostNames } from './game/ghosts.js';
 import { quickDifficulty } from './difficulty.js';
@@ -220,18 +221,37 @@ const garageModal = $('garage-modal');
 let garageTab = 'consum';   // 기본 탭: 소모품 먼저
 let acquiring = false;
 
+function renderPreview() {
+  const cv = $('garage-preview');
+  if (!cv) return;
+  if (garageTab === 'consum') { cv.style.display = 'none'; return; }
+  cv.style.display = '';
+  try { drawPreview(cv.getContext('2d'), Items.equippedVehicle(), Items.equippedColor(), cv.width, cv.height); } catch {}
+}
 function renderGarage() {
   const body = $('garage-body');
-  if (garageTab === 'skins') {
-    body.innerHTML = Items.SKINS.map((s) => {
-      const owned = Items.ownsSkin(s.id);
-      const on = Items.equippedSkinId() === s.id;
+  if (garageTab === 'vehicles') {
+    body.innerHTML = Items.VEHICLES.map((v) => {
+      const owned = Items.ownsVehicle(v.id);
+      const on = Items.equippedVehicle() === v.id;
       const btn = owned
-        ? `<button class="item-btn ${on ? 'ghost' : 'primary'}" data-equip="${s.id}" ${on ? 'disabled' : ''}>${on ? t.equipped : t.equip}</button>`
-        : `<button class="item-btn" data-getskin="${s.id}">${t.getByAd}</button>`;
+        ? `<button class="item-btn ${on ? 'ghost' : 'primary'}" data-eqveh="${v.id}" ${on ? 'disabled' : ''}>${on ? t.equipped : t.equip}</button>`
+        : `<button class="item-btn" data-getveh="${v.id}">${t.getByAd}</button>`;
       return `<div class="item-card ${on ? 'on' : ''}">
-        <span class="swatch" style="background:${s.color}"></span>
-        <span class="item-name">${escapeHtml(Items.itemName(s))}</span>
+        <span class="item-emoji">${v.emoji}</span>
+        <span class="item-name">${escapeHtml(Items.itemName(v))}</span>
+        <span class="item-sub"></span>${btn}</div>`;
+    }).join('');
+  } else if (garageTab === 'colors') {
+    body.innerHTML = Items.COLORS.map((c) => {
+      const owned = Items.ownsColor(c.id);
+      const on = Items.equippedColorId() === c.id;
+      const btn = owned
+        ? `<button class="item-btn ${on ? 'ghost' : 'primary'}" data-eqcol="${c.id}" ${on ? 'disabled' : ''}>${on ? t.equipped : t.equip}</button>`
+        : `<button class="item-btn" data-getcol="${c.id}">${t.getByAd}</button>`;
+      return `<div class="item-card ${on ? 'on' : ''}">
+        <span class="swatch" style="background:${c.color}"></span>
+        <span class="item-name">${escapeHtml(Items.itemName(c))}</span>
         <span class="item-sub"></span>${btn}</div>`;
     }).join('');
   } else {
@@ -249,6 +269,7 @@ function renderGarage() {
         <button class="item-btn" data-getconsum="${c.id}">${t.getByAd}</button></div>`;
     }).join('');
   }
+  renderPreview();
 }
 function openGarage(tab) {
   garageTab = tab || garageTab;
@@ -287,11 +308,16 @@ async function acquireItem(grantFn, name, permanent) {
 $('garage-body').addEventListener('click', async (e) => {
   const el = e.target.closest('button');
   if (!el) return;
-  if (el.dataset.equip) { Items.equipSkin(el.dataset.equip); renderGarage(); syncPush(); return; }
+  if (el.dataset.eqveh) { Items.equipVehicle(el.dataset.eqveh); renderGarage(); syncPush(); return; }
+  if (el.dataset.eqcol) { Items.equipColor(el.dataset.eqcol); renderGarage(); syncPush(); return; }
   if (el.dataset.bring) { Items.toggleEquip(el.dataset.bring); renderGarage(); syncPush(); return; }
-  if (el.dataset.getskin) {
-    const s = Items.SKINS.find((x) => x.id === el.dataset.getskin);
-    await acquireItem(() => Items.grantSkin(s.id), Items.itemName(s), true);   // 스킨=영구
+  if (el.dataset.getveh) {
+    const v = Items.VEHICLES.find((x) => x.id === el.dataset.getveh);
+    await acquireItem(() => Items.grantVehicle(v.id), Items.itemName(v), true);   // 탈것=영구
+  }
+  if (el.dataset.getcol) {
+    const c = Items.COLORS.find((x) => x.id === el.dataset.getcol);
+    await acquireItem(() => Items.grantColor(c.id), Items.itemName(c), true);     // 색상=영구
   }
   if (el.dataset.getconsum) {
     const c = Items.CONSUMABLES.find((x) => x.id === el.dataset.getconsum);
@@ -526,7 +552,7 @@ let playCtx = null;   // 재시작용 — 현재 플레이 중인 코스
 function startGame(series, symbol, name, opts = {}) {
   // 아이템 — 장착 스킨 색 + 소모품 적용(소모품은 여기서 1회 소모). 재시작 시 중복 소모 방지(_items).
   if (!opts.test && !opts._items) {
-    opts = { ...opts, _items: true, skinColor: Items.equippedColor(), consum: Items.consumeEquipped() };
+    opts = { ...opts, _items: true, skinColor: Items.equippedColor(), vehicle: Items.equippedVehicle(), consum: Items.consumeEquipped() };
     syncPush();   // 소모품 사용분 클라우드 반영
   }
   playCtx = { series, symbol, name, opts };
