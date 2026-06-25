@@ -202,7 +202,7 @@ body {
 .trend-chip .tc-diff { margin-top: 2px; }
 .diff-badge { font-size: 10px; font-weight: 800; letter-spacing: -.5px; }
 
-.data-mode-note { margin-top: 18px; color: var(--muted); font-size: 12px; }
+.data-mode-note { margin-top: 18px; color: var(--muted); font-size: 12px; white-space: pre-line; line-height: 1.6; text-align: center; }
 .toast {
   position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px);
   max-width: min(92vw, 420px); padding: 13px 18px; border-radius: 12px;
