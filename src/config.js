@@ -67,9 +67,8 @@ export const CONFIG = {
   GAME: {
     fuelSeconds: 70,         // 연료(시간) 한도 — 빠듯하게(near-miss 자극). 5년 코스라 60→70.
     flipMeters: 50,          // 공중 1회전(플립) 보너스 거리(m)
-    flipTimeBonus: 2,        // 플립 성공 시 +시간(초) — 실력 기반으로 완주 연장
     checkpoints: [0.2, 0.5, 0.8],  // 코스 진행률 체크포인트
-    checkpointTime: 3,       // 체크포인트 통과 시 +시간(초)
+    // (레거시) flipTimeBonus/checkpointTime — 지금은 모든 보너스가 '시간 추가'가 아닌 '부스터'라 미사용.
     crashEvents: true,       // 실제 대폭락 날짜에 '폭락 캔들' 보스 구간 (false로 끄기)
     cameraZoom: 1.0,
   },

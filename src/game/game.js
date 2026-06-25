@@ -273,10 +273,11 @@ export class Game {
       }
       const passed = bx > eb.x + 95;
       if (passed || tnow - eb.born > 14000) {
-        if (passed && eb._over && !eb.body._hit) {   // 부딪힘 없이 '점프로 깔끔히' 넘음 → +2초 보너스
-          this.fuel = Math.min(CONFIG.GAME.fuelSeconds, this.fuel + 2);
-          this._toast(`✨ ${t.cleared} +2s`, '#2ce6c4');
-          audio.sfx.checkpoint();
+        if (passed && eb._over && !eb.body._hit) {   // 부딪힘 없이 '점프로 깔끔히' 넘음 → 부스터(시간 추가 X)
+          this.bike.boost(11);
+          this._boostFx = Math.max(this._boostFx || 0, 1);
+          this._toast(`✨ ${t.cleared} 🚀`, '#2ce6c4');
+          audio.sfx.boost();
         }
         Matter.Composite.remove(this.world, eb.body);
         return false;
