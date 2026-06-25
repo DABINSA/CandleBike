@@ -94,6 +94,51 @@ body {
 .nick-chip .nick-val { color: var(--neon); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nick-chip .nick-edit { color: var(--muted); font-size: 12px; opacity: .9; }
 
+/* 홈 액션 버튼들 (차고 · 순위) */
+.home-actions { display: flex; gap: 8px; width: 100%; }
+.home-actions .btn { flex: 1; }
+
+/* 차고 / 아이템 모달 */
+.garage-inner {
+  width: min(440px, 92vw); max-height: 86vh; display: flex; flex-direction: column;
+  background: var(--bg2); border: 1px solid var(--panel-border); border-radius: 16px;
+  padding: 16px; gap: 12px;
+}
+.garage-head { display: flex; align-items: center; justify-content: space-between; }
+.garage-head h2 { font-size: 17px; }
+.garage-x { background: transparent; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 4px 8px; }
+.garage-warn {
+  font-size: 12px; line-height: 1.5; color: #ffd9a0;
+  background: rgba(255,170,60,.10); border: 1px solid rgba(255,170,60,.30);
+  border-radius: 10px; padding: 9px 11px;
+}
+.garage-login-row { display: none; }
+.garage-login-row.show { display: block; }
+.garage-login-row .btn { width: 100%; }
+.garage-tabs { display: flex; gap: 8px; }
+.garage-tab {
+  flex: 1; padding: 9px; border-radius: 10px; cursor: pointer; font-weight: 800; font-size: 13px;
+  background: var(--panel); border: 1px solid var(--panel-border); color: var(--muted);
+}
+.garage-tab.active { background: var(--neon); color: #06231f; border-color: var(--neon); }
+.garage-body { overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 2px; }
+.item-card {
+  background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px;
+  padding: 12px 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;
+}
+.item-card.on { border-color: var(--neon); box-shadow: 0 0 0 1px var(--neon) inset; }
+.swatch { width: 46px; height: 46px; border-radius: 50%; border: 2px solid rgba(255,255,255,.25); }
+.item-emoji { font-size: 30px; line-height: 1; }
+.item-name { font-size: 13px; font-weight: 800; }
+.item-sub { font-size: 11px; color: var(--muted); min-height: 14px; }
+.item-btn {
+  width: 100%; padding: 8px; border-radius: 9px; cursor: pointer; font-weight: 800; font-size: 12px;
+  border: 1px solid var(--panel-border); background: var(--bg); color: var(--text);
+}
+.item-btn.primary { background: var(--neon); color: #06231f; border-color: var(--neon); }
+.item-btn.ghost { background: transparent; color: var(--muted); }
+.item-btn:disabled { opacity: .55; cursor: default; }
+
 /* ===== 홈 ===== */
 .home-inner { width: 100%; max-width: 420px; text-align: center; }
 .logo {

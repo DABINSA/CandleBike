@@ -100,7 +100,10 @@
         <!-- 광고 위치 ① 홈 배너 -->
         <div id="ad-home" class="ad-slot"></div>
 
-        <button id="btn-leaderboard-home" class="btn btn-ghost" data-i18n="viewLeaderboard">🏆 전체 순위 보기</button>
+        <div class="home-actions">
+          <button id="btn-garage" class="btn btn-ghost" data-i18n="garage">🏍️ 차고</button>
+          <button id="btn-leaderboard-home" class="btn btn-ghost" data-i18n="viewLeaderboard">🏆 전체 순위 보기</button>
+        </div>
 
         <p class="data-mode-note" id="data-mode-note"></p>
 
@@ -226,6 +229,23 @@
       <p data-i18n="nickTitle">순위에 기록할 닉네임</p>
       <input id="nick-input" type="text" maxlength="12" data-i18n-ph="nickPh" placeholder="라이더닉네임" />
       <button id="nick-save" class="btn btn-primary" data-i18n="nickSave">저장하고 순위 등록</button>
+    </div>
+  </div>
+
+  <!-- 차고 / 아이템 모달 -->
+  <div id="garage-modal" class="modal">
+    <div class="garage-inner">
+      <div class="garage-head">
+        <h2 data-i18n="garageTitle">아이템 / 차고</h2>
+        <button id="garage-close" class="garage-x" aria-label="close">✕</button>
+      </div>
+      <div id="garage-warn" class="garage-warn" data-i18n="guestWarn"></div>
+      <div id="garage-login-row" class="garage-login-row"></div>
+      <div class="garage-tabs">
+        <button class="garage-tab active" data-tab="skins" data-i18n="tabSkins">스킨</button>
+        <button class="garage-tab" data-tab="consum" data-i18n="tabConsum">소모품</button>
+      </div>
+      <div id="garage-body" class="garage-body"></div>
     </div>
   </div>
 

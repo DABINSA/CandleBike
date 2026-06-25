@@ -58,11 +58,17 @@ export class Game {
     this.bike = createBike(this.world, sp.x + 40, sp.y - 80);
     this._initMinimap();
 
+    // 아이템 — 스킨(외형색) + 소모품(완주보조). consum: { boost, fuel, shield }
+    this.skinColor = opts.skinColor || '#2ce6c4';
+    const consum = opts.consum || {};
+    this._pendingBoost = !!consum.boost && !this.testMode;   // 출발 직후 1회 가속
+    this._shield = !!consum.shield && !this.testMode;        // 충돌/추락 1회 무효
+
     // 상태
     this.distanceM = 0;
     this.flips = 0;
     this.flipBonusM = 0;   // 플립 거리 보너스(백플립 가중) 누적
-    this.fuel = CONFIG.GAME.fuelSeconds;
+    this.fuel = CONFIG.GAME.fuelSeconds + (consum.fuel && !this.testMode ? 5 : 0);   // 연료 +5초 소모품
     this.lastTs = performance.now();
     this.groundedThisStep = false;
     this._crashTimer = 0;
@@ -185,6 +191,13 @@ export class Game {
     Matter.Engine.update(this.engine, dt * 1000);
     const grounded = this.groundedThisStep;
     this._lastGrounded = grounded;
+
+    // 시작 부스터(소모품) — 출발해 살짝 안정된 뒤 1회 전방 가속
+    if (this._pendingBoost && (now - this.startTime) > 350) {
+      this._pendingBoost = false;
+      this.bike.boost(9); this._boostFx = 1;
+      this._toast(`🚀 ${t.itemBoost}`, '#2ce6c4'); audio.sfx.boost();
+    }
 
     // 점프 — 버퍼(누른 직후 잠깐 기억) + 코요테(땅 떠난 직후 잠깐 허용)로 씹힘 방지.
     //   가속 중 범프로 바퀴가 잠깐 떠도, 상승 램프 끝에서 눌러도 점프가 확실히 발동한다.
@@ -311,6 +324,15 @@ export class Game {
     else if (this.fuel <= 0) reason = 'fuel';
     else if (this.bike.position.x >= this.terrain.worldWidth - 120) reason = 'finish';
     else if (this._crashTimer > 2.5) reason = 'crash';
+    // 보호막(소모품) — 충돌/추락 1회 무효: 그 자리에서 부활시키고 종료 취소(완주/연료엔 미적용)
+    if ((reason === 'crash' || reason === 'fell') && this._shield) {
+      this._shield = false;
+      this._respawnBike();
+      this._crashTimer = 0; this._chassisTouching = false; this._wasAir = false;
+      this._reviveGraceUntil = performance.now() + 1500;
+      this._toast(`🛡️ ${t.itemShield}`, '#2ce6c4'); audio.sfx.boost();
+      return;
+    }
     if (reason) { console.log('[게임오버]', reason); this._end(reason); }
   }
 
@@ -681,7 +703,7 @@ export class Game {
     this._drawEvents(ctx);
     if (this.multi) this._drawGhosts(ctx, camX, worldW);
     this._drawBike(ctx);
-    if (this.multi) this._drawNameTag(ctx, this.bike.position.x, this.bike.position.y - 50, this.playerNick, '#2ce6c4');
+    if (this.multi) this._drawNameTag(ctx, this.bike.position.x, this.bike.position.y - 50, this.playerNick, this.skinColor || '#2ce6c4');
 
     ctx.restore();
 
@@ -920,7 +942,7 @@ export class Game {
     // 부스트 스피드 라인 (뒤로 흐르는 잔상) — 플레이어만
     const boost = this.bike._boost || 0;
     if (boost > 0.4) {
-      ctx.strokeStyle = `rgba(44,230,196,${(boost - 0.4) * 0.7})`;
+      ctx.strokeStyle = this._rgba(this.skinColor || '#2ce6c4', (boost - 0.4) * 0.7);
       ctx.lineWidth = 2;
       ctx.lineCap = 'round';
       const bx = chassis.position.x, by = chassis.position.y;
@@ -937,7 +959,7 @@ export class Game {
     this._renderBike(ctx, {
       px: chassis.position.x, py: chassis.position.y, ang: chassis.angle,
       wheels: [{ pos: toWorld(-44, 26), ang: rear.angle }, { pos: toWorld(44, 26), ang: front.angle }],
-    }, '#2ce6c4', 1);
+    }, this.skinColor || '#2ce6c4', 1);
   }
 
   // 플레이어/고스트 공용 — 포즈(px,py,ang,wheels[rear,front]) + accent 색으로 디테일 바이크를 그린다.

@@ -9,6 +9,7 @@ import { Game } from './game/game.js';
 import { initPlayBanner, showRewardedAd, renderHouseAd } from './ads/ads.js';
 import { submitScore, topScores, getNick, setNick, isRemote } from './leaderboard/leaderboard.js';
 import { shareResult, saveCard } from './share/share.js';
+import * as Items from './items/items.js';
 import { pickGhostNames } from './game/ghosts.js';
 import { quickDifficulty } from './difficulty.js';
 import { MOCK_SYMBOLS } from './stock/mockData.js';
@@ -102,6 +103,86 @@ if (IS_TOSS) {
 } else {
   $('btn-nick').style.display = 'none';
 }
+
+// ---------------- 차고 / 아이템 ----------------
+const garageModal = $('garage-modal');
+let garageTab = 'skins';
+let acquiring = false;
+
+function renderGarage() {
+  const body = $('garage-body');
+  if (garageTab === 'skins') {
+    body.innerHTML = Items.SKINS.map((s) => {
+      const owned = Items.ownsSkin(s.id);
+      const on = Items.equippedSkinId() === s.id;
+      const btn = owned
+        ? `<button class="item-btn ${on ? 'ghost' : 'primary'}" data-equip="${s.id}" ${on ? 'disabled' : ''}>${on ? t.equipped : t.equip}</button>`
+        : `<button class="item-btn" data-getskin="${s.id}">${t.getByAd}</button>`;
+      return `<div class="item-card ${on ? 'on' : ''}">
+        <span class="swatch" style="background:${s.color}"></span>
+        <span class="item-name">${escapeHtml(Items.itemName(s))}</span>
+        <span class="item-sub"></span>${btn}</div>`;
+    }).join('');
+  } else {
+    body.innerHTML = Items.CONSUMABLES.map((c) => {
+      const cnt = Items.consumCount(c.id);
+      const eq = Items.isEquipped(c.id);
+      const bringBtn = cnt > 0
+        ? `<button class="item-btn ${eq ? 'primary' : 'ghost'}" data-bring="${c.id}">${eq ? t.bringing : t.bring}</button>`
+        : `<button class="item-btn" disabled>${t.bring}</button>`;
+      return `<div class="item-card ${eq ? 'on' : ''}">
+        <span class="item-emoji">${c.emoji}</span>
+        <span class="item-name">${escapeHtml(Items.itemName(c))}</span>
+        <span class="item-sub">${escapeHtml(Items.itemDesc(c))} · ${t.haveN(cnt)}</span>
+        ${bringBtn}
+        <button class="item-btn" data-getconsum="${c.id}">${t.getByAd}</button></div>`;
+    }).join('');
+  }
+}
+function openGarage(tab) {
+  garageTab = tab || garageTab;
+  document.querySelectorAll('.garage-tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === garageTab));
+  renderGarage();
+  garageModal.classList.add('active');
+}
+function closeGarage() { garageModal.classList.remove('active'); }
+
+// 광고 보고 직접 지급 — 웹/원스토어는 기존 5초 리워드 게이트, 토스는 2단계(실 리워드 광고) 전까지 바로 지급.
+async function acquireItem(grantFn, name) {
+  if (acquiring) return;
+  acquiring = true;
+  if (!IS_TOSS && AD_MODE !== 'off') {
+    closeGarage();
+    show('ad');
+    try { await showRewardedAd(); } catch {}
+    grantFn();
+    show('home');
+    openGarage();
+  } else {
+    grantFn();
+    renderGarage();
+  }
+  acquiring = false;
+  showToast(t.adReward(name));
+}
+
+$('garage-body').addEventListener('click', async (e) => {
+  const el = e.target.closest('button');
+  if (!el) return;
+  if (el.dataset.equip) { Items.equipSkin(el.dataset.equip); renderGarage(); return; }
+  if (el.dataset.bring) { Items.toggleEquip(el.dataset.bring); renderGarage(); return; }
+  if (el.dataset.getskin) {
+    const s = Items.SKINS.find((x) => x.id === el.dataset.getskin);
+    await acquireItem(() => Items.grantSkin(s.id), Items.itemName(s));
+  }
+  if (el.dataset.getconsum) {
+    const c = Items.CONSUMABLES.find((x) => x.id === el.dataset.getconsum);
+    await acquireItem(() => Items.grantConsum(c.id), Items.itemName(c));
+  }
+});
+$('btn-garage').onclick = () => openGarage('skins');
+$('garage-close').onclick = closeGarage;
+document.querySelectorAll('.garage-tab').forEach((b) => { b.onclick = () => openGarage(b.dataset.tab); });
 
 // ---------------- 홈: 검색 ----------------
 const input = $('symbol-input');
@@ -322,6 +403,10 @@ document.getElementById('tab-volume')?.addEventListener('click', () => setTrendi
 
 let playCtx = null;   // 재시작용 — 현재 플레이 중인 코스
 function startGame(series, symbol, name, opts = {}) {
+  // 아이템 — 장착 스킨 색 + 소모품 적용(소모품은 여기서 1회 소모). 재시작 시 중복 소모 방지(_items).
+  if (!opts.test && !opts._items) {
+    opts = { ...opts, _items: true, skinColor: Items.equippedColor(), consum: Items.consumeEquipped() };
+  }
   playCtx = { series, symbol, name, opts };
   $('pause-menu')?.classList.remove('active');
   try { history.pushState({ play: 1 }, ''); } catch {}   // 뒤로가기 가로채기용 버퍼
