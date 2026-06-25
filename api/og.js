@@ -36,7 +36,8 @@ export default async function handler(req) {
   const r = String(searchParams.get('r') || '').slice(0, 16) || '—';       // "35.9초" · "1,128m"
   const n = String(searchParams.get('n') || '').slice(0, 40);              // 종목명(한글 가능)
   const rl = String(searchParams.get('rl') || '').slice(0, 40);           // "전체 1위 · 상위 100%" / 미완주 안내
-  const challenge = '이 기록, 깰 수 있어?';
+  const lang = searchParams.get('l') === 'en' ? 'en' : 'ko';              // 보는 사람 언어(없으면 ko)
+  const challenge = lang === 'en' ? 'Can you beat this?' : '이 기록, 깰 수 있어?';
 
   // 한글 폰트 로드 시도 → 실패하면 라틴만 남겨 안전하게 렌더
   let fontData = null;

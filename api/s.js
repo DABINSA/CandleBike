@@ -28,25 +28,30 @@ export default async function handler(req, res) {
   const name = String(q.n || '').slice(0, 40);
   const rec = String(q.r || '').slice(0, 16); // "562m" 또는 "42.3초"
   const rank = String(q.rank || '').slice(0, 12);
-  const rl = String(q.rl || '').slice(0, 40); // "전체 1위 · 상위 100%"
+  const rl = String(q.rl || '').slice(0, 40); // "전체 1위 · 상위 100%" / "Rank #1 · Top 100%"
+  const lang = q.l === 'en' ? 'en' : 'ko';    // 보는 사람 언어(없으면 ko)
 
   const title = c
     ? `${name ? name + ' ' : ''}${c}${rec ? ' · ' + rec : ''} 🏍️`
-    : '캔들라이더 — 변동성을 버텨라 🏍️📈';
+    : (lang === 'en' ? 'CandleRider — Survive the Volatility 🏍️📈' : '캔들라이더 — 변동성을 버텨라 🏍️📈');
   const desc = c
-    ? `${rl ? rl + ' — ' : ''}이 기록 깰 수 있어? 캔들라이더에서 ${c} 차트를 오토바이로 달려봐! 👉 지금 도전`
-    : '검색한 주식의 3년 차트가 코스! 변동성을 버티고 순위에 도전.';
+    ? (lang === 'en'
+        ? `${rl ? rl + ' — ' : ''}Think you can beat this? Ride the ${c} chart on a bike in CandleRider! 👉 Play now`
+        : `${rl ? rl + ' — ' : ''}이 기록 깰 수 있어? 캔들라이더에서 ${c} 차트를 오토바이로 달려봐! 👉 지금 도전`)
+    : (lang === 'en'
+        ? "A stock's 3-year chart becomes your course! Survive the volatility and climb the ranks."
+        : '검색한 주식의 3년 차트가 코스! 변동성을 버티고 순위에 도전.');
 
   // OG 미리보기 이미지 — 결과별 동적 카드(/api/og). 종목 없으면 기본 og.png.
   const img = c
-    ? `${SITE}/api/og?${new URLSearchParams({ c, n: name, r: rec, rl }).toString()}`
+    ? `${SITE}/api/og?${new URLSearchParams({ c, n: name, r: rec, rl, l: lang }).toString()}`
     : `${SITE}/assets/og.png`;
   const playUrl = c ? `${SITE}/?c=${encodeURIComponent(c)}` : SITE;
   const shareUrl = `${SITE}/api/s?${new URLSearchParams(q).toString()}`;
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
-  res.status(200).send(`<!doctype html><html lang="ko"><head>
+  res.status(200).send(`<!doctype html><html lang="${lang}"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title>
@@ -60,14 +65,14 @@ export default async function handler(req, res) {
 <meta property="og:image:height" content="630">
 <meta property="og:image:type" content="image/png">
 <meta property="og:url" content="${esc(shareUrl)}">
-<meta property="og:locale" content="ko_KR">
+<meta property="og:locale" content="${lang === 'en' ? 'en_US' : 'ko_KR'}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${esc(title)}">
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(img)}">
 <script>location.replace(${JSON.stringify(playUrl)});</script>
 </head><body style="background:#0a0e14;color:#cfe9e2;font-family:sans-serif;text-align:center;padding:48px 20px">
-<p style="font-size:18px">캔들라이더로 이동 중…</p>
-<p><a href="${esc(playUrl)}" style="color:#2ce6c4;font-weight:700">바로 가기 →</a></p>
+<p style="font-size:18px">${lang === 'en' ? 'Heading to CandleRider…' : '캔들라이더로 이동 중…'}</p>
+<p><a href="${esc(playUrl)}" style="color:#2ce6c4;font-weight:700">${lang === 'en' ? 'Go now →' : '바로 가기 →'}</a></p>
 </body></html>`);
 }

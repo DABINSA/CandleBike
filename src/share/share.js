@@ -4,7 +4,7 @@
 // 모바일에서는 navigator.share(파일 첨부)로 인스타 스토리/포스트 공유 시트를 띄우고,
 // 데스크톱에서는 이미지 다운로드 + 캡션 복사로 처리한다. (가장 현실적인 방식)
 
-import { t } from '../i18n.js';
+import { t, LANG } from '../i18n.js';
 
 const W = 1080, H = 1350;
 const SITE_HOST = (typeof location !== 'undefined' && location.host) ? location.host : 'candlerider.2nt4soft.com';
@@ -93,11 +93,11 @@ function buildShareUrl(result) {
   const rec = result.completed
     ? t.timeFmt(result.timeMs)
     : `${(result.distance || 0).toLocaleString()}m`;
-  const p = new URLSearchParams({ c: result.symbol, r: rec });
+  const p = new URLSearchParams({ c: result.symbol, r: rec, l: LANG });   // l: 카드/랜딩을 보는 언어로 렌더
   if (result.name) p.set('n', result.name);
   if (result.completed && result.rank != null) {
-    p.set('rank', `${result.rank}위`);
-    p.set('rl', t.cardRank(result.rank, result.percentile));   // "전체 1위 · 상위 100%"
+    p.set('rank', String(result.rank));
+    p.set('rl', t.cardRank(result.rank, result.percentile));   // "전체 1위 · 상위 100%" / "Rank #1 · Top 100%"
   }
   // 미완주는 순위 줄 생략(이미지엔 거리 + 도전 배지만) — 깔끔하게.
   return `${SITE_URL}/api/s?${p.toString()}`;

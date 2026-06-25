@@ -244,6 +244,10 @@ const DICT = {
 
 export const t = DICT[LANG];
 
+// 모든 로케일의 '익명' 기본 닉네임 — DB엔 저장 시점 언어로 박히므로(예: '익명라이더'),
+// 리더보드 표시 때 이 목록에 해당하면 보는 사람의 언어(t.anon)로 치환한다.
+export const ANON_NICKS = [DICT.ko.anon, DICT.en.anon];
+
 // data-i18n / data-i18n-html / data-i18n-ph 속성 채우기
 export function applyStatic(root = document) {
   document.documentElement.lang = LANG;

@@ -2,7 +2,7 @@
 // 홈 → (검색/선택) → 로딩 → 플레이 → 리워드광고 → 결과/순위
 
 import { CONFIG } from './config.js';
-import { t, applyStatic, LANG, setLang } from './i18n.js';
+import { t, applyStatic, LANG, setLang, ANON_NICKS } from './i18n.js';
 import { searchSymbols, getTrending, getProvider, activeMarket } from './stock/provider.js';
 import { getCourse, getLastCourseSource, currentPeriod } from './courseCache.js';
 import { Game } from './game/game.js';
@@ -512,9 +512,11 @@ async function renderLeaderboard(symbol, myId) {
     const symHtml = nm
       ? `${escapeHtml(nm)} <span class="lb-code">${escapeHtml(row.symbol)}</span>`
       : escapeHtml(row.symbol);
+    // 기본 익명 닉은 저장 시점 언어로 박혀 있으므로(예: '익명라이더') 보는 언어로 치환.
+    const dispNick = ANON_NICKS.includes(row.nick) ? t.anon : row.nick;
     li.innerHTML =
       `<span class="lb-rank ${i < 3 ? 'top' : ''}">${i + 1}</span>` +
-      `<span class="lb-nick">${escapeHtml(row.nick)}</span>` +
+      `<span class="lb-nick">${escapeHtml(dispNick)}</span>` +
       `<span class="lb-sym">${symHtml}</span>` +
       `<span class="lb-score">${t.timeFmt(row.score)}</span>`;
     ol.appendChild(li);
