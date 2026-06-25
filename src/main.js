@@ -16,7 +16,7 @@ import { pickGhostNames } from './game/ghosts.js';
 import { quickDifficulty } from './difficulty.js';
 import { MOCK_SYMBOLS } from './stock/mockData.js';
 import * as audio from './audio.js';
-import { IS_TOSS, effectiveAdMode, requestTossLogin, requestTossRewardAd, IS_TOSS_REWARD_READY } from './toss.js';
+import { IS_TOSS, effectiveAdMode, requestTossLogin, requestTossRewardAd, IS_TOSS_REWARD_READY, requestTossShareReward, IS_TOSS_SHARE_READY, logTossEvent } from './toss.js';
 import { initClarity } from './analytics/clarity.js';
 import { recordVisit } from './analytics/beacon.js';
 import './tune.js';   // ?tune=1 일 때만 물리 튜닝 패널 표시
@@ -242,18 +242,6 @@ function renderGarage() {
         <span class="item-name">${escapeHtml(Items.itemName(v))}</span>
         <span class="item-sub"></span>${btn}</div>`;
     }).join('');
-  } else if (garageTab === 'colors') {
-    body.innerHTML = Items.COLORS.map((c) => {
-      const owned = Items.ownsColor(c.id);
-      const on = Items.equippedColorId() === c.id;
-      const btn = owned
-        ? `<button class="item-btn ${on ? 'ghost' : 'primary'}" data-eqcol="${c.id}" ${on ? 'disabled' : ''}>${on ? t.equipped : t.equip}</button>`
-        : `<button class="item-btn" data-getcol="${c.id}">${t.getByAd}</button>`;
-      return `<div class="item-card ${on ? 'on' : ''}">
-        <span class="swatch" style="background:${c.color}"></span>
-        <span class="item-name">${escapeHtml(Items.itemName(c))}</span>
-        <span class="item-sub"></span>${btn}</div>`;
-    }).join('');
   } else {
     body.innerHTML = Items.CONSUMABLES.map((c) => {
       const cnt = Items.consumCount(c.id);
@@ -269,6 +257,28 @@ function renderGarage() {
         <button class="item-btn" data-getconsum="${c.id}">${t.getByAd}</button></div>`;
     }).join('');
   }
+  // 공유 리워드 — 토스 + 공유 브리지 + 오늘 미수령일 때만, 차고 상단에.
+  if (shareRewardAvailable()) {
+    if (shareChoosing) {
+      // 받을 아이템 선택 칩 — 고르면 공유 시작.
+      const chips = shareRewardChoices().map((c) =>
+        `<button class="item-btn primary" data-sharepick="${c.id}">${c.emoji} ${escapeHtml(Items.itemName(c))}</button>`
+      ).join('');
+      body.insertAdjacentHTML('afterbegin',
+        `<div class="share-pick" style="grid-column:1/-1">` +
+          `<div class="share-pick-title">${t.sharePickTitle}</div>` +
+          `<div class="share-pick-grid">${chips}</div>` +
+          `<button class="item-btn ghost" data-sharecancel="1">${t.closeBtn}</button>` +
+        `</div>`);
+    } else {
+      body.insertAdjacentHTML('afterbegin',
+        `<button class="item-btn primary" id="share-reward-btn" style="grid-column:1/-1">${t.shareReward}</button>`);
+      const srb = $('share-reward-btn');
+      if (srb) srb.onclick = () => { shareChoosing = true; renderGarage(); };
+    }
+  } else if (shareChoosing) {
+    shareChoosing = false;   // 노출 조건이 사라지면 선택 상태도 해제
+  }
   renderPreview();
 }
 function openGarage(tab) {
@@ -279,6 +289,49 @@ function openGarage(tab) {
   garageModal.classList.add('active');
 }
 function closeGarage() { garageModal.classList.remove('active'); }
+
+// ── 공유 리워드(토스 contactsViral) ───────────────────────────────────────
+// 친구에게 공유 완료 시 소모품 1개 지급(일 1회). 토스 + 새 .ait(공유 브리지)에서만 노출.
+// 바이럴↑ 위해 '받을 아이템을 직접 선택' → 공유 → 지급 흐름. 선택지는 CONFIG.TOSS_SHARE.choices.
+// (revive는 광고 부활을 대체해 리워드 광고 수익을 잠식하므로 기본 선택지에서 제외)
+const SHARE_DAY_KEY = 'cr_share_reward_day';
+let shareChoosing = false;   // 차고에서 '아이템 고르는 중' 상태
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+function shareRewardClaimedToday() { try { return localStorage.getItem(SHARE_DAY_KEY) === todayStr(); } catch { return false; } }
+function shareRewardAvailable() {
+  return IS_TOSS && IS_TOSS_SHARE_READY && !!CONFIG.TOSS_SHARE?.reward && !shareRewardClaimedToday();
+}
+// 공유 보상으로 '고를 수 있는' 소모품 — 실제 게임에 적용되는 현재 카탈로그만 노출.
+//  config.choices 가 비어 있으면 자동: 현 소모품 전체에서 revive 제외(광고부활 잠식 방지).
+//  config.choices 를 지정하면 그 목록(존재하는 것만)으로 고정.
+const SHARE_REWARD_EXCLUDE = ['revive'];
+function shareRewardChoices() {
+  const ids = (CONFIG.TOSS_SHARE?.choices && CONFIG.TOSS_SHARE.choices.length)
+    ? CONFIG.TOSS_SHARE.choices
+    : Items.CONSUMABLES.map((c) => c.id).filter((id) => !SHARE_REWARD_EXCLUDE.includes(id));
+  return ids.map((id) => Items.CONSUMABLES.find((c) => c.id === id)).filter(Boolean);
+}
+// 선택한 아이템(itemId)으로 공유 → 성공 시 그 아이템 1개 지급.
+async function doShareReward(itemId) {
+  if (acquiring || !CONFIG.TOSS_SHARE?.reward) return;
+  if (shareRewardClaimedToday()) { shareChoosing = false; renderGarage(); showToast(t.shareRewardDone); return; }
+  const item = Items.CONSUMABLES.find((c) => c.id === itemId) || shareRewardChoices()[0];
+  if (!item) return;
+  acquiring = true;
+  let shared = false;
+  try {
+    const r = await requestTossShareReward(CONFIG.TOSS_SHARE.reward);
+    shared = !!(r && r.shared);
+  } catch (e) { console.warn('공유 리워드', e); }
+  acquiring = false;
+  shareChoosing = false;
+  if (!shared) { renderGarage(); return; }   // 공유 안 함/취소 → 보상 없음(조용히)
+  try { localStorage.setItem(SHARE_DAY_KEY, todayStr()); } catch {}
+  Items.grantConsum(item.id);
+  logTossEvent('share_reward', { item: item.id });
+  renderGarage(); syncPush();
+  showToast(t.adReward(Items.itemName(item)));
+}
 
 // 광고 보고 획득 — 토스: 실제 리워드 광고(끝까지 봐야 지급), 웹/원스토어: 기존 5초 게이트.
 // permanent=true(탈것/색상)인데 비로그인 게스트면, 시청 후 로그인(영구 보관)을 유도.
@@ -306,6 +359,7 @@ async function acquireItem(grantFn, name, permanent) {
     renderGarage();
   }
   syncPush();
+  logTossEvent('item_get', { permanent: !!permanent });
   acquiring = false;
   showToast(t.adReward(name));
   // 영구 아이템인데 게스트(비-토스·비로그인) → 영구 보관 안내(차고 로그인 버튼 강조)
@@ -317,16 +371,13 @@ async function acquireItem(grantFn, name, permanent) {
 $('garage-body').addEventListener('click', async (e) => {
   const el = e.target.closest('button');
   if (!el) return;
+  if (el.dataset.sharepick) { await doShareReward(el.dataset.sharepick); return; }
+  if (el.dataset.sharecancel) { shareChoosing = false; renderGarage(); return; }
   if (el.dataset.eqveh) { Items.equipVehicle(el.dataset.eqveh); renderGarage(); syncPush(); return; }
-  if (el.dataset.eqcol) { Items.equipColor(el.dataset.eqcol); renderGarage(); syncPush(); return; }
   if (el.dataset.bring) { Items.toggleEquip(el.dataset.bring); renderGarage(); syncPush(); return; }
   if (el.dataset.getveh) {
     const v = Items.VEHICLES.find((x) => x.id === el.dataset.getveh);
     await acquireItem(() => Items.grantVehicle(v.id), Items.itemName(v), true);   // 탈것=영구
-  }
-  if (el.dataset.getcol) {
-    const c = Items.COLORS.find((x) => x.id === el.dataset.getcol);
-    await acquireItem(() => Items.grantColor(c.id), Items.itemName(c), true);     // 색상=영구
   }
   if (el.dataset.getconsum) {
     const c = Items.CONSUMABLES.find((x) => x.id === el.dataset.getconsum);
@@ -406,6 +457,7 @@ document.querySelectorAll('.mode-opt').forEach((b) => {
 
 // 모드에 따라 분기 — 싱글은 바로, 멀티는 매칭 연출 후 시작.
 function launchMode(item) {
+  if (item && item.symbol) logTossEvent('game_start', { symbol: item.symbol, mode: gameMode });
   if (gameMode === 'multi') return launchMulti(item);
   return launch(item);
 }
@@ -696,6 +748,9 @@ function genTestCourse() {
 // ---------------- 게임 종료 → 리워드 광고 → 결과 ----------------
 async function onGameEnd(result) {
   lastResult = result;
+  // 핵심지표 — game_complete(완주)가 대표 전환. game_end는 보조(완주율 분모).
+  logTossEvent('game_end', { symbol: result.symbol, completed: !!result.completed });
+  if (result.completed) logTossEvent('game_complete', { symbol: result.symbol });
   if (IS_TOSS && CONFIG.TOSS_AD?.bannerPre) {
     show('ad');
     await tossPreResultGate();   // 토스: 결과 보기 전 배너(이미지 강조) + 2초
@@ -831,6 +886,7 @@ $('btn-share').onclick = async () => {
   if (!lastResult) return;
   if (regPromise) { try { await regPromise; } catch {} }   // 순위 등록 완료 후 공유 (기록 정확히 반영)
   const r = await shareResult(lastResult);
+  if (r && r !== 'cancelled' && r !== 'failed') logTossEvent('share', { symbol: lastResult.symbol });
   if (r === 'shared-copied') showToast(t.shareLinkCopied);
 };
 

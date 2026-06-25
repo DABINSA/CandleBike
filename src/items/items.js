@@ -1,15 +1,10 @@
-// 아이템 — 탈것/색상(영구·외형) + 소모품(1회용·완주보조). 게스트=localStorage(같은 기기 영구),
+// 아이템 — 탈것(영구·외형) + 소모품(1회용·완주보조). 게스트=localStorage(같은 기기 영구),
 // 로그인(토스 user_key/구글)=클라우드 귀속. 경제: 1단계 직접지급(광고 1회→1개), 코인제는 추후.
 import { LANG } from '../i18n.js';
 
 // ── 카탈로그 ───────────────────────────────────────────────
-// 색상: accent 한 색이 차체/림/라이더까지 칠함(게임영향 0). 종류는 적게.
-export const COLORS = [
-  { id: 'teal',   ko: '네온 틸', en: 'Neon Teal', color: '#2ce6c4', free: true },
-  { id: 'red',    ko: '레드',    en: 'Red',        color: '#ff5d6e' },
-  { id: 'gold',   ko: '골드',    en: 'Gold',       color: '#ffd34d' },
-  { id: 'purple', ko: '퍼플',    en: 'Purple',     color: '#a78bfa' },
-];
+// accent: 차체/림/라이더에 칠하는 고정 네온 틸(색상 선택 기능은 없앰).
+export const ACCENT = '#2ce6c4';
 // 탈것: 외형만 다름(성능 동일). moto=기본.
 export const VEHICLES = [
   { id: 'moto',     ko: '오토바이',     en: 'Motorcycle', emoji: '🏍️', free: true },
@@ -36,22 +31,17 @@ export function itemDesc(it) { return LANG === 'en' ? it.enDesc : it.koDesc; }
 
 // ── 인벤토리 ───────────────────────────────────────────────
 const LS = 'candlebike_items';
-const DEFAULT = { colors: ['teal'], color: 'teal', vehicles: ['moto'], vehicle: 'moto', consum: {}, equipped: [] };
+const DEFAULT = { vehicles: ['moto'], vehicle: 'moto', consum: {}, equipped: [] };
 function load() {
   let s = {};
   try { s = JSON.parse(localStorage.getItem(LS)) || {}; } catch { s = {}; }
-  if (s.owned && !s.colors) s.colors = s.owned;   // 구버전(스킨=색상) 마이그레이션
   return { ...DEFAULT, ...s };
 }
 let state = load();
 function persist() { try { localStorage.setItem(LS, JSON.stringify(state)); } catch {} }
 
-// 색상(영구)
-export function ownsColor(id) { const c = COLORS.find((x) => x.id === id); return !!c && (c.free || state.colors.includes(id)); }
-export function grantColor(id) { if (!state.colors.includes(id)) { state.colors.push(id); persist(); } }
-export function equipColor(id) { if (ownsColor(id)) { state.color = id; persist(); } }
-export function equippedColorId() { return ownsColor(state.color) ? state.color : 'teal'; }
-export function equippedColor() { return (COLORS.find((x) => x.id === equippedColorId()) || COLORS[0]).color; }
+// accent 색(고정) — 색상 선택 기능 삭제, 항상 네온 틸.
+export function equippedColor() { return ACCENT; }
 
 // 탈것(영구)
 export function ownsVehicle(id) { const v = VEHICLES.find((x) => x.id === id); return !!v && (v.free || state.vehicles.includes(id)); }
@@ -83,13 +73,11 @@ export function consumeEquipped() {
 export function exportState() { return JSON.parse(JSON.stringify(state)); }
 export function mergeFrom(cloud) {
   if (!cloud || typeof cloud !== 'object') return;
-  const colors = [...new Set([...(state.colors || []), ...(cloud.colors || cloud.owned || [])])];
   const vehicles = [...new Set([...(state.vehicles || []), ...(cloud.vehicles || [])])];
   const consum = { ...state.consum };
   for (const k in (cloud.consum || {})) consum[k] = Math.max(consum[k] || 0, cloud.consum[k] || 0);
   state = {
-    ...state, colors, vehicles, consum,
-    color: cloud.color || state.color,
+    ...state, vehicles, consum,
     vehicle: cloud.vehicle || state.vehicle,
     equipped: Array.isArray(cloud.equipped) ? cloud.equipped : state.equipped,
   };

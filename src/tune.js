@@ -68,7 +68,6 @@ if (typeof location !== 'undefined' && new URLSearchParams(location.search).get(
   items.id = 'tune-quickbar';
   items.innerHTML =
     `<div class="tp-isec"><b>🚗 탈것</b><div class="tp-irow" id="tp-veh"></div></div>` +
-    `<div class="tp-isec"><b>🎨 색상</b><div class="tp-irow" id="tp-col"></div></div>` +
     `<div class="tp-isec"><b>🎁 소모품 <em>(즉시 적용)</em></b><div class="tp-irow" id="tp-con"></div></div>`;
 
   function renderItems() {
@@ -76,10 +75,6 @@ if (typeof location !== 'undefined' && new URLSearchParams(location.search).get(
     items.querySelector('#tp-veh').innerHTML = Items.VEHICLES.map((v) => {
       const on = Items.equippedVehicle() === v.id;
       return `<button class="tp-chip ${on ? 'on' : ''}" data-veh="${v.id}">${v.emoji} ${v.ko}</button>`;
-    }).join('');
-    items.querySelector('#tp-col').innerHTML = Items.COLORS.map((c) => {
-      const on = Items.equippedColorId() === c.id;
-      return `<button class="tp-chip ${on ? 'on' : ''}" data-col="${c.id}" title="${c.ko}"><span class="tp-sw" style="background:${c.color}"></span></button>`;
     }).join('');
     items.querySelector('#tp-con').innerHTML = Items.CONSUMABLES.map((c) =>
       `<button class="tp-chip" data-con="${c.id}" title="${c.ko} · ${c.koDesc}">${c.emoji}</button>`
@@ -93,10 +88,6 @@ if (typeof location !== 'undefined' && new URLSearchParams(location.search).get(
     if (b.dataset.veh) {
       Items.grantVehicle(b.dataset.veh); Items.equipVehicle(b.dataset.veh);
       if (g) g.vehicle = Items.equippedVehicle();
-      renderItems();
-    } else if (b.dataset.col) {
-      Items.grantColor(b.dataset.col); Items.equipColor(b.dataset.col);
-      if (g) g.skinColor = Items.equippedColor();
       renderItems();
     } else if (b.dataset.con) {
       if (g && g.applyTuneConsum) g.applyTuneConsum(b.dataset.con);
