@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>어드민 · 캔들라이더</title>
+  <style>
+    :root { --bg:#0a0e14; --bg2:#0d1320; --card:#111a28; --neon:#2ce6c4; --gold:#ffce5a;
+            --text:#e6f0f0; --muted:#9fb0bd; --border:#1d2735; --bar:#1c6e63; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--text);
+      font-family: Pretendard, 'Apple SD Gothic Neo', 'Segoe UI', system-ui, sans-serif;
+      line-height:1.5; -webkit-text-size-adjust:100%; }
+    .wrap { max-width:980px; margin:0 auto; padding:28px 18px 80px; }
+    h1 { font-size:22px; margin:0; }
+    h2 { font-size:15px; margin:30px 0 12px; color:var(--neon); letter-spacing:.2px; }
+    a { color:var(--neon); }
+    .topbar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px; }
+    .muted { color:var(--muted); font-size:13px; }
+
+    /* 로그인 */
+    #gate { max-width:360px; margin:14vh auto 0; text-align:center; }
+    #gate h1 { margin-bottom:6px; }
+    #gate input { width:100%; margin:16px 0 10px; padding:12px 14px; border-radius:10px;
+      border:1px solid var(--border); background:var(--bg2); color:var(--text); font-size:15px; }
+    .btn { display:inline-block; border:none; cursor:pointer; border-radius:10px; padding:11px 16px;
+      font-weight:800; font-size:14px; background:var(--neon); color:#06231f; text-decoration:none; }
+    .btn.ghost { background:transparent; border:1px solid var(--border); color:var(--text); font-weight:600; }
+    .err { color:#ff6b6b; font-size:13px; min-height:18px; margin-top:6px; }
+
+    /* 카드 */
+    .cards { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+    @media (max-width:720px){ .cards{ grid-template-columns:repeat(2,1fr); } }
+    .kpi { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px 16px; }
+    .kpi .label { font-size:12px; color:var(--muted); }
+    .kpi .val { font-size:28px; font-weight:800; margin-top:4px; }
+    .kpi .sub { font-size:12px; color:var(--muted); margin-top:4px; }
+    .kpi .val .unit { font-size:14px; color:var(--muted); font-weight:600; margin-left:2px; }
+
+    /* 차트 */
+    .chart { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; }
+    .bars { display:flex; align-items:flex-end; gap:6px; height:140px; }
+    .bars .col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end; }
+    .bars .bar { width:100%; background:var(--bar); border-radius:4px 4px 0 0; min-height:2px; transition:height .2s; position:relative; }
+    .bars .bar:hover { background:var(--neon); }
+    .bars .n { font-size:11px; color:var(--text); }
+    .bars .d { font-size:10px; color:var(--muted); transform:rotate(-0deg); white-space:nowrap; }
+
+    /* 표 */
+    table { width:100%; border-collapse:collapse; font-size:13px; background:var(--card);
+      border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+    th, td { padding:9px 12px; text-align:left; border-bottom:1px solid var(--border); }
+    th { background:var(--bg2); color:var(--muted); font-weight:700; font-size:12px; }
+    tr:last-child td { border-bottom:none; }
+    td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+    .pill { display:inline-block; background:var(--bg2); border:1px solid var(--border); border-radius:6px;
+      padding:1px 7px; font-size:11px; color:var(--muted); }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    @media (max-width:720px){ .grid2{ grid-template-columns:1fr; } }
+
+    /* 도구 링크 */
+    .tools { display:flex; flex-wrap:wrap; gap:10px; }
+    .tool { display:flex; flex-direction:column; gap:2px; padding:12px 14px; background:var(--card);
+      border:1px solid var(--border); border-radius:12px; text-decoration:none; color:var(--text); min-width:180px; }
+    .tool .t { font-weight:700; font-size:14px; }
+    .tool .s { font-size:12px; color:var(--muted); }
+    .tabs { display:inline-flex; gap:6px; margin-bottom:10px; }
+    .tab { font-size:12px; padding:5px 10px; border-radius:8px; border:1px solid var(--border);
+      background:var(--bg2); color:var(--muted); cursor:pointer; }
+    .tab.active { background:var(--neon); color:#06231f; border-color:var(--neon); font-weight:800; }
+    [hidden]{ display:none !important; }
+  </style>
+</head>
+<body>
+  <!-- ===== 로그인 게이트 ===== -->
+  <div id="gate" class="wrap">
+    <h1>🔒 어드민</h1>
+    <p class="muted">캔들라이더 관리자 통계</p>
+    <input id="token" type="password" placeholder="관리자 토큰" autocomplete="current-password" />
+    <button class="btn" id="login" style="width:100%">들어가기</button>
+    <div class="err" id="gate-err"></div>
+  </div>
+
+  <!-- ===== 대시보드 ===== -->
+  <div id="dash" class="wrap" hidden>
+    <div class="topbar">
+      <h1>📊 캔들라이더 어드민</h1>
+      <div style="display:flex; gap:8px; align-items:center">
+        <button class="btn ghost" id="refresh">새로고침</button>
+        <button class="btn ghost" id="logout">로그아웃</button>
+      </div>
+    </div>
+    <p class="muted" id="updated"></p>
+
+    <h2>오늘 핵심 지표</h2>
+    <div class="cards">
+      <div class="kpi"><div class="label">오늘 방문자</div><div class="val" id="k-vis-today">–</div><div class="sub" id="k-vis-sub"></div></div>
+      <div class="kpi"><div class="label">오늘 플레이(완주)</div><div class="val" id="k-play-today">–</div><div class="sub" id="k-play-sub"></div></div>
+      <div class="kpi"><div class="label">신규 가입(토스)</div><div class="val" id="k-newuser">–</div><div class="sub" id="k-newuser-sub"></div></div>
+      <div class="kpi"><div class="label">누적 가입(토스)</div><div class="val" id="k-totuser">–</div><div class="sub" id="k-totuser-sub"></div></div>
+    </div>
+    <div class="cards" style="margin-top:12px">
+      <div class="kpi"><div class="label">최근 7일 방문자</div><div class="val" id="k-vis7">–</div></div>
+      <div class="kpi"><div class="label">누적 플레이</div><div class="val" id="k-playtot">–</div></div>
+      <div class="kpi"><div class="label">누적 플레이어(닉)</div><div class="val" id="k-players">–</div></div>
+      <div class="kpi"><div class="label">등록 종목 수</div><div class="val" id="k-courses">–</div></div>
+    </div>
+
+    <h2>방문자 추이 (최근 14일 · KST)</h2>
+    <div class="chart"><div class="bars" id="chart"></div></div>
+    <p class="muted" style="margin-top:6px">막대 위 숫자 = 고유 방문자. 토스 인앱 방문은 합산되며 카드의 보조수치로 분리 표기.</p>
+
+    <div class="grid2">
+      <div>
+        <h2>인기 종목 (가장 많이 완주)</h2>
+        <div class="tabs">
+          <span class="tab active" data-top="all">전체</span>
+          <span class="tab" data-top="today">오늘</span>
+        </div>
+        <table><thead><tr><th>종목</th><th class="num">플레이</th><th class="num">최고기록</th></tr></thead>
+          <tbody id="top-body"></tbody></table>
+      </div>
+      <div>
+        <h2>신규 가입 유저 (토스 · 최근 30)</h2>
+        <table><thead><tr><th>닉네임</th><th class="num">가입일시(KST)</th></tr></thead>
+          <tbody id="user-body"></tbody></table>
+      </div>
+    </div>
+
+    <h2>최근 활동 (최근 완주 25)</h2>
+    <table><thead><tr><th>닉네임</th><th>종목</th><th class="num">기록</th><th class="num">시각(KST)</th></tr></thead>
+      <tbody id="recent-body"></tbody></table>
+
+    <h2>도구 / 테스트</h2>
+    <div class="tools" id="tools"></div>
+  </div>
+
+  <script>
+    var TK = 'cr_admin_token';
+    var $ = function (id) { return document.getElementById(id); };
+    var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]; }); };
+    var nf = function (n) { return (n == null ? 0 : n).toLocaleString('ko-KR'); };
+    var ms = function (m) { return m == null ? '–' : (m / 1000).toFixed(1) + '초'; };
+    function kst(iso) {
+      if (!iso) return '–';
+      try {
+        var d = new Date(iso);
+        return d.toLocaleString('ko-KR', { timeZone:'Asia/Seoul', month:'2-digit', day:'2-digit',
+          hour:'2-digit', minute:'2-digit', hour12:false });
+      } catch (e) { return iso; }
+    }
+
+    var lastData = null;
+
+    function token() { try { return sessionStorage.getItem(TK) || ''; } catch (e) { return ''; } }
+    function setToken(t) { try { t ? sessionStorage.setItem(TK, t) : sessionStorage.removeItem(TK); } catch (e) {} }
+
+    async function load() {
+      var t = token();
+      if (!t) { showGate(); return; }
+      try {
+        var r = await fetch('/api/admin/stats', { headers: { Authorization: 'Bearer ' + t } });
+        if (r.status === 401) { setToken(''); showGate('토큰이 올바르지 않습니다.'); return; }
+        if (r.status === 503) { showGate('서버에 ADMIN_TOKEN/Supabase 설정이 필요합니다.'); return; }
+        if (!r.ok) { showGate('불러오기 실패 (' + r.status + ')'); return; }
+        lastData = await r.json();
+        render(lastData);
+        showDash();
+      } catch (e) { showGate('네트워크 오류: ' + e.message); }
+    }
+
+    function showGate(msg) { $('dash').hidden = true; $('gate').hidden = false; $('gate-err').textContent = msg || ''; if (msg) $('token').value=''; }
+    function showDash() { $('gate').hidden = true; $('dash').hidden = false; }
+
+    function render(d) {
+      var v = d.visitors || {}, p = d.plays || {}, u = d.toss_users || {};
+      $('updated').textContent = '갱신: ' + kst(d.generated_at) + ' · 기준일(KST) ' + (d.today || '');
+
+      $('k-vis-today').innerHTML = nf(v.today) + '<span class="unit">명</span>';
+      $('k-vis-sub').textContent = '방문 ' + nf(v.today_views) + '회 · 토스 ' + nf(v.today_toss) + '명';
+      $('k-play-today').innerHTML = nf(p.today) + '<span class="unit">회</span>';
+      $('k-play-sub').textContent = '플레이어 ' + nf(p.players_today) + '명';
+      $('k-newuser').innerHTML = nf(u.new_today) + '<span class="unit">명</span>';
+      $('k-newuser-sub').textContent = '최근7일 +' + nf(u.new_7d);
+      $('k-totuser').innerHTML = nf(u.total) + '<span class="unit">명</span>';
+
+      $('k-vis7').innerHTML = nf(v.last7) + '<span class="unit">명</span>';
+      $('k-playtot').innerHTML = nf(p.total) + '<span class="unit">회</span>';
+      $('k-players').innerHTML = nf(p.players_total) + '<span class="unit">명</span>';
+      $('k-courses').innerHTML = nf(d.courses) + '<span class="unit">개</span>';
+
+      // 차트
+      var daily = v.daily || [];
+      var max = Math.max(1, Math.max.apply(null, daily.map(function (x) { return x.visitors || 0; }).concat([0])));
+      $('chart').innerHTML = daily.map(function (x) {
+        var h = Math.round(((x.visitors || 0) / max) * 100);
+        var dd = (x.day || '').slice(5); // MM-DD
+        return '<div class="col" title="' + esc(x.day) + ' · 방문자 ' + nf(x.visitors) + ' · 방문 ' + nf(x.views) + '회">' +
+               '<span class="n">' + nf(x.visitors) + '</span>' +
+               '<div class="bar" style="height:' + h + '%"></div>' +
+               '<span class="d">' + esc(dd) + '</span></div>';
+      }).join('');
+
+      renderTop('all');
+
+      $('user-body').innerHTML = (u.recent || []).map(function (x) {
+        return '<tr><td>' + esc(x.nick) + '</td><td class="num">' + kst(x.created_at) + '</td></tr>';
+      }).join('') || '<tr><td colspan="2" class="muted">아직 없음</td></tr>';
+
+      $('recent-body').innerHTML = (d.recent_scores || []).map(function (x) {
+        return '<tr><td>' + esc(x.nick) + '</td><td><span class="pill">' + esc(x.symbol) + '</span></td>' +
+               '<td class="num">' + ms(x.score) + '</td><td class="num">' + kst(x.created_at) + '</td></tr>';
+      }).join('') || '<tr><td colspan="4" class="muted">아직 없음</td></tr>';
+
+      renderTools();
+    }
+
+    function renderTop(which) {
+      var d = lastData || {};
+      var rows;
+      if (which === 'today') {
+        rows = (d.top_symbols_today || []).map(function (x) {
+          return '<tr><td><span class="pill">' + esc(x.symbol) + '</span></td><td class="num">' + nf(x.plays) + '</td><td class="num">–</td></tr>';
+        });
+      } else {
+        rows = (d.top_symbols || []).map(function (x) {
+          return '<tr><td><span class="pill">' + esc(x.symbol) + '</span></td><td class="num">' + nf(x.plays) + '</td><td class="num">' + ms(x.best_ms) + '</td></tr>';
+        });
+      }
+      $('top-body').innerHTML = rows.join('') || '<tr><td colspan="3" class="muted">아직 없음</td></tr>';
+    }
+
+    function renderTools() {
+      var tools = [
+        { t: '🛠️ 튜닝 패널 (?tune=1)', s: '물리 튜닝 테스트', href: 'https://candlebike.vercel.app/?tune=1' },
+        { t: '🏍️ 메인 사이트', s: 'candlerider.2nt4soft.com', href: 'https://candlerider.2nt4soft.com/' },
+        { t: '📈 Microsoft Clarity', s: '웹 방문/세션 리플레이', href: 'https://clarity.microsoft.com/projects/view/xc65q1l0jn/dashboard' },
+        { t: '🗄️ Supabase', s: 'DB 콘솔', href: 'https://supabase.com/dashboard/project/qcaeqfdhlshdmvtycapw' },
+        { t: '📄 개인정보처리방침', s: '/privacy', href: '/privacy' }
+      ];
+      $('tools').innerHTML = tools.map(function (x) {
+        return '<a class="tool" href="' + esc(x.href) + '" target="_blank" rel="noopener">' +
+               '<span class="t">' + esc(x.t) + '</span><span class="s">' + esc(x.s) + '</span></a>';
+      }).join('');
+    }
+
+    // 이벤트
+    $('login').onclick = function () { setToken($('token').value.trim()); load(); };
+    $('token').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('login').click(); });
+    $('refresh').onclick = function () { load(); };
+    $('logout').onclick = function () { setToken(''); showGate(); };
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (tab) {
+      tab.onclick = function () {
+        Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (x) { x.classList.remove('active'); });
+        tab.classList.add('active');
+        renderTop(tab.getAttribute('data-top'));
+      };
+    });
+
+    // 진입
+    if (token()) load(); else showGate();
+  </script>
+</body>
+</html>

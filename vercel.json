@@ -4,7 +4,8 @@
   "functions": { "api/warm-courses.js": { "maxDuration": 60 } },
   "rewrites": [
     { "source": "/privacy", "destination": "/privacy.html" },
-    { "source": "/terms", "destination": "/terms.html" }
+    { "source": "/terms", "destination": "/terms.html" },
+    { "source": "/admin", "destination": "/admin.html" }
   ],
   "headers": [
     {
@@ -17,6 +18,10 @@
         { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" },
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=()" }
       ]
+    },
+    {
+      "source": "/(admin|admin.html)",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
     },
     {
       "source": "/.well-known/assetlinks.json",
