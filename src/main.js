@@ -96,14 +96,17 @@ function saveNick(n) {
       body: JSON.stringify({ token, nick: n }),
     }).catch((e) => console.warn('닉 저장 실패', e));
   }
+  syncPush();   // 닉을 계정 인벤토리(토스/구글)에도 동기화
 }
-// 홈 닉네임 칩(변경)은 토스(로그인 진입)에서만. 웹/원스토어는 숨김(완주 시에만 닉 입력).
-if (IS_TOSS) {
-  $('btn-nick').onclick = () => promptNick((n) => saveNick(n), { prefill: getNick() });
-  updateNickButton();
-} else {
-  $('btn-nick').style.display = 'none';
+// 홈 닉네임 칩(변경)은 '로그인 상태'에서만 노출 — 토스(자동) 또는 구글 로그인. 게스트는 숨김(완주 시 입력).
+let googleUser = null;   // Supabase auth user (구글 로그인 시) — 닉칩/동기화 분기에 사용
+$('btn-nick').onclick = () => promptNick((n) => saveNick(n), { prefill: getNick() });
+function refreshNickChip() {
+  const visible = IS_TOSS || !!googleUser;
+  $('btn-nick').style.display = visible ? '' : 'none';
+  if (visible) updateNickButton();
 }
+refreshNickChip();
 
 // ---------------- 인벤토리 계정 동기화 (토스) ----------------
 // 토스 토큰이 있으면 아이템을 클라우드(계정)에 저장/병합 → 재설치·기기변경에도 유지.
@@ -113,7 +116,7 @@ function invPush() {
   if (!invToken) return;
   fetch('/api/inventory', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token: invToken, data: Items.exportState() }),
+    body: JSON.stringify({ token: invToken, data: { ...Items.exportState(), nick: getNick() } }),
   }).catch(() => {});
 }
 async function invPull(token) {
@@ -126,15 +129,18 @@ async function invPull(token) {
     });
     if (r.ok) {
       const j = await r.json();
-      if (j && j.data && Object.keys(j.data).length) { Items.mergeFrom(j.data); updateNickButton(); }
+      if (j && j.data && Object.keys(j.data).length) {
+        Items.mergeFrom(j.data);
+        if (j.data.nick && !getNick()) { setNick(j.data.nick); }   // 계정 닉 복원(로컬 비어있을 때)
+        updateNickButton();
+      }
     }
   } catch { /* 동기화 실패는 조용히 — 게스트처럼 계속 동작 */ }
   invPush();   // 병합 결과(또는 첫 바인딩)를 클라우드에 반영
 }
 
 // ---------------- 구글 로그인 (Supabase Auth) — 웹/원스토어 영구 귀속 ----------------
-// 토스는 위 토스 토큰 경로를 쓰므로 구글 로그인은 비-토스에서만.
-let googleUser = null;   // Supabase auth user (로그인 시)
+// 토스는 위 토스 토큰 경로를 쓰므로 구글 로그인은 비-토스에서만. (googleUser 는 닉 섹션에서 선언)
 async function initGoogleAuth() {
   if (IS_TOSS) return;
   const supa = await getClient();
@@ -147,24 +153,30 @@ async function initGoogleAuth() {
       const was = googleUser?.id;
       googleUser = session?.user || null;
       updateGarageLogin();
+      refreshNickChip();
       if (googleUser && googleUser.id !== was) googlePull();
     });
   } catch (e) { console.warn('구글 인증 초기화', e); }
   updateGarageLogin();
+  refreshNickChip();
 }
 async function googlePull() {
   const supa = await getClient(); if (!supa || !googleUser) return;
   const owner = 'google:' + googleUser.id;
   try {
     const { data } = await supa.from('inventory').select('data').eq('owner', owner).maybeSingle();
-    if (data?.data && Object.keys(data.data).length) { Items.mergeFrom(data.data); updateNickButton(); }
+    if (data?.data && Object.keys(data.data).length) {
+      Items.mergeFrom(data.data);
+      if (data.data.nick && !getNick()) setNick(data.data.nick);   // 계정 닉 복원(로컬 비어있을 때)
+      updateNickButton(); refreshNickChip();
+    }
   } catch (e) { console.warn('인벤토리 조회', e); }
   await googlePush();   // 병합/첫 바인딩 반영
 }
 async function googlePush() {
   const supa = await getClient(); if (!supa || !googleUser) return;
   try {
-    await supa.from('inventory').upsert({ owner: 'google:' + googleUser.id, data: Items.exportState(), updated_at: new Date().toISOString() });
+    await supa.from('inventory').upsert({ owner: 'google:' + googleUser.id, data: { ...Items.exportState(), nick: getNick() }, updated_at: new Date().toISOString() });
   } catch (e) { console.warn('인벤토리 저장', e); }
 }
 async function googleLogin() {
@@ -176,7 +188,7 @@ async function googleLogin() {
 async function googleLogout() {
   const supa = await getClient(); if (!supa) return;
   try { await supa.auth.signOut(); } catch {}
-  googleUser = null; updateGarageLogin();
+  googleUser = null; updateGarageLogin(); refreshNickChip();
 }
 
 // 변경분을 활성 계정(토스/구글)에 반영. 게스트면 아무것도 안 함(localStorage만).
@@ -186,6 +198,10 @@ function syncPush() { if (invToken) invPush(); else if (googleUser) googlePush()
 function updateGarageLogin() {
   const row = $('garage-login-row');
   if (!row) return;
+  // 게스트 경고는 '로그인 안 된 상태'에서만 (토스=계정 자동귀속, 구글 로그인 시 숨김)
+  const loggedIn = IS_TOSS || !!googleUser;
+  const warn = $('garage-warn');
+  if (warn) warn.style.display = loggedIn ? 'none' : '';
   if (IS_TOSS) { row.classList.remove('show'); row.innerHTML = ''; return; }
   row.classList.add('show');
   if (googleUser) {
@@ -365,7 +381,7 @@ async function launchMulti(item) {
   selected = item;
   const count = 3 + Math.floor(Math.random() * 4);     // 3~6명(사람 많아 보이게)
   const ghostNames = pickGhostNames(count);
-  const myNick = getNick() || t.anon;
+  const myNick = getNick() || t.you;   // 닉 없으면(게스트/미완주) '나'로 표시(익명라이더 X)
   await runMatchmaking(myNick, ghostNames);            // '다른 라이더 찾는 중' 연출
   rememberName(item.symbol, item.name);
   show('loading');
@@ -575,7 +591,7 @@ async function restartPlay() {
     if (game) { try { game.stop(); } catch {} }
     const count = 3 + Math.floor(Math.random() * 4);
     const ghostNames = pickGhostNames(count);
-    const myNick = getNick() || t.anon;
+    const myNick = getNick() || t.you;   // 닉 없으면(게스트/미완주) '나'로 표시(익명라이더 X)
     await runMatchmaking(myNick, ghostNames);
     startGame(playCtx.series, playCtx.symbol, playCtx.name,
       { multi: true, nick: myNick, ghostCount: count, ghostNames });
@@ -668,7 +684,7 @@ function renderMultiResult(result) {
     li.innerHTML =
       `<span class="mr-rank">${e.rank}</span>` +
       `<span class="mr-dot" style="background:${e.color}"></span>` +
-      `<span class="mr-name">${escapeHtml(e.name)}${e.isPlayer ? ` <b>${t.you}</b>` : ''}</span>` +
+      `<span class="mr-name">${escapeHtml(e.name)}${e.isPlayer && e.name !== t.you ? ` <b>${t.you}</b>` : ''}</span>` +
       `<span class="mr-stat">${stat}</span>`;
     ol.appendChild(li);
   });
