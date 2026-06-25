@@ -10,8 +10,13 @@ export default async function handler(req, res) {
     Referer: 'https://m.stock.naver.com/',
   };
   async function market(cat) {
-    const r = await fetch(`https://m.stock.naver.com/api/stocks/${sort}/${cat}?page=1&pageSize=12`, { headers: hdr });
-    const j = await r.json();
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 6000);   // 네이버가 느려도 6초 후 중단(함수 무한 대기 방지)
+    let j;
+    try {
+      const r = await fetch(`https://m.stock.naver.com/api/stocks/${sort}/${cat}?page=1&pageSize=12`, { headers: hdr, signal: ctrl.signal });
+      j = await r.json();
+    } finally { clearTimeout(to); }
     return (j.stocks || [])
       .filter((s) => !isVol || s.stockEndType === 'stock')   // 거래량 탭은 ETF/ETN 제외, 실제 종목만
       .map((s) => {
@@ -33,7 +38,8 @@ export default async function handler(req, res) {
     else all = all.filter((x) => x.change != null).sort((a, b) => b.change - a.change).slice(0, 12);
     all = all.map(({ _v, ...x }) => x);   // 내부 정렬키 제거
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.setHeader('Cache-Control', 's-maxage=90, stale-while-revalidate=300');
+    // 엣지 캐시: 30분 신선 + 1일 stale-while-revalidate → 유저 수와 무관하게 네이버 호출은 캐시 창당 1회.
+    res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=86400');
     res.status(200).json(all);
   } catch (e) {
     res.status(502).json({ error: String(e) });

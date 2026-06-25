@@ -156,22 +156,26 @@ export function activeMarket() {
   return LANG === 'ko' ? 'kr' : 'us';
 }
 
-// 한국 실시간 급등주/거래량 (네이버 금융, 동일 도메인 /api/kr-gainers)
-async function krGainers() {
-  const r = await fetch('/api/kr-gainers');
-  if (!r.ok) throw new Error('kr http ' + r.status);
-  return await r.json();
+// 추천 종목 — 서버 엔드포인트(엣지 캐시)로 받아 전 유저가 스냅샷 공유. 타임아웃으로 멈춤 방지.
+//   /api/kr-gainers(네이버) · /api/us-trending(야후) 둘 다 동일 도메인이라 CORS 없음.
+async function apiTrending(path) {
+  const ctrl = new AbortController();
+  const to = setTimeout(() => ctrl.abort(), 6000);   // 6초 안에 응답 없으면 폴백/목으로
+  try {
+    const r = await fetch(path, { signal: ctrl.signal });
+    if (!r.ok) throw new Error('http ' + r.status);
+    return await r.json();
+  } finally { clearTimeout(to); }
 }
-async function krVolume() {
-  const r = await fetch('/api/kr-gainers?type=volume');
-  if (!r.ok) throw new Error('kr vol ' + r.status);
-  return await r.json();
-}
+async function krGainers() { return apiTrending('/api/kr-gainers'); }
+async function krVolume() { return apiTrending('/api/kr-gainers?type=volume'); }
+async function usGainers() { return apiTrending('/api/us-trending'); }
+async function usVolume() { return apiTrending('/api/us-trending?type=volume'); }
 
 // 열린 장 + 모드(급등주/거래량)에 맞춰 선택 (실패 시 반대 장으로 폴백)
 async function marketTrending(mode = 'gainers') {
   const m = activeMarket();
-  const us = mode === 'volume' ? yahooActives : yahooTrending;
+  const us = mode === 'volume' ? usVolume : usGainers;
   const kr = mode === 'volume' ? krVolume : krGainers;
   const primary = m === 'kr' ? kr : us;
   const secondary = m === 'kr' ? us : kr;
