@@ -65,3 +65,23 @@ export const IS_TOSS_REWARD_READY = (() => {
   try { return typeof window !== 'undefined' && window.__APPS_IN_TOSS_REWARD__ === true; }
   catch { return false; }
 })();
+
+// 토스 공유 리워드(contactsViral) — 셸이 친구 공유 시트를 띄움 → { shared: boolean }(공유 완료 여부).
+export function requestTossShareReward(moduleId, timeoutMs = 120000) {
+  return callBridge('shareReward', { moduleId }, timeoutMs);
+}
+
+// 셸이 공유 리워드 브리지를 지원하는지(=새 .ait). 구버전 셸이면 false → 공유 버튼 숨김.
+export const IS_TOSS_SHARE_READY = (() => {
+  try { return typeof window !== 'undefined' && window.__APPS_IN_TOSS_SHARE__ === true; }
+  catch { return false; }
+})();
+
+// ─── 핵심지표(분석) 커스텀 이벤트 ─────────────────────────────────────────
+// 토스 「분석>이벤트」로 보낼 전환 이벤트. 셸이 Analytics.Impression(on-mount)로 1회 발사.
+// best-effort: 토스 인앱일 때만, 실패는 조용히 무시(웹/구버전 셸 영향 0).
+//   대표(핵심) 전환 = game_complete(완주). 보조 = game_start / item_get / share.
+export function logTossEvent(name, params) {
+  if (!IS_TOSS || !name) return;
+  try { callBridge('logEvent', { name, params }, 8000).catch(() => {}); } catch { /* noop */ }
+}
