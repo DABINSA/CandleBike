@@ -76,9 +76,10 @@
   <!-- ===== 로그인 게이트 ===== -->
   <div id="gate" class="wrap">
     <h1>🔒 어드민</h1>
-    <p class="muted">캔들라이더 관리자 통계</p>
-    <input id="token" type="password" placeholder="관리자 토큰" autocomplete="current-password" />
-    <button class="btn" id="login" style="width:100%">들어가기</button>
+    <p class="muted">캔들라이더 관리자</p>
+    <input id="email" type="email" placeholder="이메일" autocomplete="username" />
+    <input id="pw" type="password" placeholder="비밀번호" autocomplete="current-password" style="margin-top:0" />
+    <button class="btn" id="login" style="width:100%">로그인</button>
     <div class="err" id="gate-err"></div>
   </div>
 
@@ -162,8 +163,8 @@
       if (!t) { showGate(); return; }
       try {
         var r = await fetch('/api/admin/stats', { headers: { Authorization: 'Bearer ' + t } });
-        if (r.status === 401) { setToken(''); showGate('토큰이 올바르지 않습니다.'); return; }
-        if (r.status === 503) { showGate('서버에 ADMIN_TOKEN/Supabase 설정이 필요합니다.'); return; }
+        if (r.status === 401) { setToken(''); showGate('세션이 만료되었습니다. 다시 로그인하세요.'); return; }
+        if (r.status === 503) { showGate('서버에 ADMIN_PASSWORD/Supabase 설정이 필요합니다.'); return; }
         if (!r.ok) { showGate('불러오기 실패 (' + r.status + ')'); return; }
         lastData = await r.json();
         render(lastData);
@@ -171,7 +172,12 @@
       } catch (e) { showGate('네트워크 오류: ' + e.message); }
     }
 
-    function showGate(msg) { $('dash').hidden = true; $('gate').hidden = false; $('gate-err').textContent = msg || ''; if (msg) $('token').value=''; }
+    var EK = 'cr_admin_email';
+    function showGate(msg) {
+      $('dash').hidden = true; $('gate').hidden = false; $('gate-err').textContent = msg || '';
+      try { var e = localStorage.getItem(EK); if (e && !$('email').value) $('email').value = e; } catch (e2) {}
+      if (msg) $('pw').value = '';
+    }
     function showDash() { $('gate').hidden = true; $('dash').hidden = false; }
 
     function render(d) {
@@ -247,8 +253,30 @@
     }
 
     // 이벤트
-    $('login').onclick = function () { setToken($('token').value.trim()); load(); };
-    $('token').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('login').click(); });
+    async function doLogin() {
+      var email = $('email').value.trim(), pw = $('pw').value;
+      if (!email || !pw) { $('gate-err').textContent = '이메일과 비밀번호를 입력하세요.'; return; }
+      $('login').disabled = true; $('gate-err').textContent = '확인 중…';
+      try {
+        var r = await fetch('/api/admin/login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, password: pw })
+        });
+        if (r.status === 401) { $('gate-err').textContent = '이메일 또는 비밀번호가 올바르지 않습니다.'; $('pw').value = ''; return; }
+        if (r.status === 429) { $('gate-err').textContent = '시도가 너무 많습니다. 잠시 후 다시 시도하세요.'; return; }
+        if (r.status === 503) { $('gate-err').textContent = '서버에 ADMIN_PASSWORD 설정이 필요합니다.'; return; }
+        if (!r.ok) { $('gate-err').textContent = '로그인 실패 (' + r.status + ')'; return; }
+        var j = await r.json();
+        setToken(j.token);
+        try { localStorage.setItem(EK, email); } catch (e) {}
+        $('pw').value = '';
+        load();
+      } catch (e) { $('gate-err').textContent = '네트워크 오류: ' + e.message; }
+      finally { $('login').disabled = false; }
+    }
+    $('login').onclick = doLogin;
+    $('pw').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+    $('email').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('pw').focus(); });
     $('refresh').onclick = function () { load(); };
     $('logout').onclick = function () { setToken(''); showGate(); };
     Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (tab) {

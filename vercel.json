@@ -5,7 +5,7 @@
   "rewrites": [
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/terms", "destination": "/terms.html" },
-    { "source": "/admin", "destination": "/admin.html" }
+    { "source": "/hq-596ab98a", "destination": "/hq-596ab98a.html" }
   ],
   "headers": [
     {
@@ -20,7 +20,7 @@
       ]
     },
     {
-      "source": "/(admin|admin.html)",
+      "source": "/(hq-596ab98a|hq-596ab98a.html)",
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
     },
     {
