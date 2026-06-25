@@ -11,6 +11,9 @@
   --accent: #5b8cff;
   --panel: rgba(255,255,255,0.04);
   --panel-border: rgba(44,230,196,0.18);
+  /* 안전영역 — 토스 인앱에선 토스 헤더가 상단을 차지하므로 JS에서 --sat 을 0 으로 덮어쓴다. */
+  --sat: env(safe-area-inset-top);
+  --sab: env(safe-area-inset-bottom);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -31,7 +34,7 @@ body {
   display: none;
   flex-direction: column;
   align-items: center; justify-content: center;
-  padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom);
+  padding: var(--sat) 20px var(--sab);
 }
 .screen.active { display: flex; }
 
@@ -59,7 +62,7 @@ body {
 
 /* 언어 토글 */
 .lang-switch {
-  position: absolute; top: calc(env(safe-area-inset-top) + 14px); right: 16px;
+  position: absolute; top: calc(var(--sat) + 14px); right: 16px;
   display: flex; gap: 0; background: var(--panel); border: 1px solid var(--panel-border);
   border-radius: 10px; overflow: hidden; z-index: 20;
 }
@@ -71,7 +74,7 @@ body {
 
 /* 사운드 토글 (좌상단 고정, 모든 화면 공통) */
 .sound-toggle {
-  position: absolute; top: calc(env(safe-area-inset-top) + 14px); left: 16px; z-index: 25;
+  position: absolute; top: calc(var(--sat) + 14px); left: 16px; z-index: 25;
   width: 38px; height: 38px; border-radius: 10px;
   background: var(--panel); border: 1px solid var(--panel-border);
   font-size: 17px; line-height: 1; cursor: pointer; color: var(--text);
@@ -79,6 +82,16 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 .sound-toggle:active { transform: scale(.92); }
+
+/* 홈 닉네임 칩 (현재 닉 표시 + 클릭 시 변경) */
+.nick-chip {
+  display: inline-flex; align-items: center; gap: 6px; margin: 4px auto 0;
+  max-width: 80%; padding: 7px 14px; border-radius: 999px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--panel-border);
+  color: var(--text); font-size: 13px; font-weight: 700;
+}
+.nick-chip:active { transform: scale(.96); }
+.nick-chip .nick-val { color: var(--neon); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ===== 홈 ===== */
 .home-inner { width: 100%; max-width: 420px; text-align: center; }
@@ -152,7 +165,7 @@ body {
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 /* 상단 변형 — 플레이 중 하단 조작 버튼과 겹치지 않게 */
-.toast.toast--top { top: max(14px, env(safe-area-inset-top)); bottom: auto; transform: translate(-50%, -20px); }
+.toast.toast--top { top: max(14px, var(--sat)); bottom: auto; transform: translate(-50%, -20px); }
 .toast.toast--top.show { transform: translate(-50%, 0); }
 .site-foot { margin-top: 14px; text-align: center; }
 .site-foot a { color: var(--muted); font-size: 12px; text-decoration: none; border-bottom: 1px solid transparent; }
@@ -172,7 +185,7 @@ body {
 
 /* 5년 차트 미니맵 */
 .minimap-wrap {
-  position: absolute; top: calc(env(safe-area-inset-top) + 8px); left: 62px; right: 12px;
+  position: absolute; top: calc(var(--sat) + 8px); left: 62px; right: 12px;
   height: 54px; z-index: 6;   /* left 62px: 좌상단 사운드 버튼 자리 확보 */
 }
 .minimap {
@@ -187,7 +200,7 @@ body {
 .hud-sub { font-size: 11px; color: var(--gold); font-weight: 700; }
 
 .hud {
-  position: absolute; top: calc(env(safe-area-inset-top) + 68px); left: 0; right: 0; z-index: 5;
+  position: absolute; top: calc(var(--sat) + 68px); left: 0; right: 0; z-index: 5;
   display: flex; justify-content: space-between; gap: 10px;
   padding: 0 16px 12px;
 }
@@ -200,7 +213,7 @@ body {
 
 .controls {
   position: absolute; left: 0; right: 0; z-index: 8;
-  bottom: calc(env(safe-area-inset-bottom) + 64px);  /* 하단 광고 배너 위로 */
+  bottom: calc(var(--sab) + 64px);  /* 하단 광고 배너 위로 */
   padding: 0 12px; pointer-events: none;
 }
 /* 2×2 풀폭: 위 앞들기/뒤로·앞숙임 / 아래 점프·가속 (가속+점프는 좌우 다른 손) */
@@ -228,7 +241,7 @@ body {
 
 /* 플레이 중 재시작 버튼 */
 .restart-btn {
-  position: absolute; top: calc(env(safe-area-inset-top) + 10px); right: 12px; z-index: 9;
+  position: absolute; top: calc(var(--sat) + 10px); right: 12px; z-index: 9;
   background: rgba(13,19,32,.82); border: 1px solid var(--panel-border); color: var(--muted);
   font-size: 12px; font-weight: 800; padding: 7px 12px; border-radius: 999px; cursor: pointer;
   backdrop-filter: blur(6px);
@@ -237,14 +250,14 @@ body {
 
 /* 게임 중 설정(톱니) 버튼 + 메뉴 */
 .pause-btn {
-  position: absolute; top: calc(env(safe-area-inset-top) + 10px); right: 12px; z-index: 11;
+  position: absolute; top: calc(var(--sat) + 10px); right: 12px; z-index: 11;
   width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
   background: rgba(13,19,32,.82); border: 1px solid var(--panel-border); color: var(--text);
   font-size: 18px; line-height: 1; backdrop-filter: blur(6px);
 }
 .pause-btn:active { transform: scale(.94); filter: brightness(1.2); }
 .pause-menu {
-  position: absolute; top: calc(env(safe-area-inset-top) + 58px); right: 12px; z-index: 11;
+  position: absolute; top: calc(var(--sat) + 58px); right: 12px; z-index: 11;
   display: none; flex-direction: column; gap: 8px; width: 220px; padding: 10px;
   background: rgba(10,14,20,.95); border: 1px solid var(--panel-border); border-radius: 14px;
   box-shadow: 0 12px 34px rgba(0,0,0,.5); backdrop-filter: blur(8px);
@@ -284,7 +297,7 @@ body {
 
 /* 조작 안내 토스트 (게임 시작 시 잠깐) — 화면 중하단 빈 공간(상단 연료바·하단 버튼 모두 안 가림) */
 .controls-hint {
-  position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 210px); top: auto;
+  position: absolute; left: 50%; bottom: calc(var(--sab) + 210px); top: auto;
   transform: translateX(-50%); z-index: 8;
   background: rgba(5,8,13,.82); border: 1px solid var(--panel-border);
   color: var(--text); font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 12px;
