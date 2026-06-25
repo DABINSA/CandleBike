@@ -257,10 +257,22 @@ export async function searchSymbols(q) {
   }
 }
 
+// 상장 5년 미만 종목: 실데이터가 기간(HISTORY_YEARS)보다 짧으면 '상장 전' 구간을
+// 첫 상장가로 쭉 '평지'로 좌측 패딩 → 모든 코스 길이를 비슷하게 맞춘다.
+// (평지 구간은 일변동 0 → 자동으로 평평. date는 빈값 — 라벨은 가격/등락만 사용.)
+function padToHistory(series) {
+  const target = Math.round(CONFIG.HISTORY_YEARS * 252);   // 거래일 기준(5년 ≈ 1260일)
+  if (!series.length || series.length >= target) return series;
+  const firstClose = series[0].close;
+  const pad = [];
+  for (let i = series.length; i < target; i++) pad.push({ date: '', close: firstClose });
+  return pad.concat(series);
+}
+
 export async function getHistory(symbol) {
   const data = await getProvider().history(symbol);
   if (!data || data.length < 30) throw new Error('차트 데이터가 부족합니다.');
-  return data;
+  return padToHistory(data);
 }
 
 export async function getTrending(mode = 'gainers') {
