@@ -347,6 +347,22 @@ body {
 .tp-foot { display: flex; gap: 6px; margin-top: 8px; }
 .tp-foot button { flex: 1; background: var(--bg2); border: 1px solid var(--panel-border); color: var(--text); border-radius: 8px; padding: 6px; font-weight: 700; cursor: pointer; }
 
+/* 튜닝 — 차고 아이템 라이브 적용 퀵바(?tune=1, 항상 보임, 좌측 하단) */
+#tune-quickbar {
+  position: fixed; left: 8px; bottom: 8px; z-index: 99999; width: 190px;
+  background: rgba(8,12,20,.95); border: 1px solid var(--neon); border-radius: 12px;
+  padding: 8px 10px; font-size: 11px; color: var(--text); box-shadow: 0 8px 30px rgba(0,0,0,.6);
+}
+.tp-isec { margin: 6px 0; }
+.tp-isec:first-child { margin-top: 0; }
+.tp-isec b { color: var(--neon); font-weight: 700; display: block; margin-bottom: 4px; }
+.tp-isec b em { color: var(--muted); font-weight: 500; font-style: normal; font-size: 9px; }
+.tp-irow { display: flex; flex-wrap: wrap; gap: 4px; }
+.tp-chip { background: var(--bg2); border: 1px solid var(--panel-border); color: var(--text); border-radius: 8px; padding: 5px 7px; font-size: 11px; font-weight: 700; cursor: pointer; line-height: 1; display: inline-flex; align-items: center; gap: 4px; }
+.tp-chip:active { transform: scale(.94); }
+.tp-chip.on { border-color: var(--neon); background: rgba(44,230,196,.18); color: #d7fff6; }
+.tp-sw { width: 16px; height: 16px; border-radius: 50%; display: inline-block; }
+
 /* 조작 안내 토스트 (게임 시작 시 잠깐) — 화면 중하단 빈 공간(상단 연료바·하단 버튼 모두 안 가림) */
 .controls-hint {
   position: absolute; left: 50%; bottom: calc(var(--sab) + 210px); top: auto;

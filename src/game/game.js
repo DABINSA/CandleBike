@@ -473,6 +473,16 @@ export class Game {
     return { multi: true, standings: entrants, multiRank: entrants.findIndex((e) => e.isPlayer) + 1, multiTotal: entrants.length };
   }
 
+  // 튜닝 패널(?tune=1) 전용 — 플레이 중 차고 소모품 효과를 즉시 적용(테스트). 인벤토리는 소모 안 함.
+  applyTuneConsum(id) {
+    if (id === 'boost') { this.bike.boost(9); this._boostFx = 1; this._toast(`🚀 ${t.itemBoost}`, '#2ce6c4'); audio.sfx.boost(); }
+    else if (id === 'fuel') { this.fuel += 5; this._toast('⛽ +5s', '#2ce6c4'); }
+    else if (id === 'shield') { this._shield = true; this._toast(`🛡️ ${t.itemShield}`, '#2ce6c4'); audio.sfx.boost(); }
+    else if (id === 'softland') { this._noBadLand = true; this._toast('🪂 착지 보호', '#2ce6c4'); }
+    else if (id === 'phase') { this._phaseObstacles = true; this._toast('👻 장애물 통과', '#2ce6c4'); }
+    else if (id === 'revive') { this._freeRevives += 1; this._toast(`❤️ ${t.itemRevive} +1`, '#2ce6c4'); }
+  }
+
   stop() {
     this.running = false;
     cancelAnimationFrame(this._raf);

@@ -2,6 +2,7 @@
 // 슬라이더를 움직이면 TUNING 값이 즉시 바뀌고 게임에 바로 반영(재배포 불필요).
 // 값 확정되면 '복사' 눌러 JSON을 받아 tuning.js 기본값으로 박으면 됨.
 import { TUNING } from './game/tuning.js';
+import * as Items from './items/items.js';
 
 if (typeof location !== 'undefined' && new URLSearchParams(location.search).get('tune') === '1') {
   // [key, min, max, step, 설명]
@@ -58,6 +59,51 @@ if (typeof location !== 'undefined' && new URLSearchParams(location.search).get(
     });
   }
 
+  // ── 차고 아이템: 플레이 중에도 바로 적용 ─────────────────────────
+  // 탈것/색상 = 즉시 장착(인벤토리 반영 + 현재 게임에 라이브 교체).
+  // 소모품 = 현재 게임에 효과 즉시 적용(연료+5·부스트·보호막 등).
+  // 항상 보이는 별도 퀵바(좌측 하단) — 패널을 접어도 보이고, 누르면 바로 적용.
+  const liveGame = () => (window.__candleGame && window.__candleGame()) || null;
+  const items = document.createElement('div');
+  items.id = 'tune-quickbar';
+  items.innerHTML =
+    `<div class="tp-isec"><b>🚗 탈것</b><div class="tp-irow" id="tp-veh"></div></div>` +
+    `<div class="tp-isec"><b>🎨 색상</b><div class="tp-irow" id="tp-col"></div></div>` +
+    `<div class="tp-isec"><b>🎁 소모품 <em>(즉시 적용)</em></b><div class="tp-irow" id="tp-con"></div></div>`;
+
+  function renderItems() {
+    // 개발용 패널이라 사이트 언어와 무관하게 항상 한글(.ko)로 표기.
+    items.querySelector('#tp-veh').innerHTML = Items.VEHICLES.map((v) => {
+      const on = Items.equippedVehicle() === v.id;
+      return `<button class="tp-chip ${on ? 'on' : ''}" data-veh="${v.id}">${v.emoji} ${v.ko}</button>`;
+    }).join('');
+    items.querySelector('#tp-col').innerHTML = Items.COLORS.map((c) => {
+      const on = Items.equippedColorId() === c.id;
+      return `<button class="tp-chip ${on ? 'on' : ''}" data-col="${c.id}" title="${c.ko}"><span class="tp-sw" style="background:${c.color}"></span></button>`;
+    }).join('');
+    items.querySelector('#tp-con').innerHTML = Items.CONSUMABLES.map((c) =>
+      `<button class="tp-chip" data-con="${c.id}" title="${c.ko} · ${c.koDesc}">${c.emoji}</button>`
+    ).join('');
+  }
+
+  items.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    const g = liveGame();
+    if (b.dataset.veh) {
+      Items.grantVehicle(b.dataset.veh); Items.equipVehicle(b.dataset.veh);
+      if (g) g.vehicle = Items.equippedVehicle();
+      renderItems();
+    } else if (b.dataset.col) {
+      Items.grantColor(b.dataset.col); Items.equipColor(b.dataset.col);
+      if (g) g.skinColor = Items.equippedColor();
+      renderItems();
+    } else if (b.dataset.con) {
+      if (g && g.applyTuneConsum) g.applyTuneConsum(b.dataset.con);
+      else alert('플레이 중에만 소모품을 적용할 수 있어요.');
+    }
+  });
+
   panel.querySelector('#tp-copy').addEventListener('click', async () => {
     const json = JSON.stringify(TUNING, null, 2);
     try { await navigator.clipboard.writeText(json); alert('TUNING 값 복사됨! 붙여넣어 전달하세요.'); }
@@ -70,6 +116,11 @@ if (typeof location !== 'undefined' && new URLSearchParams(location.search).get(
   panel.querySelector('#tp-min').addEventListener('click', () => panel.classList.toggle('min'));
   panel.querySelector('#tp-test').addEventListener('click', () => window.__candleStartTest && window.__candleStartTest());
 
-  function attach() { if (document.body) document.body.appendChild(panel); else requestAnimationFrame(attach); }
+  renderItems();
+
+  function attach() {
+    if (document.body) { document.body.appendChild(panel); document.body.appendChild(items); }
+    else requestAnimationFrame(attach);
+  }
   attach();
 }
