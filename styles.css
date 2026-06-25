@@ -170,7 +170,7 @@ body {
 #screen-play { padding: 0; justify-content: flex-start; }
 #game-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
-/* 3년 차트 미니맵 */
+/* 5년 차트 미니맵 */
 .minimap-wrap {
   position: absolute; top: calc(env(safe-area-inset-top) + 8px); left: 62px; right: 12px;
   height: 54px; z-index: 6;   /* left 62px: 좌상단 사운드 버튼 자리 확보 */

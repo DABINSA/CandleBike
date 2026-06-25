@@ -37,6 +37,15 @@ export class Game {
     this._resizeHandler = () => { this._resize(); if (this.terrain) this._initMinimap(); };
     window.addEventListener('resize', this._resizeHandler);
 
+    // 백그라운드 처리 — 탭 전환·앱 이동·전화로 화면이 가려지면 rAF 가 멈춰
+    // 연료·고스트·종료판정이 정지된다(돌아오면 시간이 안 흐른 듯 이어짐 + 완주시간만 벽시계라 폭증).
+    // → 가려지면 루프를 멈추고, 돌아오면 '자리 비운 시간'만큼 연료를 실시간으로 깎고
+    //   고스트를 전진시킨 뒤 재개 → 시간이 초과됐으면 자동 종료(실시간 레이스처럼).
+    this._bgPaused = false;
+    this._hiddenAt = 0;
+    this._visHandler = () => { if (document.hidden) this._onHide(); else this._onShow(); };
+    document.addEventListener('visibilitychange', this._visHandler);
+
     // 물리 세계
     this.engine = Matter.Engine.create();
     this.engine.gravity.y = 1.0;
@@ -163,7 +172,7 @@ export class Game {
 
   // ---------- 메인 루프 ----------
   _loop() {
-    if (!this.running) return;
+    if (!this.running || this._bgPaused) return;
     const now = performance.now();
     let dt = (now - this.lastTs) / 1000;
     this.lastTs = now;
@@ -432,6 +441,29 @@ export class Game {
     window.removeEventListener('resize', this._resizeHandler);
   }
 
+  // 화면 가려짐(탭 전환/앱 이동/전화) — 루프 정지. 브라우저도 rAF 를 멈추므로 함께 멈춰둔다.
+  _onHide() {
+    if (!this.running || this.ended || this._bgPaused) return;
+    this._bgPaused = true;
+    this._hiddenAt = performance.now();
+    cancelAnimationFrame(this._raf);
+    audio.stopEngine();
+  }
+  // 화면 복귀 — 자리 비운 만큼 '실시간'으로 연료 차감 + 고스트 전진 후 재개.
+  // 첫 프레임의 _checkEnd 가 연료<=0 이면 자동으로 게임을 끝낸다(시간초과 자동종료).
+  _onShow() {
+    if (!this._bgPaused) return;
+    this._bgPaused = false;
+    const gap = Math.max(0, (performance.now() - (this._hiddenAt || performance.now())) / 1000);
+    this._hiddenAt = 0;
+    if (this.ended || !this.running) return;
+    if (!this.testMode) this.fuel -= gap;                                  // 실시간 연료 소모
+    if (this.multi) updateGhosts(this.ghosts, gap, (performance.now() - this.startTime) / 1000); // 고스트 전진
+    this.lastTs = performance.now();
+    audio.startEngine();
+    this._loop();
+  }
+
   // 일시정지/재개 (설정 메뉴) — 경과시간에 멈춘 시간이 포함되지 않게 startTime 보정.
   pause() {
     if (!this.running || this.ended) return;
@@ -454,6 +486,7 @@ export class Game {
   isPaused() { return !this.running && !this.ended && !!this._pausedAt; }
 
   _cleanupInput() {
+    if (this._visHandler) { document.removeEventListener('visibilitychange', this._visHandler); this._visHandler = null; }
     if (this._key) {
       window.removeEventListener('keydown', this._key);
       window.removeEventListener('keyup', this._key);

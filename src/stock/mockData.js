@@ -1,6 +1,6 @@
 import { LANG } from '../i18n.js';
 
-// 실제 같은 3년치 일봉 데이터를 결정적(seed)으로 생성.
+// 실제 같은 5년치 일봉 데이터를 결정적(seed)으로 생성.
 // 같은 심볼은 항상 같은 차트가 나오도록 심볼을 시드로 사용 → 순위 공정성 확보.
 
 function hashSeed(str) {
@@ -30,7 +30,7 @@ function profileFor(symbol) {
   return { drift: 0.0004, vol: 0.022, start: 100 };
 }
 
-export function generateMockHistory(symbol, years = 3) {
+export function generateMockHistory(symbol, years = 5) {
   const rnd = mulberry32(hashSeed(symbol.toUpperCase()));
   const { drift, vol, start } = profileFor(symbol);
   const days = Math.round(years * 252); // 거래일 기준

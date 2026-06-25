@@ -5,7 +5,7 @@
 export const CONFIG = {
   // ---- 주식 데이터 공급자 ----
   // 'yahoo'      : 야후 파이낸스 실데이터 (키 불필요, CORS 프록시 경유) ★기본
-  // 'mock'       : 키 없이 즉시 플레이 (가짜 3년 차트 생성, 실제와 다름)
+  // 'mock'       : 키 없이 즉시 플레이 (가짜 5년 차트 생성, 실제와 다름)
   // 'twelvedata' : 무료 키 발급 후 실데이터 (https://twelvedata.com, CORS 지원)
   // 'proxy'      : 직접 만든 서버리스/Supabase 함수로 Yahoo/Stooq 프록시
   STOCK_PROVIDER: 'yahoo',
