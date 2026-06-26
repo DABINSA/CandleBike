@@ -51,8 +51,8 @@ export function createGhosts(count, parTime, names) {
       itemBoost,
       itemDbl: Math.random() < 0.35,
       itemPhase: Math.random() < 0.3,
-      // 목표 완주시간 — par보다 빠르게(중간 이상 실력). 편차로 순위 다툼.
-      targetTime: parTime * (0.8 + Math.random() * 0.3),    // ≈ par×0.80~1.10 (이전 난이도)
+      // 목표 완주시간 — 디폴트와 완화값의 중간 난이도. 편차로 순위 다툼.
+      targetTime: parTime * (0.875 + Math.random() * 0.325),   // ≈ par×0.875~1.20 (중간)
       progress: 0,
       finished: false,
       finishTime: null,
