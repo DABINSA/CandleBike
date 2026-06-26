@@ -8,7 +8,7 @@
 import { CONFIG } from '../config.js';
 import { t } from '../i18n.js';
 import { IS_TOSS, effectiveAdMode } from '../toss.js';
-import { attachTossBanner } from '../tossAds.js';
+import { setupTossBanner } from '../tossAds.js';
 
 // 토스 인앱에서는 외부광고(AdSense/하우스) 금지 → 'off' 로 강제. 그 외엔 CONFIG.AD_MODE 그대로.
 // 단, 토스에선 토스 인앱 배너 광고(TossAds)를 슬롯에 붙인다(플레이 하단 · 결과 화면).
@@ -34,11 +34,10 @@ export function houseAdMarkup(variant = 'banner') {
 
 export function renderHouseAd(el, variant) {
   if (!el) return;
-  if (IS_TOSS) {                                  // 토스: 자리별 토스 배너(홈/결과)
+  if (IS_TOSS) {                                  // 토스: 자리별 네이티브 배너 오버레이(홈/결과)
     const grp = variant === 'result' ? CONFIG.TOSS_AD?.bannerResult
       : variant === 'banner' ? CONFIG.TOSS_AD?.bannerHome : '';
-    if (grp) { el.style.display = ''; attachTossBanner(el, grp); }
-    else el.style.display = 'none';
+    setupTossBanner(el, grp, { height: 76 });     // grp 없거나 미지원이면 내부에서 숨김
     return;
   }
   if (AD_MODE === 'off') { el.style.display = 'none'; return; }
@@ -50,10 +49,8 @@ export function renderHouseAd(el, variant) {
 export function initPlayBanner() {
   const banner = document.getElementById('ad-banner');
   if (!banner) return;
-  if (IS_TOSS) {  // 토스 배너(플레이 자리)
-    const grp = CONFIG.TOSS_AD?.bannerPlay;
-    if (grp) { banner.style.display = 'flex'; attachTossBanner(banner, grp); }
-    else banner.style.display = 'none';
+  if (IS_TOSS) {  // 토스 네이티브 배너(플레이 하단)
+    setupTossBanner(banner, CONFIG.TOSS_AD?.bannerPlay, { height: 64 });
     return;
   }
   if (AD_MODE === 'off') { banner.style.display = 'none'; return; }
@@ -108,8 +105,8 @@ export function showRewardedAd() {
   });
 }
 
-// 토스 '결과 보기 전' 배너 게이트 — #screen-ad 에 토스 배너 노출 + 2초 후 '결과 보기'.
-// CONFIG.TOSS_AD.bannerPre 가 있을 때만 main 에서 호출.
+// 토스 '결과 보기 전' 게이트 — #screen-ad 에 큰 이미지형 배너 노출 + 5초 후 '결과 보기'.
+// CONFIG.TOSS_AD.bannerPre(이미지 강조 그룹) 가 있을 때만 main 에서 호출.
 export function tossPreResultGate() {
   return new Promise((resolve) => {
     const screen = document.getElementById('screen-ad');
@@ -117,10 +114,11 @@ export function tossPreResultGate() {
     const timerEl = document.getElementById('ad-timer');
     const btn = document.getElementById('btn-skip-ad');
     if (video) {
-      video.innerHTML = `<span class="ad-tag">AD</span><div class="toss-banner-slot"></div>`;
-      attachTossBanner(video.querySelector('.toss-banner-slot'), CONFIG.TOSS_AD?.bannerPre);
+      video.innerHTML = `<span class="ad-tag">AD</span><div id="toss-pre-slot"></div>`;
+      // 이미지형(결과 보기 전) — 큰 박스 사이즈로 예약(280px). 셸 InlineAd 가 채움.
+      setupTossBanner(video.querySelector('#toss-pre-slot'), CONFIG.TOSS_AD?.bannerPre, { height: 280 });
     }
-    let remain = 2;
+    let remain = 5;
     if (timerEl) timerEl.textContent = remain;
     btn.disabled = true; btn.textContent = t.seeResultsLocked;
     const iv = setInterval(() => {

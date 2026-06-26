@@ -19,6 +19,7 @@ import * as audio from './audio.js';
 import { IS_TOSS, effectiveAdMode, requestTossLogin, requestTossRewardAd, IS_TOSS_REWARD_READY, requestTossShareReward, IS_TOSS_SHARE_READY, logTossEvent } from './toss.js';
 import { initClarity } from './analytics/clarity.js';
 import { recordVisit } from './analytics/beacon.js';
+import { refreshTossAdSlots } from './tossAds.js';   // 화면 전환 시 토스 배너 좌표 재통지
 import './tune.js';   // ?tune=1 일 때만 물리 튜닝 패널 표시
 
 // 토스 인앱에서는 외부광고 금지 → 광고/결과 게이트 'off'(결과 즉시 공개).
@@ -48,6 +49,7 @@ const $ = (id) => document.getElementById(id);
 const screens = ['home', 'loading', 'play', 'ad', 'result'];
 function show(name) {
   screens.forEach((s) => $(`screen-${s}`).classList.toggle('active', s === name));
+  refreshTossAdSlots();   // 토스: 화면 바뀌면 배너 슬롯 좌표 즉시 재통지(숨김/표시 갱신)
 }
 
 let selected = null;     // { symbol, name }

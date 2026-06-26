@@ -480,6 +480,18 @@ body {
 .ad-countdown { color: var(--muted); margin-bottom: 16px; }
 #ad-timer { color: var(--neon); font-weight: 800; font-size: 18px; }
 
+/* ===== 토스 네이티브 배너 placeholder (셸 InlineAd 가 이 위에 얹힘) ===== */
+/* 스크롤 중/광고 없을 때 보이는 빈 카드 — 높이는 setupTossBanner 가 inline 으로 예약. */
+.toss-ad-slot {
+  position: relative; width: 100%; border-radius: 12px; overflow: hidden;
+  background: var(--panel); border: 1px solid var(--panel-border);
+  display: flex; align-items: center; justify-content: center;
+}
+.toss-ad-label { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .04em; }
+/* 결과 보기 전 이미지형 배너 — 고정 16/10 비율 해제하고 슬롯(280px) 높이를 그대로 사용 */
+.ad-reward-video:has(#toss-pre-slot) { aspect-ratio: auto; height: auto; border: none; background: transparent; }
+#toss-pre-slot { width: 100%; }
+
 /* ===== 결과 ===== */
 .result-inner { width: 100%; max-width: 420px; text-align: center; overflow-y: auto; max-height: 100vh; padding: 24px 0; }
 .result-card {

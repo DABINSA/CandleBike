@@ -1,24 +1,26 @@
 // CandleRider 미니앱 공용 웹뷰 셸 — candlebike.vercel.app 을 WebView로 로딩.
 // 토스 환경 마커 주입 + 뒤로가기 처리 + UA 마커 + 네이티브 브리지(appLogin).
 // ⚠️ @granite-js/native/react-native-webview 의 WebView 사용(토스 호스트 링크 모듈).
-import { useEffect, useRef, useState } from 'react';
+import { Component, useEffect, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useBackHandler } from '@granite-js/react-native';
+import { useBackHandler, IOScrollView } from '@granite-js/react-native';
 import { WebView } from '@granite-js/native/react-native-webview';
-import { appLogin, loadFullScreenAd, showFullScreenAd, contactsViral, Analytics } from '@apps-in-toss/framework';
+import { appLogin, loadFullScreenAd, showFullScreenAd, contactsViral, Analytics, InlineAd } from '@apps-in-toss/framework';
 
 const SITE = 'https://candlerider.2nt4soft.com';
 
 // 페이지 로드 전 주입: 사이트가 토스 인앱 환경을 감지(src/toss.js)해
 // 외부광고(AdSense/하우스 자리)를 끄고 결과 게이트를 건너뛰도록 마커 설정.
-//  __APPS_IN_TOSS_REWARD__ : 리워드 광고 브리지 지원(새 .ait)
-//  __APPS_IN_TOSS_SHARE__  : 공유 리워드(contactsViral) 브리지 지원(새 .ait)
-//  __APPS_IN_TOSS_EVENT__  : 핵심지표 커스텀 이벤트(logEvent) 브리지 지원(새 .ait)
+//  __APPS_IN_TOSS_REWARD__    : 리워드 광고 브리지 지원(새 .ait)
+//  __APPS_IN_TOSS_SHARE__     : 공유 리워드(contactsViral) 브리지 지원(새 .ait)
+//  __APPS_IN_TOSS_EVENT__     : 핵심지표 커스텀 이벤트(logEvent) 브리지 지원(새 .ait)
+//  __APPS_IN_TOSS_BANNER_AD__ : 네이티브 배너(InlineAd) 오버레이 지원(새 .ait)
 const INJECT_BEFORE = `
   window.__APPS_IN_TOSS__ = true;
   window.__APPS_IN_TOSS_REWARD__ = true;
   window.__APPS_IN_TOSS_SHARE__ = true;
   window.__APPS_IN_TOSS_EVENT__ = true;
+  window.__APPS_IN_TOSS_BANNER_AD__ = true;
   true;
 `;
 
@@ -31,6 +33,19 @@ type LogItem = { id: string; name: string; params?: Record<string, unknown> };
 // 셸→웹 회신: window.__onTossBridgeMessage(JSON{ requestId, ok, data?, error? })
 type BridgeRequest = { type?: string; requestId?: string; params?: Record<string, unknown> };
 
+// 배너 광고 오버레이 — web-framework 배너는 셸 WebView 안에서 동작 안 해(esm.sh 차단),
+// 웹이 placeholder 좌표를 통지하면 셸이 그 위에 네이티브 InlineAd 를 얹는다(모두의웨딩 방식).
+type AdSlot = { slotId: string; adGroupId: string; top: number; left: number; width: number; height: number; inViewport: boolean };
+type AdOverlay = { scrolling: boolean; slots: AdSlot[] };
+
+// InlineAd 렌더 실패가 앱 전체를 죽이지 않게 격리 — 실패 시 아무것도 안 그림.
+class AdErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(err: unknown) { console.error('[InlineAd] render error (swallowed):', err); }
+  render() { return this.state.failed ? null : this.props.children; }
+}
+
 export function WebShell({ path }: { path: string }) {
   const ref = useRef<WebView>(null);
   // 웹뷰 히스토리 뒤로가기 가능 여부(최신값을 ref로 보관 → 핸들러 재등록 불필요)
@@ -38,6 +53,8 @@ export function WebShell({ path }: { path: string }) {
   // 핵심지표 이벤트 발사 큐(웹→브리지 logEvent → 짧게 렌더 → on-mount 발사 → 제거)
   const [logQueue, setLogQueue] = useState<LogItem[]>([]);
   const logSeq = useRef(0);
+  // 배너 광고 오버레이 — 웹이 멈췄을 때 보낸 슬롯 좌표 위에 네이티브 InlineAd 를 얹는다.
+  const [adOverlay, setAdOverlay] = useState<AdOverlay>({ scrolling: false, slots: [] });
 
   // 토스 뒤로가기(하드웨어/네비 바) → 웹뷰 히스토리가 있으면 그쪽 먼저, 없으면 토스가 닫도록.
   // 자체 뒤로가기 버튼을 따로 두지 않아 "뒤로가기 버튼 중복" 거절 사유도 피함.
@@ -63,6 +80,12 @@ export function WebShell({ path }: { path: string }) {
   const onMessage = async (e: { nativeEvent: { data: string } }) => {
     let msg: BridgeRequest;
     try { msg = JSON.parse(e.nativeEvent.data); } catch { return; }
+    // 배너 오버레이 통지(단방향, requestId 없음) — 슬롯 좌표/표시 상태 갱신.
+    if (msg?.type === 'adOverlay') {
+      const m = msg as unknown as { scrolling?: boolean; slots?: AdSlot[] };
+      setAdOverlay({ scrolling: !!m.scrolling, slots: Array.isArray(m.slots) ? m.slots : [] });
+      return;
+    }
     if (!msg?.type || !msg?.requestId) return;
     const { type, requestId } = msg;
     try {
@@ -158,6 +181,29 @@ export function WebShell({ path }: { path: string }) {
           <View style={styles.hiddenLog} />
         </Analytics.Impression>
       ))}
+
+      {/* 배너 광고 오버레이 — 웹뷰 위에 네이티브 InlineAd 를 슬롯 좌표에 정렬해 얹음.
+          box-none: 광고 영역 외 터치는 웹뷰로 통과. 스크롤 중/뷰포트 밖이면 언마운트(떨림·잘못된 노출 방지). */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+        {adOverlay.slots.map((s) => {
+          const show = !adOverlay.scrolling && s.inViewport;
+          if (!show) return null;
+          return (
+            <View
+              key={s.slotId}
+              pointerEvents="auto"
+              style={{ position: 'absolute', top: s.top, left: s.left, width: s.width, height: s.height || 76 }}
+            >
+              {/* InlineAd 내부 ImpressionArea 는 IOContext(IOScrollView) 안에서만 동작 → IOScrollView 로 감쌈 */}
+              <AdErrorBoundary>
+                <IOScrollView style={{ flex: 1 }} scrollEnabled={false} showsVerticalScrollIndicator={false}>
+                  <InlineAd adGroupId={s.adGroupId} variant="card" />
+                </IOScrollView>
+              </AdErrorBoundary>
+            </View>
+          );
+        })}
+      </View>
     </View>
   );
 }

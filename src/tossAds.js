@@ -1,68 +1,89 @@
-// 토스 인앱 배너 광고 (WebView SDK: @apps-in-toss/web-framework).
-// 셸 작업 불필요 — 웹에서 직접 슬롯에 배너를 부착한다. 토스 환경에서만 동작하고,
-// 웹/비토스나 SDK 미지원(구버전 셸)에선 isSupported()=false 라 조용히 no-op(웹 영향 0).
-//
-// 무빌드 사이트라 SDK 를 ESM CDN(esm.sh)에서 동적 import 한다.
-// 🔴 광고그룹 ID는 호출부에서 자리별로 전달(CONFIG.TOSS_AD.bannerHome/Play/Result/Pre).
+// 토스 인앱 네이티브 배너 광고(InlineAd) — 셸 오버레이 방식.
+// 🔴 web-framework(TossAds.attachBanner)는 granite 셸 WebView 안에서 동작 안 함
+//    (외부 esm.sh 모듈 로드 차단 / 토스 웹 호스트 부재) → 폐기.
+// 대신 모두의웨딩 검증 방식: 웹은 placeholder 자리(빈 div)에 높이만 예약하고,
+// 그 화면 좌표를 셸에 통지 → 셸이 그 위에 네이티브 InlineAd 를 얹는다(WebShell.tsx).
+//   웹→셸 통지(단방향): postMessage(JSON{ type:'adOverlay', scrolling, slots:[{slotId,adGroupId,top,left,width,height,inViewport}] })
 
 import { IS_TOSS } from './toss.js';
 
-const SDK_URL = 'https://esm.sh/@apps-in-toss/web-framework@2.9.2';
+// 셸이 배너 오버레이를 처리하는지(=__APPS_IN_TOSS_BANNER_AD__ 마커 든 새 .ait).
+// 구버전 셸/웹이면 false → 배너 자리 자체를 숨김(빈칸도 없음).
+export const IS_TOSS_BANNER_READY = (() => {
+  try { return typeof window !== 'undefined' && window.__APPS_IN_TOSS_BANNER_AD__ != null; }
+  catch { return false; }
+})();
 
-let _initPromise = null;          // TossAds | null
-const _attached = new WeakMap();  // el → attach handle
+const slots = new Map();   // slotId -> { el, adGroupId }
+let installed = false;
+let scrollingNow = false;
+let idleTimer = null;
+let lastScrollAt = 0;
+let lastPayload = '';       // 동일 통지 중복 전송 방지(셸 깜빡임 차단)
 
-// SDK 로드 + 초기화(1회). 실패/미지원이면 null.
-function ensureInit() {
-  if (!IS_TOSS) return Promise.resolve(null);
-  if (_initPromise) return _initPromise;
-  _initPromise = (async () => {
-    try {
-      const { TossAds } = await import(/* @vite-ignore */ SDK_URL);
-      if (!TossAds?.initialize?.isSupported?.()) return null;   // 구버전 셸/웹 → no-op
-      const ok = await new Promise((resolve) => {
-        TossAds.initialize({
-          callbacks: {
-            onInitialized: () => resolve(true),
-            onInitializationFailed: (e) => { console.warn('TossAds init 실패', e); resolve(false); },
-          },
-        });
-      });
-      return ok ? TossAds : null;
-    } catch (e) {
-      console.warn('TossAds 로드 실패', e);
-      return null;
-    }
-  })();
-  return _initPromise;
-}
-
-// 슬롯 엘리먼트에 토스 배너 부착. adGroup(자리별 광고그룹 ID) 필요. 없으면/토스 아니면 false.
-export async function attachTossBanner(el, adGroup) {
-  if (!IS_TOSS || !el || !adGroup) return false;
-  const TossAds = await ensureInit();
-  if (!TossAds) return false;
-  detachTossBanner(el);
-  el.innerHTML = '';
-  el.style.display = '';
-  try {
-    const handle = TossAds.attachBanner(adGroup, el, {
-      theme: 'auto', tone: 'blackAndWhite', variant: 'expanded',
-      callbacks: {
-        onNoFill: () => {},                                  // 광고 없음 → 빈 슬롯(무해)
-        onAdFailedToRender: (p) => console.warn('배너 렌더 실패', p?.error?.message),
-      },
+function postAdOverlay(scrolling) {
+  if (typeof window === 'undefined') return;
+  const rn = window.ReactNativeWebView;
+  if (!rn || !rn.postMessage) return;
+  const vh = window.innerHeight || 0;
+  const vw = window.innerWidth || 0;
+  const M = 120;   // 뷰포트 여유 — 미세 레이아웃 변동에 inViewport 깜빡임 방지
+  const list = [];
+  for (const [slotId, s] of slots) {
+    const r = s.el.getBoundingClientRect();
+    list.push({
+      slotId,
+      adGroupId: s.adGroupId,
+      top: Math.round(r.top),
+      left: Math.round(r.left),
+      width: Math.round(r.width),
+      height: Math.round(r.height),
+      // 화면 밖(다른 screen 이라 display:none → rect 0)이면 false → 셸이 언마운트.
+      inViewport: r.width > 0 && r.height > 0 && r.bottom > -M && r.top < vh + M && r.right > 0 && r.left < vw,
     });
-    _attached.set(el, handle);
-    return true;
-  } catch (e) {
-    console.warn('attachBanner 실패', e);
-    return false;
   }
+  const payload = JSON.stringify({ type: 'adOverlay', scrolling, slots: list });
+  if (payload === lastPayload) return;
+  lastPayload = payload;
+  rn.postMessage(payload);
 }
 
-export function detachTossBanner(el) {
-  if (!el) return;
-  const h = _attached.get(el);
-  if (h) { try { h.destroy(); } catch { /* noop */ } _attached.delete(el); }
+function ensureInstalled() {
+  if (installed || typeof window === 'undefined') return;
+  installed = true;
+  const onScroll = () => {
+    lastScrollAt = Date.now();
+    if (!scrollingNow) { scrollingNow = true; postAdOverlay(true); }   // 스크롤 시작=숨김
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => { scrollingNow = false; postAdOverlay(false); }, 160);  // 멈춤=재배치
+  };
+  // capture:true → 내부 overflow 스크롤(홈/결과)도 잡음.
+  window.addEventListener('scroll', onScroll, { passive: true, capture: true });
+  window.addEventListener('resize', () => postAdOverlay(false), { passive: true });
+  // 비동기 콘텐츠/이미지 로드로 인한 레이아웃 변동 대비 주기 재스캔(스크롤 중 아닐 때만).
+  setInterval(() => { if (!scrollingNow && Date.now() - lastScrollAt > 200) postAdOverlay(false); }, 1000);
+}
+
+// 배너 슬롯 설정 — placeholder el 에 높이 예약 + 셸 오버레이 대상에 등록.
+// height: 예약/광고 높이(px). 작은 배너 ~76, 이미지형(결과 보기 전) ~280.
+// 토스 + 배너셸 + 광고그룹ID 있을 때만 동작. 그 외엔 el 숨김(빈칸 제거).
+export function setupTossBanner(el, adGroupId, { height = 76 } = {}) {
+  if (!el) return false;
+  if (!IS_TOSS || !IS_TOSS_BANNER_READY || !adGroupId) { el.style.display = 'none'; return false; }
+  const slotId = el.id || `toss-ad-${slots.size + 1}`;
+  el.style.display = '';
+  el.style.minHeight = `${height}px`;
+  el.classList.add('toss-ad-slot');
+  el.innerHTML = '<span class="toss-ad-label">광고</span>';   // 셸 광고 뒤 placeholder(스크롤 중 보임)
+  ensureInstalled();
+  slots.set(slotId, { el, adGroupId });
+  setTimeout(() => postAdOverlay(false), 0);   // 레이아웃 잡힌 뒤 1회 통지
+  return true;
+}
+
+// 화면 전환(show) 후 좌표 재통지 — 스크롤/리사이즈가 안 나는 screen 전환을 즉시 반영.
+export function refreshTossAdSlots() {
+  if (!installed) return;
+  postAdOverlay(false);
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => postAdOverlay(false));
 }
