@@ -51,8 +51,8 @@ export function createGhosts(count, parTime, names) {
       itemBoost,
       itemDbl: Math.random() < 0.35,
       itemPhase: Math.random() < 0.3,
-      // 목표 완주시간 — 살짝 하향(예전보다 느림). 편차로 순위 다툼.
-      targetTime: parTime * (0.95 + Math.random() * 0.35),   // ≈ par×0.95~1.30
+      // 목표 완주시간 — par보다 빠르게(중간 이상 실력). 편차로 순위 다툼.
+      targetTime: parTime * (0.8 + Math.random() * 0.3),    // ≈ par×0.80~1.10 (이전 난이도)
       progress: 0,
       finished: false,
       finishTime: null,
@@ -70,10 +70,8 @@ export function createGhosts(count, parTime, names) {
 export function updateGhosts(ghosts, dt, elapsed) {
   for (const g of ghosts) {
     if (g.finished) continue;
-    // 출발 가속 — 보통은 천천히 붙고(처음부터 안 빠르게), 초반 부스터 보유 고스트만 즉시 풀속.
-    const ramp = g.itemBoost ? 1 : Math.min(1, 0.45 + elapsed / 3);
     const mul = 1 + 0.1 * Math.sin(elapsed * g._wob + g._phase);   // ±10% 완만한 흔들림
-    g.progress += (ramp * mul * (g._speedScale || 1) / g.targetTime) * dt;
+    g.progress += (mul * (g._speedScale || 1) / g.targetTime) * dt;
     if (g.progress >= 1) { g.progress = 1; g.finished = true; g.finishTime = elapsed; }
   }
 }
