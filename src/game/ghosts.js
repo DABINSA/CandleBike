@@ -47,10 +47,10 @@ export function createGhosts(count, parTime, names) {
       name,
       color: colors[i] || '#ff6b6b',
       vehicle: Math.random() < skinRate ? GHOST_SKINS[Math.floor(Math.random() * GHOST_SKINS.length)] : 'moto',
-      // 보이는 아이템(연출용): 초반 부스터 / 이단점프(장애물 더 높이 넘음) / 보호막(버블)
+      // 보이는 아이템(연출용): 초반 부스터 / 이단점프(장애물 더 높이) / 장애물 통과(반투명 관통)
       itemBoost,
       itemDbl: Math.random() < 0.35,
-      itemShield: Math.random() < 0.3,
+      itemPhase: Math.random() < 0.3,
       // 목표 완주시간 — 살짝 하향(예전보다 느림). 편차로 순위 다툼.
       targetTime: parTime * (0.95 + Math.random() * 0.35),   // ≈ par×0.95~1.30
       progress: 0,

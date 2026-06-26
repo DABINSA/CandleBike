@@ -242,11 +242,9 @@ export class Game {
     }
     this._badLandCd = Math.max(0, (this._badLandCd || 0) - dt);
     if (badLand && this._softLandLeft > 0) {
-      // 착지 보호(소모품/퍽) — 나쁜 착지 1회 무효 후 소진. 보호막 버블 연출.
+      // 착지 보호(소모품/퍽) — 나쁜 착지 1회 무효 후 소진(다음 착지부터 다시 패널티)
       this._softLandLeft -= 1;
-      this._shieldFx = 1;
       this._toast(`🪂 ${t.itemSoftland}`, '#2ce6c4');
-      audio.sfx.boost();
     } else if (badLand) {
       if (this._badLandCd <= 0) {      // 쿨다운: 착지 실패 1회 후 2.5초간은 재패널티 없음(튕김 연타 방지)
         this.fuel = Math.max(0, this.fuel - 3);   // 착지 실패 패널티: -3초 (트릭 보너스 없음)
@@ -301,13 +299,14 @@ export class Game {
     this._flash = Math.max(0, this._flash - dt * 1.4);
     this._shake = Math.max(0, this._shake - dt * 1.8);
     this._boostFx = Math.max(0, (this._boostFx || 0) - dt * 2.2);
-    this._shieldFx = Math.max(0, (this._shieldFx || 0) - dt * 1.2);   // 보호막 버블 페이드
+    this._phaseFx = Math.max(0, (this._phaseFx || 0) - dt * 0.7);   // 장애물 통과 버블 페이드
     const tnow = performance.now();
     this._eventBodies = this._eventBodies.filter((eb) => {
       // 벽 중심을 지나는 순간, 차체가 벽 위로 넘어갔는지 기록(터널링/관통은 보너스 제외)
       if (!eb._crossed && bx >= eb.x) {
         eb._crossed = true;
         eb._over = this.bike.position.y < eb.y - eb.h * 0.4;
+        if (eb.phasing) this._phaseFx = 1;   // 통과하는 순간 얇은 보호막 버블 발동
       }
       const passed = bx > eb.x + 95;
       if (passed || tnow - eb.born > 14000) {
@@ -681,7 +680,7 @@ export class Game {
       isStatic: true, isSensor: phasing, friction: 1, label: 'event-wall', render: { visible: false },
     });
     Matter.Composite.add(this.world, wall);
-    this._eventBodies.push({ body: wall, x: ev.x, y: ev.y, h, event: ev.event, born: performance.now() });
+    this._eventBodies.push({ body: wall, x: ev.x, y: ev.y, h, event: ev.event, born: performance.now(), phasing });
   }
 
   _toast(text, color) {
@@ -818,13 +817,17 @@ export class Game {
         if (Math.abs(d) <= JW && Math.abs(d) < Math.abs(nearD)) { near = eb; nearD = d; }
       }
       if (near) {
-        if (g._wallX !== near.x) { g._wallX = near.x; g._wallMiss = Math.random() < 0.18; }  // ~18% 실수(걸림)
-        const phase = Math.sin(((nearD + JW) / (2 * JW)) * Math.PI);
-        if (g._wallMiss) {
-          lift = 16 * phase;                                         // 못 넘고 살짝 들썩
-          if (Math.abs(nearD) < 16 && g._stumble <= 0) g._stumble = 0.55;   // 부딪힘 → 감속
+        if (g.itemPhase) {
+          lift = 0;                                                  // 장애물 통과 — 안 넘고 그냥 관통(버블)
         } else {
-          lift = ((near.h || 60) + 55 + (g.itemDbl ? 34 : 0)) * phase;   // 벽 높이+여유(이단점프 보유=더 높이)
+          if (g._wallX !== near.x) { g._wallX = near.x; g._wallMiss = Math.random() < 0.18; }  // ~18% 실수(걸림)
+          const phase = Math.sin(((nearD + JW) / (2 * JW)) * Math.PI);
+          if (g._wallMiss) {
+            lift = 16 * phase;                                       // 못 넘고 살짝 들썩
+            if (Math.abs(nearD) < 16 && g._stumble <= 0) g._stumble = 0.55;   // 부딪힘 → 감속
+          } else {
+            lift = ((near.h || 60) + 55 + (g.itemDbl ? 34 : 0)) * phase;   // 벽 높이+여유(이단점프 보유=더 높이)
+          }
         }
       } else {
         g._wallX = null;
@@ -876,23 +879,22 @@ export class Game {
         ctx.restore();
       }
       this._renderBike(ctx, pose, g.color, 0.92, g.vehicle);   // 고스트도 스킨 착용
-      if (g.itemShield) this._drawShield(ctx, x, py - 8);       // 보호막 버블(보유 고스트)
+      if (g.itemPhase) this._drawBubble(ctx, x, py - 8);        // 장애물 통과 = 얇은 버블(보유 고스트)
       this._drawNameTag(ctx, x, py - 38, g.name, g.color);
     }
   }
 
-  // 보호막 버블 — 청록 반투명 구체 + 글로우(플레이어/고스트 공용)
-  _drawShield(ctx, cx, cy, r = 36, alpha = 1) {
+  // 장애물 통과 — 얇은 보호막 버블(거의 투명한 채움 + 가는 외곽선). 플레이어/고스트 공용.
+  _drawBubble(ctx, cx, cy, r = 34, alpha = 1) {
     ctx.save();
     ctx.globalAlpha = alpha;
-    const grad = ctx.createRadialGradient(cx, cy, r * 0.4, cx, cy, r);
-    grad.addColorStop(0, 'rgba(108,240,255,0.04)');
-    grad.addColorStop(0.8, 'rgba(108,240,255,0.10)');
-    grad.addColorStop(1, 'rgba(108,240,255,0.22)');
+    const grad = ctx.createRadialGradient(cx, cy, r * 0.7, cx, cy, r);
+    grad.addColorStop(0, 'rgba(108,240,255,0)');
+    grad.addColorStop(1, 'rgba(108,240,255,0.07)');
     ctx.fillStyle = grad;
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = 'rgba(140,245,255,0.7)'; ctx.lineWidth = 2;
-    ctx.shadowColor = 'rgba(108,240,255,0.8)'; ctx.shadowBlur = 10;
+    ctx.strokeStyle = 'rgba(150,245,255,0.55)'; ctx.lineWidth = 1.2;
+    ctx.shadowColor = 'rgba(108,240,255,0.55)'; ctx.shadowBlur = 6;
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
   }
@@ -1020,8 +1022,8 @@ export class Game {
       px: chassis.position.x, py: chassis.position.y, ang: chassis.angle,
       wheels: [{ pos: toWorld(-44, 26), ang: rear.angle }, { pos: toWorld(44, 26), ang: front.angle }],
     }, this.skinColor || '#2ce6c4', 1, this.vehicle);
-    // 보호막 버블 — 착지 보호 발동 시 잠깐 표시
-    if (this._shieldFx > 0) this._drawShield(ctx, chassis.position.x, chassis.position.y - 8, 40, this._shieldFx);
+    // 장애물 통과 — 통과 순간 얇은 보호막 버블 잠깐 표시
+    if (this._phaseFx > 0) this._drawBubble(ctx, chassis.position.x, chassis.position.y - 8, 40, Math.min(1, this._phaseFx + 0.3));
   }
 
   // 플레이어/고스트 공용 — 포즈(px,py,ang,wheels[rear,front]) + accent 색. vehicle≠moto면 다른 탈것 렌더.
