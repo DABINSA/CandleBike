@@ -53,8 +53,10 @@ export function WebShell({ path }: { path: string }) {
   // 핵심지표 이벤트 발사 큐(웹→브리지 logEvent → 짧게 렌더 → on-mount 발사 → 제거)
   const [logQueue, setLogQueue] = useState<LogItem[]>([]);
   const logSeq = useRef(0);
-  // 배너 광고 오버레이 — 웹이 멈췄을 때 보낸 슬롯 좌표 위에 네이티브 InlineAd 를 얹는다.
+  // 배너 광고 오버레이(좌표형) — '결과 보기 전' 큰 이미지 배너 전용(스크롤 없는 게이트).
   const [adOverlay, setAdOverlay] = useState<AdOverlay>({ scrolling: false, slots: [] });
+  // 고정 배너 — 홈/플레이/결과 하단 고정(스크롤 추적 안 함 → 깜빡임 없음). 화면당 1개.
+  const [banner, setBanner] = useState<{ adGroupId: string; position: string; height: number } | null>(null);
 
   // 토스 뒤로가기(하드웨어/네비 바) → 웹뷰 히스토리가 있으면 그쪽 먼저, 없으면 토스가 닫도록.
   // 자체 뒤로가기 버튼을 따로 두지 않아 "뒤로가기 버튼 중복" 거절 사유도 피함.
@@ -84,6 +86,12 @@ export function WebShell({ path }: { path: string }) {
     if (msg?.type === 'adOverlay') {
       const m = msg as unknown as { scrolling?: boolean; slots?: AdSlot[] };
       setAdOverlay({ scrolling: !!m.scrolling, slots: Array.isArray(m.slots) ? m.slots : [] });
+      return;
+    }
+    // 고정 배너 통지(단방향) — 자리별 하단 고정 배너 표시/숨김.
+    if (msg?.type === 'tossBanner') {
+      const m = msg as unknown as { adGroupId?: string; position?: string; height?: number };
+      setBanner(m.adGroupId ? { adGroupId: m.adGroupId, position: m.position || 'bottom', height: m.height || 64 } : null);
       return;
     }
     if (!msg?.type || !msg?.requestId) return;
@@ -204,6 +212,23 @@ export function WebShell({ path }: { path: string }) {
           );
         })}
       </View>
+
+      {/* 고정 배너 — 화면 하단(또는 상단)에 고정. 스크롤 추적 안 함 → 깜빡임 없음.
+          box-none: 배너 외 터치는 웹뷰로 통과. */}
+      {banner && (
+        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+          <View
+            pointerEvents="auto"
+            style={[styles.fixedBanner, banner.position === 'top' ? { top: 0 } : { bottom: 0 }, { height: banner.height || 64 }]}
+          >
+            <AdErrorBoundary>
+              <IOScrollView style={{ flex: 1 }} scrollEnabled={false} showsVerticalScrollIndicator={false}>
+                <InlineAd adGroupId={banner.adGroupId} variant="card" />
+              </IOScrollView>
+            </AdErrorBoundary>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -213,4 +238,5 @@ const styles = StyleSheet.create({
   webview: { flex: 1 },
   // 이벤트 발사 컴포넌트는 보이지 않게(레이아웃 영향 0).
   hiddenLog: { position: 'absolute', width: 0, height: 0, opacity: 0 },
+  fixedBanner: { position: 'absolute', left: 0, right: 0 },
 });

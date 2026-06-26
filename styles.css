@@ -488,9 +488,12 @@ body {
   display: flex; align-items: center; justify-content: center;
 }
 .toss-ad-label { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .04em; }
-/* 결과 보기 전 이미지형 배너 — 고정 16/10 비율 해제하고 슬롯(280px) 높이를 그대로 사용 */
+/* 결과 보기 전 이미지형 배너 — 고정 16/10 비율 해제하고 슬롯(360px) 높이를 그대로 사용 */
 .ad-reward-video:has(#toss-pre-slot) { aspect-ratio: auto; height: auto; border: none; background: transparent; }
 #toss-pre-slot { width: 100%; }
+/* 토스: 하단 고정 배너(64px)가 가리지 않게 스크롤 화면 하단 여백 확보 */
+.in-toss #screen-home .home-inner { padding-bottom: 88px; }
+.in-toss .result-inner { padding-bottom: 88px; }
 
 /* ===== 결과 ===== */
 .result-inner { width: 100%; max-width: 420px; text-align: center; overflow-y: auto; max-height: 100vh; padding: 24px 0; }

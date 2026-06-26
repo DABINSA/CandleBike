@@ -34,12 +34,7 @@ export function houseAdMarkup(variant = 'banner') {
 
 export function renderHouseAd(el, variant) {
   if (!el) return;
-  if (IS_TOSS) {                                  // 토스: 자리별 네이티브 배너 오버레이(홈/결과)
-    const grp = variant === 'result' ? CONFIG.TOSS_AD?.bannerResult
-      : variant === 'banner' ? CONFIG.TOSS_AD?.bannerHome : '';
-    setupTossBanner(el, grp, { height: 76 });     // grp 없거나 미지원이면 내부에서 숨김
-    return;
-  }
+  if (IS_TOSS) { el.style.display = 'none'; return; }   // 토스: 인라인 자리 숨김 — 배너는 셸 하단 고정(main show)
   if (AD_MODE === 'off') { el.style.display = 'none'; return; }
   el.style.display = '';
   el.innerHTML = houseAdMarkup(variant);
@@ -49,10 +44,7 @@ export function renderHouseAd(el, variant) {
 export function initPlayBanner() {
   const banner = document.getElementById('ad-banner');
   if (!banner) return;
-  if (IS_TOSS) {  // 토스 네이티브 배너(플레이 하단)
-    setupTossBanner(banner, CONFIG.TOSS_AD?.bannerPlay, { height: 64 });
-    return;
-  }
+  if (IS_TOSS) { banner.style.display = 'none'; return; }   // 셸 하단 고정 배너로 대체(main show)
   if (AD_MODE === 'off') { banner.style.display = 'none'; return; }
   banner.style.display = 'flex';
 
@@ -115,8 +107,8 @@ export function tossPreResultGate() {
     const btn = document.getElementById('btn-skip-ad');
     if (video) {
       video.innerHTML = `<span class="ad-tag">AD</span><div id="toss-pre-slot"></div>`;
-      // 이미지형(결과 보기 전) — 큰 박스 사이즈로 예약(280px). 셸 InlineAd 가 채움.
-      setupTossBanner(video.querySelector('#toss-pre-slot'), CONFIG.TOSS_AD?.bannerPre, { height: 280 });
+      // 이미지형(결과 보기 전) — 큰 박스로 예약(360px, 광고 잘림 방지). 셸 InlineAd 가 채움.
+      setupTossBanner(video.querySelector('#toss-pre-slot'), CONFIG.TOSS_AD?.bannerPre, { height: 360 });
     }
     let remain = 5;
     if (timerEl) timerEl.textContent = remain;

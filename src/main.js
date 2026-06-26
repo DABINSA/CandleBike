@@ -19,7 +19,7 @@ import * as audio from './audio.js';
 import { IS_TOSS, effectiveAdMode, requestTossLogin, requestTossRewardAd, IS_TOSS_REWARD_READY, requestTossShareReward, IS_TOSS_SHARE_READY, logTossEvent } from './toss.js';
 import { initClarity } from './analytics/clarity.js';
 import { recordVisit } from './analytics/beacon.js';
-import { refreshTossAdSlots } from './tossAds.js';   // 화면 전환 시 토스 배너 좌표 재통지
+import { refreshTossAdSlots, showTossBanner, hideTossBanner } from './tossAds.js';   // 토스 배너(고정/이미지)
 import './tune.js';   // ?tune=1 일 때만 물리 튜닝 패널 표시
 
 // 토스 인앱에서는 외부광고 금지 → 광고/결과 게이트 'off'(결과 즉시 공개).
@@ -49,7 +49,15 @@ const $ = (id) => document.getElementById(id);
 const screens = ['home', 'loading', 'play', 'ad', 'result'];
 function show(name) {
   screens.forEach((s) => $(`screen-${s}`).classList.toggle('active', s === name));
-  refreshTossAdSlots();   // 토스: 화면 바뀌면 배너 슬롯 좌표 즉시 재통지(숨김/표시 갱신)
+  refreshTossAdSlots();   // 결과 보기 전 이미지 배너(좌표 오버레이) 재통지
+  if (IS_TOSS) {
+    // 자리별 하단 고정 배너 — 화면당 1개, 스크롤 추적 안 함(깜빡임 없음).
+    // 'ad'(결과 보기 전)은 자체 큰 이미지 배너가 있어 하단 배너는 숨김.
+    if (name === 'home') showTossBanner(CONFIG.TOSS_AD?.bannerHome, { position: 'bottom', height: 64 });
+    else if (name === 'play') showTossBanner(CONFIG.TOSS_AD?.bannerPlay, { position: 'bottom', height: 64 });
+    else if (name === 'result') showTossBanner(CONFIG.TOSS_AD?.bannerResult, { position: 'bottom', height: 64 });
+    else hideTossBanner();
+  }
 }
 
 let selected = null;     // { symbol, name }
@@ -62,7 +70,7 @@ applyStatic();           // 정적 텍스트를 접속 언어로 채움
 initClarity();           // Microsoft Clarity (웹에서만, 토스 인앱 제외)
 recordVisit();           // 방문 비콘(/api/hit) — 웹+토스 방문/고유방문자 집계
 // 토스 인앱: 토스 헤더가 상단을 차지하므로 페이지 상단 safe-area 여백을 0으로(이중 여백 제거).
-if (IS_TOSS) document.documentElement.style.setProperty('--sat', '0px');
+if (IS_TOSS) { document.documentElement.style.setProperty('--sat', '0px'); document.body.classList.add('in-toss'); }
 
 // ---------------- 사운드 ----------------
 // 자동재생 정책: 첫 사용자 제스처에서 오디오 컨텍스트 깨우기

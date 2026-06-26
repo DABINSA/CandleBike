@@ -87,3 +87,15 @@ export function refreshTossAdSlots() {
   postAdOverlay(false);
   if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => postAdOverlay(false));
 }
+
+// ── 토스 고정 배너(InlineAd) — 화면 상단/하단 고정. 스크롤 추적 안 함 → 깜빡임 없음. ──
+// 셸이 position('top'|'bottom') 에 네이티브 InlineAd 를 고정으로 얹는다(WebShell). 화면당 1개.
+// 인라인 좌표 오버레이(위)는 '결과 보기 전' 큰 이미지 전용으로만 남기고, 일반 배너는 이걸 쓴다.
+export function showTossBanner(adGroupId, { position = 'bottom', height = 64 } = {}) {
+  if (typeof window === 'undefined') return;
+  const rn = window.ReactNativeWebView;
+  if (!rn || !rn.postMessage) return;
+  if (!IS_TOSS || !IS_TOSS_BANNER_READY) return;
+  rn.postMessage(JSON.stringify({ type: 'tossBanner', adGroupId: adGroupId || '', position, height }));
+}
+export function hideTossBanner() { showTossBanner('', { position: 'bottom', height: 0 }); }
