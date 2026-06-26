@@ -225,7 +225,7 @@ export function WebShell({ path }: { path: string }) {
             style={[styles.fixedBanner, banner.position === 'top' ? { top: 12 } : { bottom: 12 }, { height: banner.height || 64 }]}
           >
             <AdErrorBoundary>
-              <IOScrollView style={{ flex: 1 }} scrollEnabled={false} showsVerticalScrollIndicator={false}>
+              <IOScrollView style={styles.bannerInner} scrollEnabled={false} showsVerticalScrollIndicator={false}>
                 <InlineAd adGroupId={banner.adGroupId} variant="card" />
               </IOScrollView>
             </AdErrorBoundary>
@@ -242,5 +242,8 @@ const styles = StyleSheet.create({
   // 이벤트 발사 컴포넌트는 보이지 않게(레이아웃 영향 0).
   hiddenLog: { position: 'absolute', width: 0, height: 0, opacity: 0 },
   // 고정 배너 — 좌우/상하 마진 + 둥근 카드(4모서리 라운드).
-  fixedBanner: { position: 'absolute', left: 12, right: 12, borderRadius: 16, overflow: 'hidden' },
+  // 🔴 backgroundColor 必: Android 가 clipToOutline 을 적용해 네이티브 광고의 '아래' 모서리까지 깎이게 함.
+  fixedBanner: { position: 'absolute', left: 12, right: 12, borderRadius: 16, overflow: 'hidden', backgroundColor: '#0d1320' },
+  // 안쪽 스크롤뷰에도 동일 라운드 — 네이티브 광고 표면을 한 번 더 클립.
+  bannerInner: { flex: 1, borderRadius: 16, overflow: 'hidden' },
 });
