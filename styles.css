@@ -171,6 +171,14 @@ body {
 .item-btn.buy-btn { background: linear-gradient(180deg, #1b3a36, #13302c); border-color: var(--gold); color: var(--gold); display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
 .item-btn.buy-btn:disabled { background: var(--bg); border-color: var(--panel-border); color: var(--muted); }
 
+/* 전체순위 보기 — 상단 뒤로가기 버튼 */
+.lb-back {
+  align-self: flex-start; background: var(--panel); border: 1px solid var(--panel-border);
+  color: var(--text); border-radius: 10px; padding: 8px 14px; font-weight: 800; font-size: 13px;
+  cursor: pointer; margin-bottom: 10px;
+}
+.lb-back:active { transform: scale(.96); }
+
 /* 완주 토큰 보상 연출 — 폭죽 + "+N" 팝 */
 .token-cele { position: fixed; inset: 0; z-index: 100000; pointer-events: none; display: flex; align-items: center; justify-content: center; transition: opacity .5s; }
 .token-cele.out { opacity: 0; }

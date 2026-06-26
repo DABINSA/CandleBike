@@ -219,10 +219,12 @@ export class Game {
       this.bike.jump(); audio.sfx.jump();
       this._jumpBuf = 0; this._coyote = 0;
     } else if (jumpEdge && !grounded && this._coyote <= 0 && this._airJumpsLeft > 0) {
-      // 더블 점프(소모품) — 공중에서 탭하면 1회 추가 점프 후 소진
-      this.bike.jump(); audio.sfx.jump();
+      // 더블 점프 — 공중에서 위로 + 전방 추진(가속 끊기지 않고 쭉 이어지게)
+      this.bike.jump();
+      this.bike.boost(6);          // 전방 모멘텀 유지 → 빠른 상태로 점프가 이어짐
+      audio.sfx.jump();
       this._airJumpsLeft -= 1; this._jumpBuf = 0;
-      this._boostFx = Math.max(this._boostFx || 0, 0.6);
+      this._boostFx = Math.max(this._boostFx || 0, 0.7);
       this._toast(`⏫ ${t.itemDbljump}`, '#2ce6c4');
     }
     this._prevJump = this.bike.input.jump;
@@ -240,9 +242,11 @@ export class Game {
     }
     this._badLandCd = Math.max(0, (this._badLandCd || 0) - dt);
     if (badLand && this._softLandLeft > 0) {
-      // 착지 보호(소모품/퍽) — 나쁜 착지 1회 무효 후 소진(다음 착지부터 다시 패널티)
+      // 착지 보호(소모품/퍽) — 나쁜 착지 1회 무효 후 소진. 보호막 버블 연출.
       this._softLandLeft -= 1;
+      this._shieldFx = 1;
       this._toast(`🪂 ${t.itemSoftland}`, '#2ce6c4');
+      audio.sfx.boost();
     } else if (badLand) {
       if (this._badLandCd <= 0) {      // 쿨다운: 착지 실패 1회 후 2.5초간은 재패널티 없음(튕김 연타 방지)
         this.fuel = Math.max(0, this.fuel - 3);   // 착지 실패 패널티: -3초 (트릭 보너스 없음)
@@ -297,6 +301,7 @@ export class Game {
     this._flash = Math.max(0, this._flash - dt * 1.4);
     this._shake = Math.max(0, this._shake - dt * 1.8);
     this._boostFx = Math.max(0, (this._boostFx || 0) - dt * 2.2);
+    this._shieldFx = Math.max(0, (this._shieldFx || 0) - dt * 1.2);   // 보호막 버블 페이드
     const tnow = performance.now();
     this._eventBodies = this._eventBodies.filter((eb) => {
       // 벽 중심을 지나는 순간, 차체가 벽 위로 넘어갔는지 기록(터널링/관통은 보너스 제외)
@@ -819,7 +824,7 @@ export class Game {
           lift = 16 * phase;                                         // 못 넘고 살짝 들썩
           if (Math.abs(nearD) < 16 && g._stumble <= 0) g._stumble = 0.55;   // 부딪힘 → 감속
         } else {
-          lift = ((near.h || 60) + 55) * phase;                      // 벽 높이+여유만큼 깔끔히 넘김
+          lift = ((near.h || 60) + 55 + (g.itemDbl ? 34 : 0)) * phase;   // 벽 높이+여유(이단점프 보유=더 높이)
         }
       } else {
         g._wallX = null;
@@ -870,9 +875,26 @@ export class Game {
         }
         ctx.restore();
       }
-      this._renderBike(ctx, pose, g.color, 0.92);
+      this._renderBike(ctx, pose, g.color, 0.92, g.vehicle);   // 고스트도 스킨 착용
+      if (g.itemShield) this._drawShield(ctx, x, py - 8);       // 보호막 버블(보유 고스트)
       this._drawNameTag(ctx, x, py - 38, g.name, g.color);
     }
+  }
+
+  // 보호막 버블 — 청록 반투명 구체 + 글로우(플레이어/고스트 공용)
+  _drawShield(ctx, cx, cy, r = 36, alpha = 1) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    const grad = ctx.createRadialGradient(cx, cy, r * 0.4, cx, cy, r);
+    grad.addColorStop(0, 'rgba(108,240,255,0.04)');
+    grad.addColorStop(0.8, 'rgba(108,240,255,0.10)');
+    grad.addColorStop(1, 'rgba(108,240,255,0.22)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(140,245,255,0.7)'; ctx.lineWidth = 2;
+    ctx.shadowColor = 'rgba(108,240,255,0.8)'; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
   }
 
   // 색상 유틸 — accent 에서 밝게/어둡게(gradient용), rgba(glow용)
@@ -998,6 +1020,8 @@ export class Game {
       px: chassis.position.x, py: chassis.position.y, ang: chassis.angle,
       wheels: [{ pos: toWorld(-44, 26), ang: rear.angle }, { pos: toWorld(44, 26), ang: front.angle }],
     }, this.skinColor || '#2ce6c4', 1, this.vehicle);
+    // 보호막 버블 — 착지 보호 발동 시 잠깐 표시
+    if (this._shieldFx > 0) this._drawShield(ctx, chassis.position.x, chassis.position.y - 8, 40, this._shieldFx);
   }
 
   // 플레이어/고스트 공용 — 포즈(px,py,ang,wheels[rear,front]) + accent 색. vehicle≠moto면 다른 탈것 렌더.

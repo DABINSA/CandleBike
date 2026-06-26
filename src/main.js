@@ -221,13 +221,6 @@ const garageModal = $('garage-modal');
 let garageTab = 'consum';   // 기본 탭: 소모품 먼저
 let acquiring = false;
 
-function renderPreview() {
-  const cv = $('garage-preview');
-  if (!cv) return;
-  if (garageTab === 'consum') { cv.style.display = 'none'; return; }
-  cv.style.display = '';
-  try { drawPreview(cv.getContext('2d'), Items.equippedVehicle(), Items.equippedColor(), cv.width, cv.height); } catch {}
-}
 // 탈것 기본 퍽 → 소모품 이모지+이름 배지 텍스트
 function perkText(perk) {
   return Object.keys(perk || {}).map((id) => {
@@ -292,7 +285,6 @@ function renderGarage() {
     const srb = $('share-reward-btn');
     if (srb) srb.onclick = () => doShareReward();
   }
-  renderPreview();
   if (garageTab === 'vehicles') paintVehicleThumbs();
 }
 function openGarage(tab) {
@@ -806,6 +798,7 @@ function renderMultiResult(result) {
 let regPromise = null;
 async function showResult(result) {
   show('result');
+  $('lb-back').hidden = true;   // 일반 결과 화면에선 전체순위 전용 뒤로가기 숨김
   // 완주 보상 연출 — 폭죽 + "+10" 카운트업(한 번만)
   if (result.completed && !result._celebrated) {
     result._celebrated = true;
@@ -1002,10 +995,16 @@ $('btn-retry').onclick = () => {
 $('btn-home').onclick = () => { show('home'); input.value = ''; selected = null; $('btn-start').disabled = true; };
 $('btn-leaderboard-home').onclick = async () => {
   show('result');
+  // 전체 순위만 — 직전 플레이 결과(카드/공유/멀티 등수/배너)는 모두 숨김
   $('result-card').style.display = 'none';
   document.querySelector('.share-row').style.display = 'none';
+  $('multi-result').hidden = true;
+  $('ad-result').style.display = 'none';
+  $('lb-back').hidden = false;        // 상단 뒤로가기 노출(전체순위 보기 모드)
   await renderLeaderboard(null);
 };
+// 전체순위 화면 상단 뒤로가기 → 메인으로
+$('lb-back').onclick = () => { show('home'); resetResultView(); };
 
 // ---------------- 데이터 모드 안내 ----------------
 const PROVIDER_LABELS = { yahoo: t.providerYahoo, mock: t.providerMock, twelvedata: t.providerTd, proxy: t.providerProxy };
@@ -1025,8 +1024,14 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-// 결과 화면 재진입 시 카드 다시 보이게
-$('btn-retry').addEventListener('click', () => { $('result-card').style.display = ''; document.querySelector('.share-row').style.display = ''; });
-$('btn-home').addEventListener('click', () => { $('result-card').style.display = ''; document.querySelector('.share-row').style.display = ''; });
+// 결과 화면 재진입 시 카드/공유/배너 다시 보이게 + 전체순위 전용 요소 숨김
+function resetResultView() {
+  $('result-card').style.display = '';
+  document.querySelector('.share-row').style.display = '';
+  $('ad-result').style.display = '';
+  $('lb-back').hidden = true;
+}
+$('btn-retry').addEventListener('click', resetResultView);
+$('btn-home').addEventListener('click', resetResultView);
 
 show('home');

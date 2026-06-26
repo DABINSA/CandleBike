@@ -32,34 +32,48 @@ function pickUnique(arr, n) {
 // 더미 닉네임 n개 (매칭 화면과 레이스 고스트가 같은 이름을 쓰도록 미리 뽑아 공유).
 export function pickGhostNames(n) { return pickUnique(NAMES, n); }
 
+// 고스트도 입는 탈것 스킨 풀(moto=기본=스킨없음 취급). game.js 가 g.vehicle 로 렌더.
+const GHOST_SKINS = ['horse', 'giraffe', 'ostrich', 'camel', 'lion', 'elephant', 'dino'];
+
 // count 명의 고스트 생성. parTime = 중간 실력의 완주 목표시간(초). names 주면 그걸 사용.
 export function createGhosts(count, parTime, names) {
   names = (names && names.length) ? names : pickUnique(NAMES, count);
   count = names.length;
   const colors = pickUnique(COLORS, count);
-  return names.map((name, i) => ({
-    name,
-    color: colors[i] || '#ff6b6b',
-    // 목표 완주시간 — par보다 빠르게(중간 이상 실력). 편차로 순위 다툼.
-    targetTime: parTime * (0.8 + Math.random() * 0.3),    // ≈ par×0.80~1.10 (평균 ~0.95)
-    progress: 0,
-    finished: false,
-    finishTime: null,
-    _phase: Math.random() * Math.PI * 2,
-    _wob: 0.7 + Math.random() * 0.8,     // 완만한 흔들림 주기
-    _speedScale: 1,                       // 지형 반응 속도(내리막↑/오르막↓) — game이 매 프레임 갱신
-    // 연출 상태: 장애물 점프 아치(px) / 걸림 감속 / 백플립 / 트릭 부스트
-    obAir: 0, flip: 0, flipDur: 0, flipDir: 0, flipTurns: 0, _cool: 0,
-    _wallX: null, _wallMiss: false, _stumble: 0, _boost: 0,
-  }));
+  const skinRate = 0.3 + Math.random() * 0.4;   // 이 레이스에서 스킨 착용 비율 30~70%
+  return names.map((name, i) => {
+    const itemBoost = Math.random() < 0.5;       // 절반 정도 초반 부스터(보유자만 빠르게 출발)
+    return {
+      name,
+      color: colors[i] || '#ff6b6b',
+      vehicle: Math.random() < skinRate ? GHOST_SKINS[Math.floor(Math.random() * GHOST_SKINS.length)] : 'moto',
+      // 보이는 아이템(연출용): 초반 부스터 / 이단점프(장애물 더 높이 넘음) / 보호막(버블)
+      itemBoost,
+      itemDbl: Math.random() < 0.35,
+      itemShield: Math.random() < 0.3,
+      // 목표 완주시간 — 살짝 하향(예전보다 느림). 편차로 순위 다툼.
+      targetTime: parTime * (0.95 + Math.random() * 0.35),   // ≈ par×0.95~1.30
+      progress: 0,
+      finished: false,
+      finishTime: null,
+      _phase: Math.random() * Math.PI * 2,
+      _wob: 0.7 + Math.random() * 0.8,
+      _speedScale: 1,
+      obAir: 0, flip: 0, flipDur: 0, flipDir: 0, flipTurns: 0, _cool: 0,
+      _wallX: null, _wallMiss: false, _stumble: 0,
+      _boost: itemBoost ? 1 : 0,   // 초반 부스터 보유자만 출발 부스트 연출
+    };
+  });
 }
 
 // 고스트 전진 — 플레이어와 무관한 독립 페이스. 지형 반응(_speedScale)으로 평지·내리막에선 빨라진다.
 export function updateGhosts(ghosts, dt, elapsed) {
   for (const g of ghosts) {
     if (g.finished) continue;
+    // 출발 가속 — 보통은 천천히 붙고(처음부터 안 빠르게), 초반 부스터 보유 고스트만 즉시 풀속.
+    const ramp = g.itemBoost ? 1 : Math.min(1, 0.45 + elapsed / 3);
     const mul = 1 + 0.1 * Math.sin(elapsed * g._wob + g._phase);   // ±10% 완만한 흔들림
-    g.progress += (mul * (g._speedScale || 1) / g.targetTime) * dt;
+    g.progress += (ramp * mul * (g._speedScale || 1) / g.targetTime) * dt;
     if (g.progress >= 1) { g.progress = 1; g.finished = true; g.finishTime = elapsed; }
   }
 }
