@@ -52,11 +52,11 @@ export const CONFIG = {
   // 토스 인앱 광고 그룹 ID — 자리별로 분리(자리별 수익 비교용). 콘솔 발급 ID(ait.v2.live.xxxx)로 교체.
   // 비우면 그 자리는 노출 안 함(배너) / 즉시 지급(리워드). 토스 환경에서만 동작(웹 영향 0).
   TOSS_AD: {
-    reward:       '',   // 리워드: 차고 아이템 획득
-    bannerHome:   '',   // 배너: 홈
-    bannerPlay:   '',   // 배너: 플레이 하단
-    bannerResult: '',   // 배너: 결과 화면
-    bannerPre:    '',   // 배너: 결과 보기 전
+    reward:       'ait.v2.live.881b4ca3bd644ff5',   // 리워드: 차고 금화 획득(토큰 +100)
+    bannerHome:   'ait.v2.live.e2a69b1cea1d4287',   // 배너: 홈
+    bannerPlay:   'ait.v2.live.933c580e68c94185',   // 배너: 플레이 하단
+    bannerResult: 'ait.v2.live.204aca6e8ebf46ec',   // 배너: 결과 화면
+    bannerPre:    'ait.v2.live.f9e393ed93c54f70',   // 배너: 결과 보기 전(이미지 강조)
   },
 
   // 토스 공유 리워드(contactsViral) — 콘솔 「마케팅>공유 리워드」 발급 리워드 ID(UUID).
