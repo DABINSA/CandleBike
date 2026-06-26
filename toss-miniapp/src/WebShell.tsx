@@ -174,6 +174,9 @@ export function WebShell({ path }: { path: string }) {
         domStorageEnabled
         onMessage={onMessage}
         onNavigationStateChange={(s) => { canGoBackRef.current = s.canGoBack; }}
+        // 오버스크롤(당겨서 바운스) 끔 — 좌표 오버레이(결과 보기 전 이미지)가 어긋나 뒤 placeholder 가 보이는 것 방지.
+        overScrollMode="never"
+        bounces={false}
         injectedJavaScriptBeforeContentLoaded={INJECT_BEFORE}
         // UA에 마커 추가 → 서버(사이트)가 토스 인앱 요청을 식별(서버측 분기용).
         applicationNameForUserAgent="AppsInTossWebView"
@@ -219,7 +222,7 @@ export function WebShell({ path }: { path: string }) {
         <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
           <View
             pointerEvents="auto"
-            style={[styles.fixedBanner, banner.position === 'top' ? { top: 0 } : { bottom: 0 }, { height: banner.height || 64 }]}
+            style={[styles.fixedBanner, banner.position === 'top' ? { top: 12 } : { bottom: 12 }, { height: banner.height || 64 }]}
           >
             <AdErrorBoundary>
               <IOScrollView style={{ flex: 1 }} scrollEnabled={false} showsVerticalScrollIndicator={false}>
@@ -238,5 +241,6 @@ const styles = StyleSheet.create({
   webview: { flex: 1 },
   // 이벤트 발사 컴포넌트는 보이지 않게(레이아웃 영향 0).
   hiddenLog: { position: 'absolute', width: 0, height: 0, opacity: 0 },
-  fixedBanner: { position: 'absolute', left: 0, right: 0 },
+  // 고정 배너 — 좌우/상하 마진 + 둥근 카드(4모서리 라운드).
+  fixedBanner: { position: 'absolute', left: 12, right: 12, borderRadius: 16, overflow: 'hidden' },
 });

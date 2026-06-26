@@ -106,7 +106,7 @@ export function tossPreResultGate() {
     const timerEl = document.getElementById('ad-timer');
     const btn = document.getElementById('btn-skip-ad');
     if (video) {
-      video.innerHTML = `<span class="ad-tag">AD</span><div id="toss-pre-slot"></div>`;
+      video.innerHTML = `<div id="toss-pre-slot"></div>`;   // AD 태그/카드 없이 — 셸 네이티브 광고가 자체 '광고' 표기
       // 이미지형(결과 보기 전) — 큰 박스로 예약(360px, 광고 잘림 방지). 셸 InlineAd 가 채움.
       setupTossBanner(video.querySelector('#toss-pre-slot'), CONFIG.TOSS_AD?.bannerPre, { height: 360 });
     }
