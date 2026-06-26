@@ -676,8 +676,15 @@ function offerRevive(reason) {
 }
 
 // 부활용 광고 시청 → 보상(이어가기) 여부.
-// 웹: 하우스 리워드 스텁(screen-ad). 토스: 추후 리워드광고 브리지(광고그룹 발급 후 결선).
+// 토스: '이어하기' 리워드 광고(네이티브 전면) — 끝까지 봐야 부활. 웹/원스토어: 하우스 리워드 스텁(screen-ad).
 async function watchRewardForRevive() {
+  if (IS_TOSS && IS_TOSS_REWARD_READY && CONFIG.TOSS_AD?.revive) {
+    try {
+      const r = await requestTossRewardAd(CONFIG.TOSS_AD.revive);
+      logTossEvent('revive_ad', { rewarded: !!(r && r.rewarded) });
+      return !!(r && r.rewarded);
+    } catch (e) { console.warn('이어하기 광고', e); return false; }
+  }
   show('ad');
   let ok = false;
   try { ok = await showRewardedAd(); } catch { ok = false; }

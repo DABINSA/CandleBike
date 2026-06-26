@@ -53,6 +53,7 @@ export const CONFIG = {
   // 비우면 그 자리는 노출 안 함(배너) / 즉시 지급(리워드). 토스 환경에서만 동작(웹 영향 0).
   TOSS_AD: {
     reward:       'ait.v2.live.881b4ca3bd644ff5',   // 리워드: 차고 금화 획득(토큰 +100)
+    revive:       'ait.v2.live.ccaae169649a473b',   // 리워드: 게임 중 '광고 보고 이어가기'(부활)
     bannerHome:   'ait.v2.live.e2a69b1cea1d4287',   // 배너: 홈
     bannerPlay:   'ait.v2.live.933c580e68c94185',   // 배너: 플레이 하단
     bannerResult: 'ait.v2.live.204aca6e8ebf46ec',   // 배너: 결과 화면
