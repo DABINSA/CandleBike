@@ -630,3 +630,49 @@ body {
   20% { opacity: 1; transform: translateX(-50%) translateY(-6px) scale(1.1); }
   100% { opacity: 0; transform: translateX(-50%) translateY(-40px) scale(1); }
 }
+
+/* ============ 1위 달성 알림 띠 (오른→왼 흐름) ============ */
+/* 홈/결과 화면 상단에 표시. 이벤트 없으면 [hidden] 으로 숨김. */
+.rank-ticker {
+  position: relative;
+  width: 100%;
+  height: 34px;
+  margin: 0 0 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(255, 211, 77, .14), rgba(44, 230, 196, .10));
+  border: 1px solid rgba(255, 211, 77, .30);
+}
+.rank-ticker[hidden] { display: none; }
+.rt-track { flex: 1 1 auto; overflow: hidden; position: relative; height: 100%; }
+.rt-move {
+  position: absolute; top: 0; left: 0; height: 100%;
+  display: flex; align-items: center; white-space: nowrap;
+  will-change: transform;
+  animation: rt-scroll 26s linear infinite;
+}
+.rt-item {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600; color: var(--text);
+  padding: 0 22px;
+}
+.rt-item b { color: var(--gold); font-weight: 900; }
+.rt-item.mine b { color: var(--neon); }
+.rt-dot { color: var(--muted); font-size: 9px; }
+@keyframes rt-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+/* 새 1위가 들어올 때 띠 전체가 한 번 반짝 */
+.rank-ticker.flash { animation: rt-flash 1.1s ease; }
+@keyframes rt-flash {
+  0%, 100% { box-shadow: none; }
+  30% { box-shadow: 0 0 0 2px rgba(255, 211, 77, .55) inset, 0 0 20px rgba(255, 211, 77, .45); }
+}
+/* 접근성: 모션 최소화 선호 시 흐름 정지(첫 항목만 보임) */
+@media (prefers-reduced-motion: reduce) {
+  .rt-move { animation: none; }
+  .rank-ticker.flash { animation: none; }
+}

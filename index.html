@@ -65,6 +65,8 @@
         <button data-lang="en" id="lang-en">EN</button>
       </div>
       <div class="home-inner">
+        <!-- 1위 달성 알림 띠 (오른→왼 흐름) — 이벤트 없으면 hidden -->
+        <div id="rank-ticker-home" class="rank-ticker" hidden></div>
         <h1 class="logo" data-i18n="logo">📈🏍️ 캔들라이더</h1>
         <p class="tagline" data-i18n-html="tagline">검색한 주식의 <b>5년 등락 그래프</b>가 코스가 됩니다.<br/>변동성을 버티고 <b>최고 거리</b>에 도전하세요!</p>
 
@@ -191,6 +193,8 @@
     <!-- ============ 결과 / 순위 ============ -->
     <section id="screen-result" class="screen">
       <div class="result-inner">
+        <!-- 1위 달성 알림 띠 (오른→왼 흐름) — 이벤트 없으면 hidden -->
+        <div id="rank-ticker-result" class="rank-ticker" hidden></div>
         <button id="lb-back" class="lb-back" hidden>← 메인으로</button>
         <div id="result-card" class="result-card">
           <div class="rc-symbol" id="rc-symbol">AAPL</div>

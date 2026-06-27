@@ -56,6 +56,9 @@ const DICT = {
     seeResultsLocked: '결과 보기 🔒',
     seeResultsUnlocked: '결과 보기 🔓',
     rankLine: (r, p) => `완주 <b>${r}</b>위 · 상위 <b>${p}</b>%`,
+    // 1등 달성 알림 띠 — who=닉네임, sym=종목명(또는 코드)
+    rankAchieved: (who, sym) => `<b>${who}</b> 님이 <b>${sym}</b>에서 1위를 달성했습니다 🏆`,
+    rankAchievedMe: (who, sym) => `🎉 내가 <b>${sym}</b>에서 1위를 달성했어요! 🏆`,
     timeFmt: (ms) => `${(ms / 1000).toFixed(1)}초`,
     timeUnit: '초',
     notFinished: '완주 실패 — 끝까지 달려야 순위에 올라요! 🏁',
@@ -208,6 +211,8 @@ const DICT = {
     seeResultsLocked: 'See results 🔒',
     seeResultsUnlocked: 'See results 🔓',
     rankLine: (r, p) => `Finish <b>#${r}</b> · Top <b>${p}</b>%`,
+    rankAchieved: (who, sym) => `<b>${who}</b> took <b>#1</b> on <b>${sym}</b> 🏆`,
+    rankAchievedMe: (who, sym) => `🎉 You took <b>#1</b> on <b>${sym}</b>! 🏆`,
     timeFmt: (ms) => `${(ms / 1000).toFixed(1)}s`,
     timeUnit: 's',
     notFinished: "Didn't finish — reach the end to make the leaderboard! 🏁",

@@ -41,7 +41,8 @@ export default async function handler(req, res) {
     // DB 함수 한 번 호출 = 레이트리밋 + insert + 순위계산
     const r = await sb('rpc/submit_score', {
       method: 'POST',
-      body: { p_nick: nick, p_symbol: symbol, p_score: score, p_ip: clientIp(req) },
+      // p_name: 표시용 종목명(한글 등) — 1위 달성 알림 띠에 종목을 예쁘게 보여주기 위함(선택).
+      body: { p_nick: nick, p_symbol: symbol, p_score: score, p_ip: clientIp(req), p_name: name },
     });
     if (!r.ok) { res.status(502).json({ error: 'rpc failed' }); return; }
     const out = await r.json();
