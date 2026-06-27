@@ -334,7 +334,7 @@ async function doShareReward() {
   Items.addTokens(amount);
   logTossEvent('share_reward', { tokens: amount });
   renderGarage(); syncPush();
-  showToast(t.tokenGain(amount));
+  celebrateTokens(amount, t.coinShare);
 }
 
 // 리워드 광고 보고 토큰 적립 — 토스: 실제 리워드 광고(끝까지 봐야 지급), 웹/원스토어: 5초 게이트.
@@ -363,7 +363,7 @@ async function watchAdForTokens() {
   syncPush();
   logTossEvent('ad_tokens', { amount: Items.AD_REWARD });
   acquiring = false;
-  showToast(t.tokenGain(Items.AD_REWARD));
+  celebrateTokens(Items.AD_REWARD, t.coinAd);
 }
 
 // 토큰으로 구매(탈것/소모품). 부족하면 안내.
@@ -945,7 +945,7 @@ $('btn-share').onclick = async () => {
       syncPush();                                     // 토큰 계정 동기화(토스/구글)
       updateTokenUI();
       logTossEvent('share_result_reward', { tokens: SHARE_RESULT_REWARD });
-      showToast(t.shareTokenReward(SHARE_RESULT_REWARD));
+      celebrateTokens(SHARE_RESULT_REWARD, t.coinShare);
     } else if (r === 'shared-copied') showToast(t.shareLinkCopied);
   }
 };
@@ -961,14 +961,15 @@ function showToast(msg, { top = false } = {}) {
   el._t = setTimeout(() => el.classList.remove('show'), 3800);
 }
 
-// 완주 토큰 보상 연출 — 폭죽(confetti) + 중앙 "+N" 카운트업. ~2.2초 후 사라짐.
-function celebrateTokens(amount) {
+// 토큰 보상 연출 — 폭죽(confetti) + 중앙 "+N" 카운트업. ~2.2초 후 사라짐.
+// label: 보상 사유(완주/공유/광고). 생략 시 완주 보상.
+function celebrateTokens(amount, label) {
   const layer = document.createElement('div');
   layer.className = 'token-cele';
   layer.innerHTML =
     `<canvas class="tc-canvas"></canvas>` +
     `<div class="tc-pop"><span class="coin tc-coin"></span>` +
-    `<div class="tc-amt">+0</div><div class="tc-label">${t.tokenEarned}</div></div>`;
+    `<div class="tc-amt">+0</div><div class="tc-label">${label || t.tokenEarned}</div></div>`;
   document.body.appendChild(layer);
   try { audio.sfx && audio.sfx.boost && audio.sfx.boost(); } catch {}
 
