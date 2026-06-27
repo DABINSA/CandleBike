@@ -219,9 +219,9 @@ export class Game {
       this.bike.jump(); audio.sfx.jump();
       this._jumpBuf = 0; this._coyote = 0;
     } else if (jumpEdge && !grounded && this._coyote <= 0 && this._airJumpsLeft > 0) {
-      // 더블 점프 — 공중에서 위로 + 전방 추진(가속 끊기지 않고 쭉 이어지게)
+      // 더블 점프 — 공중에서 위로 + 전방 모멘텀 '살짝'(과하면 붕 떠서 낙하가 느려 보임)
       this.bike.jump();
-      this.bike.boost(6);          // 전방 모멘텀 유지 → 빠른 상태로 점프가 이어짐
+      this.bike.boost(2.5);        // 공기저항으로 줄던 속도만 살짝 보전(launch 아님)
       audio.sfx.jump();
       this._airJumpsLeft -= 1; this._jumpBuf = 0;
       this._boostFx = Math.max(this._boostFx || 0, 0.7);
