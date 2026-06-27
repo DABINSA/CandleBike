@@ -944,6 +944,18 @@ async function renderLeaderboard(symbol, myId) {
 }
 
 // ---------------- 닉네임 모달 ----------------
+// 닉 허용 문자: 한글(음절+자모)·영문·숫자만. 그 외(특수문자·이모지)는 제거(에러 방지).
+const NICK_ALLOWED_RE = /[^0-9A-Za-z가-힣ㄱ-ㆎ]/g;
+function cleanNick(s) { return String(s || '').replace(NICK_ALLOWED_RE, ''); }
+// 입력창 실시간 필터 — 단, 한글 IME 조합 중엔 건드리지 않음(조합 깨짐 방지). 1회만 설치.
+(function setupNickFilter() {
+  const inp = $('nick-input'); if (!inp) return;
+  let composing = false;
+  const strip = () => { const c = cleanNick(inp.value); if (c !== inp.value) inp.value = c; };
+  inp.addEventListener('compositionstart', () => { composing = true; });
+  inp.addEventListener('compositionend', () => { composing = false; strip(); });
+  inp.addEventListener('input', () => { if (!composing) strip(); });
+})();
 function promptNick(onSave, { prefill = '' } = {}) {
   const modal = $('nick-modal');
   const inp = $('nick-input');
@@ -952,7 +964,7 @@ function promptNick(onSave, { prefill = '' } = {}) {
   modal.classList.add('active');
   inp.focus();
   $('nick-save').onclick = async () => {
-    const n = inp.value.trim() || randomNick();   // 비우고 저장해도 랜덤 닉 적용
+    const n = cleanNick(inp.value).trim() || randomNick();   // 특수문자 제거 + 비면 랜덤 닉
     // 금지어 검증(banned_words 직접 조회). 막히면 모달 유지 + 안내.
     // 조회 실패 시엔 통과 — 서버(/api/score·/api/toss-nick)가 백스톱으로 막음.
     const btn = $('nick-save');

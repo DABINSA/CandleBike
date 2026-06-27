@@ -43,7 +43,8 @@ export default async function handler(req, res) {
   const userKey = verifyToken(String(b.token || ''));
   if (!userKey) { res.status(401).json({ error: 'bad token' }); return; }
 
-  const nick = String(b.nick || '').trim().replace(/\s+/g, ' ').slice(0, NICK_MAX);
+  // 한글·영문·숫자만 허용(특수문자·이모지 제거)
+  const nick = String(b.nick || '').replace(/[^0-9A-Za-z가-힣ㄱ-ㆎ]/g, '').slice(0, NICK_MAX);
   if (!nick) { res.status(400).json({ error: 'empty nick' }); return; }
   // 금지어/차단닉 거부 — 클라가 안내 후 다른 닉 입력
   try { if (!(await checkNick(nick)).ok) { res.status(400).json({ error: 'bad nick' }); return; } } catch {}

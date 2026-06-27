@@ -23,7 +23,8 @@ export default async function handler(req, res) {
   b = b || {};
 
   // ---- 서버 검증 (프론트 검증은 우회되므로 여기서 재검증) ----
-  let nick = typeof b.nick === 'string' ? b.nick.trim().replace(/[ -]/g, '') : '';
+  // 한글·영문·숫자만 허용(특수문자·이모지 제거 — 표시/저장 에러 방지)
+  let nick = typeof b.nick === 'string' ? b.nick.replace(/[^0-9A-Za-z가-힣ㄱ-ㆎ]/g, '') : '';
   if (!nick) nick = randomNick();   // 빈 닉이면 '익명' 대신 랜덤 더미닉
   if (nick.length > NICK_MAX) nick = nick.slice(0, NICK_MAX);
   // 금지어/차단닉이면 랜덤 더미닉으로 대체(클라 우회 백스톱) — 순위판 오염 방지
