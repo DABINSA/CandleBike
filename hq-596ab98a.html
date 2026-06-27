@@ -147,6 +147,10 @@
       return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]; }); };
     var nf = function (n) { return (n == null ? 0 : n).toLocaleString('ko-KR'); };
     var ms = function (m) { return m == null ? '–' : (m / 1000).toFixed(1) + '초'; };
+    // 종목 셀: 이름 있으면 "이름 [코드]", 없으면 코드만. (이름은 rank_events 기반, 없을 수 있음)
+    var symCell = function (x) {
+      return (x.name ? esc(x.name) + ' ' : '') + '<span class="pill">' + esc(x.symbol) + '</span>';
+    };
     function kst(iso) {
       if (!iso) return '–';
       try {
@@ -219,7 +223,7 @@
       }).join('') || '<tr><td colspan="2" class="muted">아직 없음</td></tr>';
 
       $('recent-body').innerHTML = (d.recent_scores || []).map(function (x) {
-        return '<tr><td>' + esc(x.nick) + '</td><td><span class="pill">' + esc(x.symbol) + '</span></td>' +
+        return '<tr><td>' + esc(x.nick) + '</td><td>' + symCell(x) + '</td>' +
                '<td class="num">' + ms(x.score) + '</td><td class="num">' + kst(x.created_at) + '</td></tr>';
       }).join('') || '<tr><td colspan="4" class="muted">아직 없음</td></tr>';
 
@@ -231,11 +235,11 @@
       var rows;
       if (which === 'today') {
         rows = (d.top_symbols_today || []).map(function (x) {
-          return '<tr><td><span class="pill">' + esc(x.symbol) + '</span></td><td class="num">' + nf(x.plays) + '</td><td class="num">–</td></tr>';
+          return '<tr><td>' + symCell(x) + '</td><td class="num">' + nf(x.plays) + '</td><td class="num">–</td></tr>';
         });
       } else {
         rows = (d.top_symbols || []).map(function (x) {
-          return '<tr><td><span class="pill">' + esc(x.symbol) + '</span></td><td class="num">' + nf(x.plays) + '</td><td class="num">' + ms(x.best_ms) + '</td></tr>';
+          return '<tr><td>' + symCell(x) + '</td><td class="num">' + nf(x.plays) + '</td><td class="num">' + ms(x.best_ms) + '</td></tr>';
         });
       }
       $('top-body').innerHTML = rows.join('') || '<tr><td colspan="3" class="muted">아직 없음</td></tr>';

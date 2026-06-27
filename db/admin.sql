@@ -57,6 +57,22 @@ end $$;
 
 revoke all on function record_visit(text, boolean) from public, anon, authenticated;
 
+-- ── 종목명 헬퍼 ─────────────────────────────────────────────
+-- scores 엔 코드만 있어 표시용 한글명이 없다. rank_events(1위 달성 기록)에 남은
+-- 최근 이름을 종목명으로 사용(없으면 NULL → 어드민은 코드만 표시). rank_events 없으면 NULL.
+create or replace function sym_name(p_symbol text)
+returns text
+language sql
+stable
+set search_path = public
+as $$
+  select case when to_regclass('public.rank_events') is null then null else (
+    select re.name from rank_events re
+    where re.symbol = p_symbol and re.name is not null
+    order by re.created_at desc limit 1
+  ) end
+$$;
+
 -- ── (3) 어드민 통계 RPC ─────────────────────────────────────
 -- /api/admin/stats 가 토큰 검증 후 service_role 로 호출. 모든 지표를 jsonb 하나로 반환.
 -- toss_users/courses 는 없을 수도 있어 to_regclass 로 존재할 때만 집계(토스 출시 전 안전).
@@ -136,13 +152,13 @@ begin
     -- 가장 많이 플레이(완주)된 종목 — 전체 / 오늘 (시드 제외)
     'top_symbols', (
       select coalesce(jsonb_agg(t), '[]'::jsonb) from (
-        select symbol, count(*) plays, min(score) best_ms
+        select symbol, count(*) plays, min(score) best_ms, sym_name(symbol) name
         from scores where nick <> all(v_seed) group by symbol order by count(*) desc, symbol limit 10
       ) t
     ),
     'top_symbols_today', (
       select coalesce(jsonb_agg(t), '[]'::jsonb) from (
-        select symbol, count(*) plays
+        select symbol, count(*) plays, sym_name(symbol) name
         from scores where nick <> all(v_seed) and (created_at at time zone 'Asia/Seoul')::date = v_today
         group by symbol order by count(*) desc, symbol limit 10
       ) t
@@ -153,7 +169,7 @@ begin
     -- 최근 활동 (시드 제외)
     'recent_scores', (
       select coalesce(jsonb_agg(t), '[]'::jsonb) from (
-        select nick, symbol, score, created_at from scores where nick <> all(v_seed) order by created_at desc limit 25
+        select nick, symbol, score, created_at, sym_name(symbol) name from scores where nick <> all(v_seed) order by created_at desc limit 25
       ) t
     ),
 
