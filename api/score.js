@@ -10,7 +10,7 @@ import { checkNick, randomNick } from './_moderation.js';
 // score = 완주 시간(ms). 작을수록 빠름(상위). 비현실적 값 차단.
 const SCORE_MIN = 3_000;           // 3초 미만 완주는 불가능 → 위조 차단
 const SCORE_MAX = 1_000_000;       // 1000초 상한
-const NICK_MAX = 20;
+const NICK_MAX = 6;   // 닉 최대 6자(순위표 줄바꿈 방지)
 const SYMBOL_RE = /^[A-Z0-9.\-]{1,15}$/;
 
 export default async function handler(req, res) {

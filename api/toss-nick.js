@@ -9,7 +9,7 @@ import { sb, supaReady } from './_supa.js';
 import { checkNick } from './_moderation.js';
 
 const NICK_SECRET = process.env.TOSS_NICK_SECRET || '';
-const NICK_MAX = 20;
+const NICK_MAX = 6;   // 닉 최대 6자(순위표 줄바꿈 방지)
 
 const DEBUG = process.env.TOSS_DEBUG === '1';
 function verifyToken(token) {

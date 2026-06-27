@@ -917,6 +917,8 @@ async function registerAndRender(result, nick) {
   await renderLeaderboard(result.symbol, rankInfo.id);
 }
 
+// 닉 표시 6자 제한(줄바꿈 방지). 기존 6자 초과 닉도 표시만 자름(저장값은 그대로).
+function nick6(s) { return String(s || '').slice(0, 6); }
 // 리셋까지 남은 시간 포맷 (D일 HH:MM:SS)
 function fmtCountdown(ms) {
   let s = Math.max(0, Math.floor(ms / 1000));
@@ -933,7 +935,7 @@ function renderWeekHeader(champ) {
   let html = `<div class="lb-reset">🗓️ ${t.weeklyNote} · <span id="lb-cd">${fmtCountdown(nextResetMs() - Date.now())}</span></div>`;
   if (champ) {
     const veh = Items.vehicleEmoji(champ.vehicle);
-    const dispNick = ANON_NICKS.includes(champ.nick) ? t.anon : champ.nick;
+    const dispNick = nick6(ANON_NICKS.includes(champ.nick) ? t.anon : champ.nick);
     html +=
       `<div class="lb-king"><span class="lb-king-ico">👑</span>` +
       `<div class="lb-king-b"><div class="lb-king-lbl">${t.allTimeTop}</div>` +
@@ -967,20 +969,17 @@ async function renderLeaderboard(symbol, myId) {
   list.forEach((row, i) => {
     const li = document.createElement('li');
     if (row.id === myId) li.classList.add('me');
-    // 역대 1위는 '그 기록 한 줄'에만 👑 (닉 아닌 id 매칭 → 동일 닉의 다른 줄엔 안 뜸)
-    const isKing = champ && row.id != null && row.id === champ.id;
-    if (isKing) li.classList.add('king');
     const nm = lookupName(row.symbol);
     const symHtml = nm
       ? `${escapeHtml(nm)} <span class="lb-code">${escapeHtml(row.symbol)}</span>`
       : escapeHtml(row.symbol);
-    // 기본 익명 닉은 저장 시점 언어로 박혀 있으므로(예: '익명라이더') 보는 언어로 치환.
-    const dispNick = ANON_NICKS.includes(row.nick) ? t.anon : row.nick;
+    // 기본 익명 닉은 보는 언어로 치환 + 표시는 6자까지(줄바꿈 방지). 왕관은 상단 배너에만.
+    const dispNick = nick6(ANON_NICKS.includes(row.nick) ? t.anon : row.nick);
     const vehEmoji = Items.vehicleEmoji(row.vehicle);   // 그 판에 탄 탈것(구기록은 없음 → 생략)
     const rankDisp = i < 3 ? `<span class="lb-medal">${MEDAL[i]}</span>` : (i + 1);
     li.innerHTML =
       `<span class="lb-rank ${i < 3 ? 'medal' : ''}">${rankDisp}</span>` +
-      `<span class="lb-nick">${vehEmoji ? `<span class="lb-veh" title="탈것">${vehEmoji}</span>` : ''}${isKing ? '<span class="lb-crown" title="역대 1위">👑</span>' : ''}${escapeHtml(dispNick)}</span>` +
+      `<span class="lb-nick">${vehEmoji ? `<span class="lb-veh" title="탈것">${vehEmoji}</span>` : ''}<span class="lb-nm">${escapeHtml(dispNick)}</span></span>` +
       `<span class="lb-sym">${symHtml}</span>` +
       `<span class="lb-score">${t.timeFmt(row.score)}</span>`;
     ol.appendChild(li);
@@ -1009,7 +1008,7 @@ function promptNick(onSave, { prefill = '' } = {}) {
   modal.classList.add('active');
   inp.focus();
   $('nick-save').onclick = async () => {
-    const n = cleanNick(inp.value).trim() || randomNick();   // 특수문자 제거 + 비면 랜덤 닉
+    const n = cleanNick(inp.value).trim().slice(0, 6) || randomNick();   // 특수문자 제거 + 최대 6자 + 비면 랜덤
     // 금지어 검증(banned_words 직접 조회). 막히면 모달 유지 + 안내.
     // 조회 실패 시엔 통과 — 서버(/api/score·/api/toss-nick)가 백스톱으로 막음.
     const btn = $('nick-save');
