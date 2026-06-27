@@ -7,7 +7,7 @@ import { searchSymbols, getTrending, getProvider, activeMarket } from './stock/p
 import { getCourse, getLastCourseSource, currentPeriod } from './courseCache.js';
 import { Game } from './game/game.js';
 import { initPlayBanner, showRewardedAd, renderHouseAd, tossPreResultGate } from './ads/ads.js';
-import { submitScore, topScores, getNick, setNick, isRemote, allTimeTop, nextResetMs } from './leaderboard/leaderboard.js';
+import { submitScore, topScores, getNick, setNick, isRemote, nextResetMs } from './leaderboard/leaderboard.js';
 import { startRankTicker, registerTicker, showLocalRankEvent, showGhostRankEvent, repaintTicker } from './leaderboard/rankTicker.js';
 import { shareResult, saveCard } from './share/share.js';
 import * as Items from './items/items.js';
@@ -928,21 +928,11 @@ function fmtCountdown(ms) {
   const p = (n) => String(n).padStart(2, '0');
   return (d > 0 ? `${d}${t.dayUnit} ` : '') + `${p(h)}:${p(m)}:${p(sec)}`;
 }
-// 주간 헤더: 이번 주 안내(+실시간 카운트다운) + 👑 역대 1위(종목일 때)
+// 주간 헤더: 이번 주 안내 + 실시간 리셋 카운트다운(역대 1위 표시는 없앰 — 뉴비 진입장벽↓)
 let _cdTimer = null;
-function renderWeekHeader(champ) {
+function renderWeekHeader() {
   const wk = $('lb-week'); if (!wk) return;
-  let html = `<div class="lb-reset">🗓️ ${t.weeklyNote} · <span id="lb-cd">${fmtCountdown(nextResetMs() - Date.now())}</span></div>`;
-  if (champ) {
-    const veh = Items.vehicleEmoji(champ.vehicle);
-    const dispNick = nick6(ANON_NICKS.includes(champ.nick) ? t.anon : champ.nick);
-    html +=
-      `<div class="lb-king"><span class="lb-king-ico">👑</span>` +
-      `<div class="lb-king-b"><div class="lb-king-lbl">${t.allTimeTop}</div>` +
-      `<div class="lb-king-who">${veh ? `<span class="lb-veh">${veh}</span>` : ''}${escapeHtml(dispNick)}</div></div>` +
-      `<span class="lb-king-rec">${t.timeFmt(champ.score)}</span></div>`;
-  }
-  wk.innerHTML = html;
+  wk.innerHTML = `<div class="lb-reset">🗓️ ${t.weeklyNote} · <span id="lb-cd">${fmtCountdown(nextResetMs() - Date.now())}</span></div>`;
   // 리셋 카운트다운 실시간 갱신 — 헤더 그릴 때마다 (재)시작(매초). 요소 사라지면 정지.
   clearInterval(_cdTimer);
   _cdTimer = setInterval(() => {
@@ -955,10 +945,9 @@ async function renderLeaderboard(symbol, myId) {
   // 제목도 종목명 + 코드로 (이름 알 때). 예: "금호건설 (002990.KS) 순위"
   const titleNm = symbol ? lookupName(symbol) : null;
   $('lb-title').textContent = t.leaderboardTitle(symbol ? (titleNm ? `${titleNm} (${symbol})` : symbol) : null);
-  // 이번 주 순위(주간 윈도우) + 역대 1위(종목일 때) — 병렬 조회
-  const [list0, champ] = await Promise.all([topScores(symbol, 20), symbol ? allTimeTop(symbol) : null]);
-  renderWeekHeader(champ);
-  let list = list0;
+  // 이번 주 순위(주간 윈도우)
+  let list = await topScores(symbol, 20);
+  renderWeekHeader();
   // 멀티: 완주한 고스트 기록을 합쳐 같은 순위표에 보이게(표시 전용)
   if (symbol && multiGhostRows.length) {
     list = [...list, ...multiGhostRows].sort((a, b) => a.score - b.score).slice(0, 20);
