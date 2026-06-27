@@ -142,7 +142,7 @@ export class Game {
     const el = document.getElementById('controls-hint');
     if (!el) return;
     const touch = window.matchMedia('(hover: none)').matches || 'ontouchstart' in window;
-    el.textContent = touch ? t.hintTouch : t.hintKeys;
+    el.innerHTML = touch ? t.hintTouch : t.hintKeys;
     el.classList.add('show');
     clearTimeout(this._hintTimer);
     this._hintTimer = setTimeout(() => el.classList.remove('show'), 4000);
@@ -253,14 +253,15 @@ export class Game {
         this._badLandCd = 2.5;
       }
     } else if (flips > 0) {
-      // 플립 성공(깨끗한 착지) = 전방 부스트(카트라이더식). 싱글·멀티 동일. 뒷구르기는 1.5배 강하게.
+      // 플립 성공(깨끗한 착지) = 전방 부스트(카트라이더식). 백플립은 '강력 부스터'로 크게 보상(유도).
       this.flips += flips;
-      this.flipBonusM = (this.flipBonusM || 0) + Math.round(flips * FLIP_METERS * (trick.back ? 1.6 : 1));
-      const power = (7 + flips * 3.5) * (trick.back ? 1.5 : 1);
+      const back = trick.back;
+      this.flipBonusM = (this.flipBonusM || 0) + Math.round(flips * FLIP_METERS * (back ? 2.2 : 1));
+      const power = (7 + flips * 3.5) * (back ? 2.4 : 1);        // 백플립 부스트 1.5→2.4배
       this.bike.boost(power);
-      this._shake = Math.max(this._shake || 0, 0.8);             // 화면 흔들림
-      this._boostFx = 1;                                         // 청록 부스트 플래시
-      this._showTrick(flips, trick.back, 0, true);
+      this._shake = Math.max(this._shake || 0, back ? 1.2 : 0.8);   // 백플립은 더 큰 흔들림
+      this._boostFx = back ? 1.5 : 1;                               // 백플립은 더 강한 부스트 플래시
+      this._showTrick(flips, back, 0, true);
       audio.sfx.boost();
     }
     this._wasAir = !grounded;
@@ -661,7 +662,8 @@ export class Game {
 
   _showTrick(n, back, secs, boost) {
     const name = back ? t.backflip : t.frontflip;
-    const reward = boost ? `🚀 ${t.boostTrick}` : `+${secs}s`;
+    // 백플립은 '강력 부스터'를 더 눈에 띄게(유도)
+    const reward = boost ? (back ? `🚀🚀 ${t.boostTrick}!` : `🚀 ${t.boostTrick}`) : `+${secs}s`;
     this._toast(`${back ? '🔄 ' : ''}${t.flipCombo(n, name)}! ${reward}`, back ? '#ffd34d' : '#5b8cff');
   }
 
