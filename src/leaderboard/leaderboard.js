@@ -32,14 +32,15 @@ export function setNick(n) { localStorage.setItem('candlebike_nick', n); }
 // score 컬럼은 '완주 시간(ms)' 을 담는다(작을수록 좋음). 완주자만 호출됨.
 // 쓰기는 반드시 서버 라우트(/api/score, service_role)를 경유 — 클라 anon 직접 insert 금지.
 // (anon 키는 클라 번들에 노출되므로 직접 쓰기를 열면 기록 위조·스팸이 가능)
-export async function submitScore({ nick, symbol, timeMs }) {
+export async function submitScore({ nick, symbol, timeMs, name }) {
   const score = Math.round(timeMs);   // DB score = 완주 시간(ms)
   if (isConfigured()) {
     try {
       const r = await fetch('/api/score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nick, symbol, score }),
+        // name: 종목명(텔레그램 완주 핑 표시용 — DB엔 저장 안 함, 순위는 클라가 이름 캐시).
+        body: JSON.stringify({ nick, symbol, score, name }),
       });
       if (r.ok) return await r.json();
       console.warn('score API 실패, 로컬로 대체', r.status);

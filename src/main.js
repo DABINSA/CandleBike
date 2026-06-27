@@ -862,7 +862,7 @@ async function showResult(result) {
 async function registerAndRender(result, nick) {
   let rankInfo = { rank: '–', total: 0, percentile: '–', id: null };
   try {
-    rankInfo = await submitScore({ nick, symbol: result.symbol, timeMs: result.timeMs });
+    rankInfo = await submitScore({ nick, symbol: result.symbol, timeMs: result.timeMs, name: result.name || lookupName(result.symbol) || '' });
   } catch (e) { console.warn('순위 등록 실패', e); }
 
   lastResult.rank = rankInfo.rank;

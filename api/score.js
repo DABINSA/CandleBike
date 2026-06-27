@@ -29,6 +29,9 @@ export default async function handler(req, res) {
   const symbol = typeof b.symbol === 'string' ? b.symbol.trim().toUpperCase() : '';
   if (!SYMBOL_RE.test(symbol)) { res.status(400).json({ error: 'bad symbol' }); return; }
 
+  // 종목명 — 텔레그램 완주 핑 표시용(선택, DB 미저장). 길이 제한 + 트림.
+  const name = (typeof b.name === 'string' ? b.name.trim() : '').slice(0, 40);
+
   const score = Number(b.score);
   if (!Number.isFinite(score) || !Number.isInteger(score) || score < SCORE_MIN || score > SCORE_MAX) {
     res.status(400).json({ error: 'bad score' }); return;
@@ -53,7 +56,8 @@ export default async function handler(req, res) {
     const rankTxt = (out && out.rank)
       ? `전체 ${out.rank}위${out.percentile != null ? ` (상위 ${out.percentile}%)` : ''}`
       : '-';
-    await tgNotify(`🏁 <b>캔들라이더 완주!</b>\n\n· 닉: ${tgEscape(nick)}\n· 종목: ${tgEscape(symbol)}\n· 기록: ${sec}초\n· 순위: ${rankTxt}`);
+    const symTxt = name ? `${tgEscape(name)} (${tgEscape(symbol)})` : tgEscape(symbol);
+    await tgNotify(`🏁 <b>캔들라이더 완주!</b>\n\n· 닉: ${tgEscape(nick)}\n· 종목: ${symTxt}\n· 기록: ${sec}초\n· 순위: ${rankTxt}`);
     res.status(200).json(out);
   } catch (e) {
     res.status(502).json({ error: String(e) });
