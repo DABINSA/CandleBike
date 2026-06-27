@@ -3,11 +3,11 @@
 
 import { CONFIG } from './config.js';
 import { t, applyStatic, LANG, setLang, ANON_NICKS, randomNick } from './i18n.js';
-import { searchSymbols, getTrending, getProvider, activeMarket } from './stock/provider.js';
+import { searchSymbols, getTrending, getTrendingPool, getProvider, activeMarket } from './stock/provider.js';
 import { getCourse, getLastCourseSource, currentPeriod } from './courseCache.js';
 import { Game } from './game/game.js';
 import { initPlayBanner, showRewardedAd, renderHouseAd, tossPreResultGate } from './ads/ads.js';
-import { submitScore, topScores, getNick, setNick, isRemote, nextResetMs } from './leaderboard/leaderboard.js';
+import { submitScore, topScores, getNick, setNick, isRemote, nextResetMs, poolRankInfo } from './leaderboard/leaderboard.js';
 import { startRankTicker, registerTicker, showLocalRankEvent, showGhostRankEvent, repaintTicker } from './leaderboard/rankTicker.js';
 import { shareResult, saveCard } from './share/share.js';
 import * as Items from './items/items.js';
@@ -617,8 +617,8 @@ async function renderTrending() {
       div.className = 'trend-chip';
       div.innerHTML =
         `<div class="tc-main">` +
-        `<div class="tc-sym">${escapeHtml(item.symbol)}${item.hot ? ' <span class="tc-fire">🔥</span>' : ''}</div>` +
-        `<div class="tc-name">${escapeHtml(item.name || '')}</div>` +
+        `<div class="tc-name">${escapeHtml(item.name || item.symbol)}${item.hot ? ' <span class="tc-fire">🔥</span>' : ''}</div>` +
+        `<div class="tc-sym">${escapeHtml(item.symbol)}</div>` +
         `<div class="tc-diff">${diffBadge(item.symbol)}</div></div>` +
         right;
       div.onclick = () => launchMode(item);
@@ -642,6 +642,116 @@ function setTrendingTab(mode) {
 }
 document.getElementById('tab-gainers')?.addEventListener('click', () => setTrendingTab('gainers'));
 document.getElementById('tab-volume')?.addEventListener('click', () => setTrendingTab('volume'));
+
+// ---------------- 🎲 랜덤으로 시작 ----------------
+// 넓은 후보 풀(급등주 ~50 + 거래대금 ~50)에서 '아무도 안 달린 종목'을 우선,
+// 없으면 '1위 완주 시간이 느슨(=깨기 쉬운) 종목'을 함께 추천 → 1위 달성의 기쁨.
+let rndPool = null;          // { list, info:{symbol:{has,best}} } — 한 번 받아 캐시(재추첨 빠름)
+let rndPrev = new Set();     // 직전 추천 종목(재추첨 시 제외)
+let rndRolling = false;
+const rndSleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const rndPick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+async function buildRandomPool() {
+  const list = await getTrendingPool();
+  const info = await poolRankInfo(list.map((x) => x.symbol)).catch(() => ({}));
+  return { list, info: info || {} };
+}
+
+// 후보 2개 선정 — 가능하면 [순위없음 1 + 1위느슨 1], 한 종류뿐이면 같은 종류에서 2개.
+function pickRandomCourses() {
+  const { list, info } = rndPool;
+  const fresh = list.filter((x) => !rndPrev.has(x.symbol));
+  const pool = fresh.length >= 2 ? fresh : list;   // 후보 모자라면 제외 무시(계속 재추첨 가능)
+  const has = (s) => info[s] && info[s].has;
+  const bestOf = (s) => (info[s] && info[s].best != null) ? info[s].best : 0;
+  const unranked = pool.filter((x) => !has(x.symbol));
+  const ranked = pool.filter((x) => has(x.symbol)).sort((a, b) => bestOf(b.symbol) - bestOf(a.symbol)); // 느슨 우선
+
+  const picks = [];
+  const used = new Set();
+  const pushNew = () => {
+    const c = unranked.filter((x) => !used.has(x.symbol));
+    if (!c.length) return false;
+    const it = rndPick(c); used.add(it.symbol); picks.push({ type: 'new', item: it }); return true;
+  };
+  const pushBeat = () => {
+    const c = ranked.filter((x) => !used.has(x.symbol));
+    if (!c.length) return false;
+    const top = c.slice(0, Math.max(1, Math.ceil(c.length * 0.4)));   // 느슨 상위 40% 중 랜덤(변화)
+    const it = rndPick(top); used.add(it.symbol); picks.push({ type: 'beat', item: it, best: bestOf(it.symbol) }); return true;
+  };
+  pushNew(); pushBeat();
+  if (picks.length < 2 && !pushNew()) pushBeat();   // 한쪽이 비면 다른 종류로 2개까지
+  if (picks.length < 2 && !pushBeat()) pushNew();
+  picks.forEach((p) => rndPrev.add(p.item.symbol));
+  if (rndPrev.size > 12) rndPrev = new Set(Array.from(rndPrev).slice(-8));   // 과도하게 쌓이면 정리
+  return picks;
+}
+
+const msToSec = (ms) => (Math.round(ms / 100) / 10).toFixed(1);
+
+function renderRandomPicks(picks) {
+  const box = $('rnd-options');
+  box.innerHTML = '';
+  picks.forEach((p) => {
+    const it = p.item;
+    rememberName(it.symbol, it.name);
+    const chg = it.change != null ? `${it.change >= 0 ? '+' : ''}${it.change}%` : '';
+    const tag = p.type === 'new' ? t.randomTagNew : t.randomTagBeat;
+    const why = p.type === 'new' ? t.randomWhyNew : t.randomWhyBeat(msToSec(p.best));
+    const nm = it.name ? `${escapeHtml(it.name)}${chg ? ' · ' + chg : ''}` : escapeHtml(it.symbol);
+    const div = document.createElement('div');
+    div.className = `rnd-opt ${p.type}`;
+    div.innerHTML =
+      `<div class="rnd-opt-body">` +
+      `<span class="rnd-opt-tag">${tag}</span>` +
+      `<div class="rnd-opt-nm">${nm}</div>` +
+      `<div class="rnd-opt-sym">${escapeHtml(it.symbol)}</div>` +
+      `<div class="rnd-opt-why">${why}</div></div>` +
+      `<div class="rnd-opt-go">›</div>`;
+    div.onclick = () => { closeRandom(); launchMode({ symbol: it.symbol, name: it.name }); };
+    box.appendChild(div);
+  });
+}
+
+function showRandomState(state) {
+  $('rnd-rolling').style.display = state === 'rolling' ? '' : 'none';
+  $('rnd-result').style.display = state === 'result' ? '' : 'none';
+}
+
+async function rollRandom(ms) {
+  rndRolling = true;
+  showRandomState('rolling');
+  const started = Date.now();
+  try {
+    if (!rndPool) rndPool = await buildRandomPool();
+    if (!rndPool.list.length) throw new Error('empty pool');
+    const picks = pickRandomCourses();
+    if (!picks.length) throw new Error('no picks');
+    const wait = ms - (Date.now() - started);
+    if (wait > 0) await rndSleep(wait);
+    if (!$('random-overlay').classList.contains('active')) return;   // 그새 닫혔으면 중단
+    renderRandomPicks(picks);
+    showRandomState('result');
+  } catch (e) {
+    console.warn('랜덤 추천 실패', e);
+    rndPool = null;   // 다음 시도 때 재구성
+    closeRandom();
+    showToast(t.randomFail, { top: true });
+  } finally { rndRolling = false; }
+}
+
+function openRandom() {
+  $('random-overlay').classList.add('active');
+  renderHouseAd($('rnd-ad'), 'banner');   // 웹: 하우스 배너 / 토스: 숨김(셸 하단 배너가 이미 노출됨)
+  rollRandom(2000);                        // 첫 굴림 2초
+}
+function closeRandom() { $('random-overlay').classList.remove('active'); }
+
+$('tab-random')?.addEventListener('click', openRandom);
+$('rnd-close')?.addEventListener('click', closeRandom);
+$('rnd-reroll')?.addEventListener('click', () => { if (!rndRolling) rollRandom(700); });   // 재추첨은 짧게
 
 let playCtx = null;   // 재시작용 — 현재 플레이 중인 코스
 function startGame(series, symbol, name, opts = {}) {

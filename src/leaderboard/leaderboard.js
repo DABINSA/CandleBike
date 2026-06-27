@@ -108,4 +108,32 @@ export async function allTimeTop(symbol) {
   return arr[0] || null;
 }
 
+// 여러 종목의 '이번 주' 기록 유무 + 1위(최소 완주시간)를 한 번에 조회 → { symbol: { has, best } }.
+// 랜덤 시작: 'has=false'(아무도 안 달림) 우선, 없으면 best 가 큰(=느슨한) 종목 선정용.
+export async function poolRankInfo(symbols) {
+  const out = {};
+  (symbols || []).forEach((s) => { out[s] = { has: false, best: null }; });
+  if (!symbols || !symbols.length) return out;
+  const sinceISO = weekStartISO();
+  const client = await getClient();
+  if (client) {
+    const { data, error } = await client.from('scores')
+      .select('symbol,score').in('symbol', symbols).gte('created_at', sinceISO);
+    if (!error && data) {
+      data.forEach((r) => {
+        const o = out[r.symbol]; if (!o) return;
+        o.has = true;
+        if (o.best == null || r.score < o.best) o.best = r.score;
+      });
+      return out;
+    }
+  }
+  // 로컬 폴백
+  const sinceMs = weekStartMs();
+  const set = new Set(symbols);
+  lsAll().filter((x) => set.has(x.symbol) && new Date(x.created_at || 0).getTime() >= sinceMs)
+    .forEach((x) => { const o = out[x.symbol]; o.has = true; if (o.best == null || x.score < o.best) o.best = x.score; });
+  return out;
+}
+
 export function isRemote() { return isConfigured(); }

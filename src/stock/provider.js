@@ -288,3 +288,27 @@ export async function getTrending(mode = 'gainers') {
   }
   return getMockTrending();
 }
+
+// 랜덤 시작용 '넓은' 후보 풀 — 급등주 ~50 + 거래대금 ~50 을 합쳐 중복 제거.
+// 화면 리스트(8개)와 달리, 랜덤은 이 넓은 풀에서 뽑는다. 야후 외 공급자는 mock 폴백.
+export async function getTrendingPool() {
+  if (CONFIG.STOCK_PROVIDER !== 'yahoo') return getMockTrending();
+  const fetchBoth = async (mkt) => {
+    const [g, v] = await Promise.all([
+      apiTrending(`/api/trending?market=${mkt}&count=50`).catch(() => []),
+      apiTrending(`/api/trending?market=${mkt}&type=volume&count=50`).catch(() => []),
+    ]);
+    return [...(g || []), ...(v || [])];
+  };
+  const primary = activeMarket() === 'kr' ? 'kr' : 'us';
+  let list = [];
+  try { list = await fetchBoth(primary); } catch (e) { /* 폴백 */ }
+  if (!list.length) { try { list = await fetchBoth(primary === 'kr' ? 'us' : 'kr'); } catch (e) {} }
+  // 종목 코드 기준 중복 제거(급등주·거래대금 양쪽에 겹친 종목 1번만)
+  const seen = new Set();
+  const out = [];
+  for (const x of list) {
+    if (x && x.symbol && !seen.has(x.symbol)) { seen.add(x.symbol); out.push(x); }
+  }
+  return out.length ? out : getMockTrending();
+}

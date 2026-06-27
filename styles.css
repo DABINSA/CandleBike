@@ -237,6 +237,9 @@ body {
 .trend-tabs { display: inline-flex; gap: 6px; }
 .trend-tab { background: var(--bg2); border: 1px solid var(--panel-border); color: var(--muted); font-size: 12px; font-weight: 800; padding: 5px 11px; border-radius: 999px; cursor: pointer; line-height: 1; }
 .trend-tab.active { background: var(--neon); color: #06231f; border-color: var(--neon); }
+/* 🎲 랜덤 칩 — 탭과 구분되는 보라 강조(토글 아님) */
+.trend-tab.trend-random { color: #cabbff; border-color: rgba(155,125,255,.45); background: rgba(155,125,255,.12); }
+.trend-tab.trend-random:hover { background: rgba(155,125,255,.22); border-color: rgba(155,125,255,.7); }
 .trend-right { display: inline-flex; align-items: center; gap: 6px; }
 .trend-market { font-size: 11px; color: var(--muted); }
 .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--down); box-shadow: 0 0 8px var(--down); animation: blink 1.2s ease-in-out infinite; }
@@ -253,8 +256,8 @@ body {
 .trend-chip:active { transform: scale(.97); }
 .trend-chip:hover { border-color: var(--neon); background: rgba(44,230,196,.07); }
 .trend-chip .tc-main { flex: 1; min-width: 0; }
-.trend-chip .tc-sym { font-weight: 800; font-size: 14px; }
-.trend-chip .tc-name { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trend-chip .tc-name { font-weight: 800; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trend-chip .tc-sym { font-size: 11px; color: var(--muted); margin-top: 2px; }
 .trend-chip .tc-chg { font-weight: 800; font-size: 13px; white-space: nowrap; }
 .tc-chg.up { color: var(--up); }
 .tc-chg.down { color: var(--down); }
@@ -633,6 +636,59 @@ body {
 .mp-name { font-weight: 700; font-size: 14px; }
 .mp-you { font-size: 11px; font-weight: 800; color: var(--neon); }
 @keyframes matchin { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* 🎲 랜덤으로 시작 — 오버레이 */
+.rnd-overlay {
+  position: fixed; inset: 0; z-index: 60; display: none;
+  align-items: center; justify-content: center; padding: 24px 18px 86px;
+  background: rgba(5,8,13,.92); backdrop-filter: blur(4px);
+}
+.rnd-overlay.active { display: flex; }
+.rnd-close {
+  position: absolute; top: 14px; right: 16px; z-index: 2; width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--panel-border); background: var(--bg2); color: var(--muted); font-size: 15px; cursor: pointer;
+}
+.rnd-inner { width: 100%; max-width: 360px; }
+/* 굴리는 중 */
+.rnd-rolling { text-align: center; padding: 30px 0; }
+.rnd-dice { font-size: 56px; line-height: 1; animation: rndroll 1.1s ease-in-out infinite; }
+@keyframes rndroll { 0% { transform: rotate(0) scale(1); } 50% { transform: rotate(180deg) scale(1.15); } 100% { transform: rotate(360deg) scale(1); } }
+.rnd-rolling-txt { margin-top: 16px; font-size: 13px; font-weight: 700; color: var(--muted); }
+/* 결과 */
+.rnd-result {
+  background: linear-gradient(135deg, rgba(155,125,255,.14), rgba(44,230,196,.06));
+  border: 1px solid rgba(155,125,255,.42); border-radius: 18px; padding: 18px 16px;
+}
+.rnd-title { font-size: 16px; font-weight: 900; display: flex; align-items: center; gap: 7px; }
+.rnd-dice-sm { font-size: 18px; }
+.rnd-sub { font-size: 11.5px; color: var(--muted); margin: 4px 0 14px; }
+.rnd-options { display: flex; flex-direction: column; gap: 10px; }
+.rnd-opt {
+  display: flex; align-items: center; gap: 12px; text-align: left; cursor: pointer;
+  border-radius: 14px; padding: 13px 14px; transition: transform .08s, border-color .15s;
+}
+.rnd-opt:active { transform: scale(.98); }
+.rnd-opt.new { background: linear-gradient(135deg, rgba(44,230,122,.14), rgba(44,230,196,.05)); border: 1px solid rgba(44,230,122,.42); }
+.rnd-opt.beat { background: linear-gradient(135deg, rgba(255,211,77,.14), rgba(155,125,255,.05)); border: 1px solid rgba(255,211,77,.42); }
+.rnd-opt-body { flex: 1; min-width: 0; }
+.rnd-opt-tag { display: inline-block; font-size: 10px; font-weight: 800; border-radius: 999px; padding: 3px 9px; margin-bottom: 6px; }
+.rnd-opt.new .rnd-opt-tag { background: rgba(44,230,122,.2); color: #9bf0c4; }
+.rnd-opt.beat .rnd-opt-tag { background: rgba(255,211,77,.2); color: #ffe2a6; }
+.rnd-opt-nm { font-size: 17px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rnd-opt-sym { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.rnd-opt-why { font-size: 11px; font-weight: 700; margin-top: 6px; }
+.rnd-opt.new .rnd-opt-why { color: #9bf0c4; }
+.rnd-opt.beat .rnd-opt-why { color: #ffe2a6; }
+.rnd-opt-go { flex: 0 0 auto; font-size: 22px; font-weight: 900; color: var(--neon); }
+.rnd-reroll-wrap { text-align: center; margin-top: 13px; }
+.rnd-reroll {
+  background: none; border: none; cursor: pointer; font-size: 11.5px; font-weight: 700; color: #b3a4e0;
+  text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(155,125,255,.45);
+}
+.rnd-reroll:hover { color: #dcd2ff; }
+/* 하단 배너 — 홈 배너와 동일 스타일, 화면 최하단에 마진 두고 고정 */
+.rnd-ad { position: absolute; left: 16px; right: 16px; bottom: 16px; }
+.rnd-ad:empty { display: none; }
 
 /* 멀티 결과 등수 */
 .multi-result { margin: 6px 0 4px; }

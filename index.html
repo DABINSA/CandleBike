@@ -91,6 +91,7 @@
             <div class="trend-tabs">
               <button id="tab-gainers" class="trend-tab active" type="button">🔥 <span data-i18n="trendGainers">급등주</span></button>
               <button id="tab-volume" class="trend-tab" type="button">📊 <span data-i18n="trendVolume">거래량</span></button>
+              <button id="tab-random" class="trend-tab trend-random" type="button">🎲 <span data-i18n="randomChip">랜덤</span></button>
             </div>
             <span class="trend-right"><span id="trending-head-label" class="trend-market"></span> <span class="live-dot"></span><span class="live" data-i18n="live">실시간</span></span>
           </div>
@@ -281,6 +282,27 @@
       <button id="btn-revive-ad" class="btn btn-primary" data-i18n="reviveWatch">🎬 광고 보고 이어가기</button>
       <button id="btn-revive-skip" class="btn btn-ghost" data-i18n="reviveSkip">그만하기</button>
     </div>
+  </div>
+
+  <!-- 🎲 랜덤으로 시작 — 굴림 연출 후 '순위 없는 코스' + '1위 노려볼 코스' 추천 -->
+  <div id="random-overlay" class="rnd-overlay">
+    <button id="rnd-close" class="rnd-close" type="button" aria-label="close">✕</button>
+    <div class="rnd-inner">
+      <div id="rnd-rolling" class="rnd-rolling">
+        <div class="rnd-dice">🎲</div>
+        <div class="rnd-rolling-txt" data-i18n="randomRolling">코스 고르는 중…</div>
+      </div>
+      <div id="rnd-result" class="rnd-result" style="display:none">
+        <div class="rnd-title"><span class="rnd-dice-sm">🎲</span> <span data-i18n="randomTitle">랜덤 추천 코스</span></div>
+        <div class="rnd-sub" data-i18n="randomSub">마음에 드는 코스로 출발 · 마음에 안 들면 다시 돌리기</div>
+        <div id="rnd-options" class="rnd-options"></div>
+        <div class="rnd-reroll-wrap">
+          <button id="rnd-reroll" class="rnd-reroll" type="button">🎲 <span data-i18n="randomReroll">다시 돌리기</span></button>
+        </div>
+      </div>
+    </div>
+    <!-- 하단 배너 광고 — 홈 배너 광고그룹 공용(웹: 하우스 배너 / 토스: 셸 하단 배너) -->
+    <div id="rnd-ad" class="rnd-ad"></div>
   </div>
 
   <canvas id="card-canvas" width="1080" height="1350" style="display:none"></canvas>
