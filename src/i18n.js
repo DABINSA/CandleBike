@@ -66,7 +66,7 @@ const DICT = {
     reviveWatch: '🎬 광고 보고 이어가기',
     reviveSkip: '그만하기',
     brand: '📈🏍️ 캔들라이더',
-    share: '📲 공유하기',
+    share: '📲 공유하고 금화 10 받기',
     saveImg: '🖼️ 결과 이미지 저장',
     leaderboardTitle: (s) => (s ? `🏆 ${s} 순위` : '🏆 전체 순위'),
     noRecords: '아직 기록이 없어요. 첫 주자가 되어보세요!',
@@ -145,6 +145,7 @@ const DICT = {
     courseFail: '코스를 불러오지 못했습니다. 다른 종목을 시도해 주세요.',
     savedAlert: '이미지를 저장했어요! 인스타에 올리고 캡션을 붙여넣으세요. (캡션 복사됨)',
     shareLinkCopied: '🔗 링크도 복사했어요 — 채팅에 붙여넣으면 친구가 바로 플레이할 수 있어요!',
+    shareTokenReward: (n) => `🪙 공유 완료! 금화 +${n}`,
     // URL은 navigator.share 의 url 필드로 따로 전달(본문 끝에 자동 첨부)되므로 캡션엔 넣지 않는다.
     shareCaption: (sym, dist, rank, url) =>
       `🏍️ ${sym} 차트를 달려 ${dist}m! 너도 같이 달려보자 — 누가 더 멀리 가나 🔥\n#캔들라이더 #CandleRider #${sym.replace(/[^A-Za-z0-9]/g, '')}`,
@@ -215,7 +216,7 @@ const DICT = {
     reviveWatch: '🎬 Watch ad & continue',
     reviveSkip: 'Stop here',
     brand: '📈🏍️ CandleRider',
-    share: '📲 Share',
+    share: '📲 Share for +10 coins',
     saveImg: '🖼️ Save image',
     leaderboardTitle: (s) => (s ? `🏆 ${s} Ranking` : '🏆 Leaderboard'),
     noRecords: 'No records yet. Be the first rider!',
@@ -294,6 +295,7 @@ const DICT = {
     courseFail: "Couldn't load the course. Please try another stock.",
     savedAlert: 'Image saved! Post it and paste the caption. (caption copied)',
     shareLinkCopied: '🔗 Link copied too — paste it in the chat so friends can play right away!',
+    shareTokenReward: (n) => `🪙 Shared! +${n} coins`,
     // URL is passed via navigator.share's url field (auto-appended), so keep it out of the caption.
     shareCaption: (sym, dist, rank, url) =>
       `🏍️ Rode the ${sym} chart for ${dist}m! Come race me — who goes farther? 🔥\n#CandleRider #${sym.replace(/[^A-Za-z0-9]/g, '')}`,

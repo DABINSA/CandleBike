@@ -874,7 +874,9 @@ async function registerAndRender(result, nick) {
 }
 
 async function renderLeaderboard(symbol, myId) {
-  $('lb-title').textContent = t.leaderboardTitle(symbol);
+  // 제목도 종목명 + 코드로 (이름 알 때). 예: "금호건설 (002990.KS) 순위"
+  const titleNm = symbol ? lookupName(symbol) : null;
+  $('lb-title').textContent = t.leaderboardTitle(symbol ? (titleNm ? `${titleNm} (${symbol})` : symbol) : null);
   let list = await topScores(symbol, 20);
   // 멀티: 완주한 고스트 기록을 합쳐 같은 순위표에 보이게(표시 전용)
   if (symbol && multiGhostRows.length) {
@@ -916,12 +918,36 @@ function promptNick(onSave, { prefill = '' } = {}) {
 }
 
 // ---------------- 공유 / 저장 ----------------
+// 결과 공유 보상 — 친구에게 기록 공유 시 금화 지급(바이럴 유도). 어뷰징 방지로 '결과당 1회'.
+const SHARE_RESULT_REWARD = 10;
+const SHARED_RESULTS_LS = 'cr_shared_results';
+function resultKey(r) { return `${r.symbol}|${r.completed ? Math.round(r.timeMs || 0) + 'c' : Math.round(r.distance || 0) + 'm'}`; }
+function resultShareClaimed(r) {
+  try { return (JSON.parse(localStorage.getItem(SHARED_RESULTS_LS)) || []).includes(resultKey(r)); } catch { return false; }
+}
+function markResultShared(r) {
+  try {
+    const a = JSON.parse(localStorage.getItem(SHARED_RESULTS_LS)) || [];
+    a.push(resultKey(r));
+    localStorage.setItem(SHARED_RESULTS_LS, JSON.stringify(a.slice(-200)));   // 최근 200개만 보관
+  } catch {}
+}
 $('btn-share').onclick = async () => {
   if (!lastResult) return;
   if (regPromise) { try { await regPromise; } catch {} }   // 순위 등록 완료 후 공유 (기록 정확히 반영)
   const r = await shareResult(lastResult);
-  if (r && r !== 'cancelled' && r !== 'failed') logTossEvent('share', { symbol: lastResult.symbol });
-  if (r === 'shared-copied') showToast(t.shareLinkCopied);
+  const ok = r === 'shared' || r === 'shared-copied';
+  if (ok) {
+    logTossEvent('share', { symbol: lastResult.symbol });
+    if (!resultShareClaimed(lastResult)) {            // 같은 결과 재공유로 토큰 파밍 방지
+      markResultShared(lastResult);
+      Items.addTokens(SHARE_RESULT_REWARD);
+      syncPush();                                     // 토큰 계정 동기화(토스/구글)
+      updateTokenUI();
+      logTossEvent('share_result_reward', { tokens: SHARE_RESULT_REWARD });
+      showToast(t.shareTokenReward(SHARE_RESULT_REWARD));
+    } else if (r === 'shared-copied') showToast(t.shareLinkCopied);
+  }
 };
 
 // 가벼운 비차단 토스트(공유 안내·데모 알림 등). top:true 면 상단(플레이 중 하단 조작버튼 회피).
