@@ -100,6 +100,7 @@ export class Game {
     this.graceSec = 1.8;          // 시작 직후 종료 판정 유예(착지 대기)
     this._revivesLeft = this.testMode ? 0 : 1;   // 광고 보고 '이어가기' 1회
     this._reviveGraceUntil = 0;   // 부활 직후 종료 판정 유예
+    this._reviveOfferAt = 0;      // 부활 제안 시작 시각(광고 시간 기록 제외용)
 
     // 멀티(가짜 AI 경쟁) — 중간 실력의 고스트 2~4명. par = 연료예산 × 계수.
     this.multi = !!opts.multi && !this.testMode;
@@ -409,6 +410,7 @@ export class Game {
   _offerRevive(reason) {
     this._reviving = true;
     this.running = false;
+    this._reviveOfferAt = performance.now();   // 광고 시청/부활 대기 시간 — 기록에서 제외하려고 기록
     cancelAnimationFrame(this._raf);
     audio.stopEngine();
     Promise.resolve(this._reviveCb(reason)).then((ok) => {
@@ -423,6 +425,11 @@ export class Game {
   // 부활 실행 — 연료 회복 + 바이크 복구. restart=true 면 루프 재시작(광고 부활처럼 루프가 멈춘 경우),
   // false 면 실행 중인 루프 안에서 호출된 것(무광고 부활)이라 현재 루프가 그대로 이어가게 둔다.
   _reviveNow(restart) {
+    // 부활 제안~실행 사이(이어하기 광고 시청·대기) 시간은 '순수 플레이 시간'에서 제외(startTime 보정).
+    if (this._reviveOfferAt) {
+      this.startTime += performance.now() - this._reviveOfferAt;
+      this._reviveOfferAt = 0;
+    }
     this.fuel = CONFIG.GAME.fuelSeconds;
     this._respawnBike();
     this._crashTimer = 0;
@@ -517,8 +524,10 @@ export class Game {
     this._bgPaused = false;
     const gap = Math.max(0, (performance.now() - (this._hiddenAt || performance.now())) / 1000);
     this._hiddenAt = 0;
+    this.startTime += gap * 1000;                                          // 백그라운드 시간은 기록에서 제외(순수 플레이 시간)
+    if (this._reviveGraceUntil) this._reviveGraceUntil += gap * 1000;
     if (this.ended || !this.running) return;
-    if (!this.testMode) this.fuel -= gap;                                  // 실시간 연료 소모
+    if (!this.testMode) this.fuel -= gap;                                  // 실시간 연료 소모(AFK 방지)
     if (this.multi) updateGhosts(this.ghosts, gap, (performance.now() - this.startTime) / 1000); // 고스트 전진
     this.lastTs = performance.now();
     audio.startEngine();
