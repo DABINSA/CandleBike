@@ -28,24 +28,31 @@ alter table visits enable row level security;
 
 -- ── (2) 방문 기록 RPC ───────────────────────────────────────
 -- /api/hit 가 service_role 로 호출. 같은 방문자가 같은 날 또 오면 views 만 증가(고유수 불변).
+-- 반환값 = '전체 기간 통틀어 처음 보는 방문자(신규 유저)' 여부 → /api/hit 가 신규면 텔레그램 알림.
+-- 🔴 반환 타입 변경(void→boolean) 때문에 create-or-replace 가 안 되므로 먼저 drop.
+drop function if exists record_visit(text, boolean);
 create or replace function record_visit(p_visitor text, p_toss boolean)
-returns void
+returns boolean
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
   v_day date := (now() at time zone 'Asia/Seoul')::date;
+  v_new boolean := false;
 begin
   if p_visitor is null or length(p_visitor) = 0 or length(p_visitor) > 64 then
-    return;   -- 형식 이상치는 조용히 무시
+    return false;   -- 형식 이상치는 조용히 무시
   end if;
+  -- insert 전에 판정: 이 visitor_id 가 과거 어느 날에도 없었으면 신규 유저.
+  v_new := not exists (select 1 from visits where visitor_id = p_visitor);
   insert into visits(day, visitor_id, views, is_toss, first_at, last_at)
     values (v_day, p_visitor, 1, coalesce(p_toss, false), now(), now())
   on conflict (day, visitor_id) do update
     set views   = visits.views + 1,
         is_toss = visits.is_toss or coalesce(p_toss, false),
         last_at = now();
+  return v_new;
 end $$;
 
 revoke all on function record_visit(text, boolean) from public, anon, authenticated;
