@@ -66,8 +66,8 @@ export class Game {
     const consum = opts.consum || {};
     const C = (id) => (this.testMode ? 0 : (consum[id] || 0));
     this._pendingBoost = C('boost') > 0;     // 출발 직후 1회 가속
-    this._softLandLeft = C('softland');      // 착지 보호: 나쁜 착지 무효(횟수, 소진)
-    this._phaseLeft = C('phase');            // 장애물 통과: 폭락 캔들 통과(횟수, 소진)
+    this._softLandLeft = Math.min(1, C('softland'));   // 착지 보호: 한 판 1회 고정(소모품+탈것퍽 겹쳐도 1)
+    this._phaseLeft = Math.min(1, C('phase'));         // 장애물 통과: 한 판 1회 고정
     this._dblJump = C('dbljump') > 0;        // 더블 점프: 한 판 내내(착지마다 재충전)
     this._airJumpsLeft = this._dblJump ? 1 : 0;
     this._freeRevives = C('revive');         // 추가 이어가기: 광고 없이 부활(횟수)

@@ -169,7 +169,7 @@ begin
     -- 최근 활동 (시드 제외)
     'recent_scores', (
       select coalesce(jsonb_agg(t), '[]'::jsonb) from (
-        select nick, symbol, score, created_at, sym_name(symbol) name from scores where nick <> all(v_seed) order by created_at desc limit 25
+        select nick, symbol, score, created_at, sym_name(symbol) name, vehicle, items from scores where nick <> all(v_seed) order by created_at desc limit 25
       ) t
     ),
 

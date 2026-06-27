@@ -41,12 +41,18 @@ export default async function handler(req, res) {
     res.status(400).json({ error: 'bad score' }); return;
   }
 
+  // 사용 장비 — 탈것 id(예: lion) + 그 판에 발동한 소모품 id(콤마구분, 예: boost,dbljump).
+  // 순위표(탈것)·어드민(탈것+소모품) 표시용. 형식만 가볍게 정리(영소문자/콤마).
+  const vehicle = (typeof b.vehicle === 'string' ? b.vehicle : '').replace(/[^a-z]/gi, '').slice(0, 16);
+  const itemsArr = Array.isArray(b.items) ? b.items : String(b.items || '').split(',');
+  const items = itemsArr.map((s) => String(s).replace(/[^a-z]/gi, '')).filter(Boolean).slice(0, 8).join(',');
+
   try {
     // DB 함수 한 번 호출 = 레이트리밋 + insert + 순위계산
     const r = await sb('rpc/submit_score', {
       method: 'POST',
-      // p_name: 표시용 종목명(한글 등) — 1위 달성 알림 띠에 종목을 예쁘게 보여주기 위함(선택).
-      body: { p_nick: nick, p_symbol: symbol, p_score: score, p_ip: clientIp(req), p_name: name },
+      // p_name: 종목명(텔레그램용), p_vehicle/p_items: 사용 장비(순위표·어드민 표시).
+      body: { p_nick: nick, p_symbol: symbol, p_score: score, p_ip: clientIp(req), p_name: name, p_vehicle: vehicle, p_items: items },
     });
     if (!r.ok) { res.status(502).json({ error: 'rpc failed' }); return; }
     const out = await r.json();

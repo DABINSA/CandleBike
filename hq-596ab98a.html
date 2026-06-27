@@ -164,7 +164,7 @@
     </div>
 
     <h2>최근 활동 (최근 완주 25)</h2>
-    <table><thead><tr><th>닉네임</th><th>종목</th><th class="num">기록</th><th class="num">시각(KST)</th></tr></thead>
+    <table><thead><tr><th>닉네임</th><th>종목</th><th>장비</th><th class="num">기록</th><th class="num">시각(KST)</th></tr></thead>
       <tbody id="recent-body"></tbody></table>
 
     <h2>닉네임 금지어</h2>
@@ -200,6 +200,15 @@
     var symCell = function (x) {
       return (x.name ? esc(x.name) + ' ' : '') + '<span class="pill">' + esc(x.symbol) + '</span>';
     };
+    // 사용 장비(탈것+소모품) 이모지 — 어드민 전용 표시
+    var VEH_EMOJI = { moto:'🏍️', horse:'🐎', giraffe:'🦒', ostrich:'🦤', camel:'🐪', lion:'🦁', elephant:'🐘', dino:'🦖' };
+    var CON_EMOJI = { boost:'🚀', fuel:'⛽', softland:'🪂', phase:'👻', dbljump:'⏫', revive:'❤️' };
+    function loadoutCell(x) {
+      var v = VEH_EMOJI[x.vehicle] || '';
+      var its = (x.items || '').split(',').filter(Boolean).map(function (id) { return CON_EMOJI[id] || ''; }).join('');
+      if (!v && !its) return '<span class="muted">-</span>';
+      return '<span title="' + esc((x.vehicle || '') + ' / ' + (x.items || '')) + '" style="font-size:15px">' + v + (its ? ' ' + its : '') + '</span>';
+    }
     function kst(iso) {
       if (!iso) return '–';
       try {
@@ -356,9 +365,9 @@
       }).join('') || '<tr><td colspan="2" class="muted">아직 없음</td></tr>';
 
       $('recent-body').innerHTML = (d.recent_scores || []).map(function (x) {
-        return '<tr><td>' + nickCell(x.nick) + '</td><td>' + symCell(x) + '</td>' +
+        return '<tr><td>' + nickCell(x.nick) + '</td><td>' + symCell(x) + '</td><td>' + loadoutCell(x) + '</td>' +
                '<td class="num">' + ms(x.score) + '</td><td class="num">' + kst(x.created_at) + '</td></tr>';
-      }).join('') || '<tr><td colspan="4" class="muted">아직 없음</td></tr>';
+      }).join('') || '<tr><td colspan="5" class="muted">아직 없음</td></tr>';
 
       renderTools();
     }

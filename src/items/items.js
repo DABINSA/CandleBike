@@ -32,6 +32,10 @@ export const CONSUMABLES = [
 ];
 
 export function itemName(it) { return LANG === 'en' ? it.en : it.ko; }
+// 탈것 id → 이모지(순위표 표시용). 미지정/구기록은 ''.
+export function vehicleEmoji(id) { const v = VEHICLES.find((x) => x.id === id); return v ? v.emoji : ''; }
+// 소모품 id → 이모지(어드민 표시용).
+export function consumEmoji(id) { const c = CONSUMABLES.find((x) => x.id === id); return c ? c.emoji : ''; }
 export function itemDesc(it) { return LANG === 'en' ? it.enDesc : it.koDesc; }
 
 // ── 인벤토리 ───────────────────────────────────────────────

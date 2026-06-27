@@ -67,6 +67,7 @@ let gameMode = 'single'; // 'single' | 'multi'(가짜 AI 경쟁)
 let game = null;
 let lastResult = null;    // { symbol, distance, flips, score }
 let multiGhostRows = [];  // 멀티 결과 순위표에 표시용으로 합칠 고스트 기록(완주자) — DB엔 저장 안 함
+let currentLoadout = { vehicle: 'moto', items: [] };  // 이번 판 출전 장비(완주 기록에 저장)
 
 applyStatic();           // 정적 텍스트를 접속 언어로 채움
 initClarity();           // Microsoft Clarity (웹에서만, 토스 인앱 제외)
@@ -652,6 +653,8 @@ function startGame(series, symbol, name, opts = {}) {
     for (const id in used) consum[id] = (consum[id] || 0) + 1;
     for (const id in perk) consum[id] = (consum[id] || 0) + (perk[id] || 0);
     opts = { ...opts, _items: true, skinColor: Items.equippedColor(), vehicle: Items.equippedVehicle(), consum };
+    // 이 판의 출전 장비(완주 시 기록) — 탈것 + 발동 소모품 id 목록
+    currentLoadout = { vehicle: Items.equippedVehicle(), items: Object.keys(used) };
     syncPush();   // 소모품 사용분 클라우드 반영
   }
   playCtx = { series, symbol, name, opts };
@@ -885,7 +888,8 @@ async function showResult(result) {
 async function registerAndRender(result, nick) {
   let rankInfo = { rank: '–', total: 0, percentile: '–', id: null };
   try {
-    rankInfo = await submitScore({ nick, symbol: result.symbol, timeMs: result.timeMs, name: result.name || lookupName(result.symbol) || '' });
+    rankInfo = await submitScore({ nick, symbol: result.symbol, timeMs: result.timeMs, name: result.name || lookupName(result.symbol) || '',
+      vehicle: currentLoadout.vehicle, items: currentLoadout.items });
   } catch (e) { console.warn('순위 등록 실패', e); }
 
   lastResult.rank = rankInfo.rank;
@@ -933,9 +937,10 @@ async function renderLeaderboard(symbol, myId) {
       : escapeHtml(row.symbol);
     // 기본 익명 닉은 저장 시점 언어로 박혀 있으므로(예: '익명라이더') 보는 언어로 치환.
     const dispNick = ANON_NICKS.includes(row.nick) ? t.anon : row.nick;
+    const vehEmoji = Items.vehicleEmoji(row.vehicle);   // 그 판에 탄 탈것(구기록은 없음 → 생략)
     li.innerHTML =
       `<span class="lb-rank ${i < 3 ? 'top' : ''}">${i + 1}</span>` +
-      `<span class="lb-nick">${escapeHtml(dispNick)}</span>` +
+      `<span class="lb-nick">${vehEmoji ? `<span class="lb-veh" title="탈것">${vehEmoji}</span>` : ''}${escapeHtml(dispNick)}</span>` +
       `<span class="lb-sym">${symHtml}</span>` +
       `<span class="lb-score">${t.timeFmt(row.score)}</span>`;
     ol.appendChild(li);
