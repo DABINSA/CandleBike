@@ -76,15 +76,18 @@
   </style>
 </head>
 <body>
-  <!-- ===== 로그인 게이트 ===== -->
-  <div id="gate" class="wrap">
+  <!-- ===== 로그인 게이트 (form: 크롬 비밀번호 저장/자동완성용 / hidden: 새로고침 깜빡임 방지) ===== -->
+  <form id="gate" class="wrap" autocomplete="on" hidden>
     <h1>🔒 어드민</h1>
     <p class="muted">캔들라이더 관리자</p>
-    <input id="email" type="email" placeholder="이메일" autocomplete="username" />
-    <input id="pw" type="password" placeholder="비밀번호" autocomplete="current-password" style="margin-top:0" />
-    <button class="btn" id="login" style="width:100%">로그인</button>
+    <input id="email" name="email" type="email" placeholder="이메일" autocomplete="username" />
+    <input id="pw" name="password" type="password" placeholder="비밀번호" autocomplete="current-password" style="margin-top:0" />
+    <button class="btn" id="login" type="submit" style="width:100%">로그인</button>
     <div class="err" id="gate-err"></div>
-  </div>
+  </form>
+
+  <!-- 로그인된 상태로 새로고침 시: 폼 깜빡임 없이 로딩만 표시 -->
+  <div id="booting" class="wrap" hidden style="text-align:center;color:var(--muted);padding-top:80px">불러오는 중…</div>
 
   <!-- ===== 대시보드 ===== -->
   <div id="dash" class="wrap" hidden>
@@ -260,11 +263,11 @@
 
     var EK = 'cr_admin_email';
     function showGate(msg) {
-      $('dash').hidden = true; $('gate').hidden = false; $('gate-err').textContent = msg || '';
+      $('booting').hidden = true; $('dash').hidden = true; $('gate').hidden = false; $('gate-err').textContent = msg || '';
       try { var e = localStorage.getItem(EK); if (e && !$('email').value) $('email').value = e; } catch (e2) {}
       if (msg) $('pw').value = '';
     }
-    function showDash() { $('gate').hidden = true; $('dash').hidden = false; }
+    function showDash() { $('booting').hidden = true; $('gate').hidden = true; $('dash').hidden = false; }
 
     function render(d) {
       var v = d.visitors || {}, p = d.plays || {}, u = d.toss_users || {};
@@ -355,14 +358,14 @@
         var j = await r.json();
         setToken(j.token);
         try { localStorage.setItem(EK, email); } catch (e) {}
-        $('pw').value = '';
+        // 비번 필드는 비우지 않음 — 크롬 '비밀번호 저장' 프롬프트가 뜨도록(폼이 곧 숨겨짐)
         load();
       } catch (e) { $('gate-err').textContent = '네트워크 오류: ' + e.message; }
       finally { $('login').disabled = false; }
     }
-    $('login').onclick = doLogin;
-    $('pw').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
-    $('email').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('pw').focus(); });
+    // 폼 submit → 로그인(크롬이 비번 저장 프롬프트를 띄우는 표준 경로)
+    $('gate').addEventListener('submit', function (e) { e.preventDefault(); doLogin(); });
+    $('email').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('pw').focus(); } });
     $('refresh').onclick = function () { load(); };
     $('logout').onclick = function () { setToken(''); showGate(); };
     Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (tab) {
@@ -373,8 +376,8 @@
       };
     });
 
-    // 진입
-    if (token()) load(); else showGate();
+    // 진입 — 로그인 토큰 있으면 폼 안 띄우고 로딩만 보이며 바로 불러오기(깜빡임 방지)
+    if (token()) { $('booting').hidden = false; load(); } else showGate();
   </script>
 </body>
 </html>
