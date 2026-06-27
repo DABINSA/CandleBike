@@ -26,10 +26,13 @@ const KEY = pem(process.env.TOSS_LOGIN_MTLS_KEY);
 const NICK_SECRET = process.env.TOSS_NICK_SECRET || '';
 
 const API_BASE = 'https://apps-in-toss-api.toss.im/api-partner/v1/apps-in-toss';
-// 🔴 기본값은 추정 — 샌드박스 실측 후 env로 교정할 것.
-const TOKEN_URL = process.env.TOSS_TOKEN_URL || `${API_BASE}/oauth2/login/generate-token`;
-const ME_URL = process.env.TOSS_ME_URL || `${API_BASE}/oauth2/login/login-me`;
-const ME_METHOD = (process.env.TOSS_ME_METHOD || 'POST').toUpperCase();
+// 공식 문서 확정 경로(developers-apps-in-toss.toss.im/login/develop.html):
+//   토큰: POST /user/oauth2/generate-token  (body: authorizationCode, referrer)
+//   유저: GET  /user/oauth2/login-me        (Authorization: Bearer) → userKey(암호화 X) 등
+// env로 덮어쓸 수 있게 유지(추후 변경 대비).
+const TOKEN_URL = process.env.TOSS_TOKEN_URL || `${API_BASE}/user/oauth2/generate-token`;
+const ME_URL = process.env.TOSS_ME_URL || `${API_BASE}/user/oauth2/login-me`;
+const ME_METHOD = (process.env.TOSS_ME_METHOD || 'GET').toUpperCase();
 const DEBUG = process.env.TOSS_DEBUG === '1';
 
 function ready() {
@@ -105,10 +108,12 @@ export default async function handler(req, res) {
   b = b || {};
   const authorizationCode = String(b.authorizationCode || '').trim();
   if (!authorizationCode) { res.status(400).json({ error: 'no authorizationCode' }); return; }
+  // generate-token 은 referrer 도 필수(appLogin 이 authorizationCode 와 함께 반환).
+  const referrer = String(b.referrer || '').trim();
 
   try {
     // 1) 인가코드 → 액세스 토큰
-    const tok = await mtls(TOKEN_URL, { method: 'POST', body: { authorizationCode } });
+    const tok = await mtls(TOKEN_URL, { method: 'POST', body: { authorizationCode, referrer } });
     if (DEBUG) console.log('[toss/login] token', tok.status, tok.raw?.slice(0, 500));
     const tokData = unwrap(tok.json) || {};
     const accessToken = tokData.accessToken || tokData.access_token || '';

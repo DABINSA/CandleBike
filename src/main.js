@@ -536,10 +536,10 @@ async function tossLoginFlow() {
   if (!IS_TOSS) return 'skip';
   if (getNick()) return 'has';
   try {
-    const login = await requestTossLogin();                 // 셸 appLogin → { authorizationCode }
+    const login = await requestTossLogin();                 // 셸 appLogin → { authorizationCode, referrer }
     const res = await fetch('/api/auth/toss', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ authorizationCode: login?.authorizationCode }),
+      body: JSON.stringify({ authorizationCode: login?.authorizationCode, referrer: login?.referrer }),
     });
     if (!res.ok) { console.warn('토스 로그인 API', res.status); return 'none'; }
     const data = await res.json();
