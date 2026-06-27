@@ -13,3 +13,9 @@ download/
 *.aab
 *.apk
 signing-key-info.txt
+
+# 목업/임시 미리보기 + 토스 빌드 산출물(공개 배포 금지)
+mockup-*.html
+mockup-*.png
+_ticker-test.html
+toss-build/
