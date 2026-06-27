@@ -74,6 +74,7 @@ recordVisit();           // 방문 비콘(/api/hit) — 웹+토스 방문/고유
 // 1위 달성 알림 띠 — 홈/결과 화면에 마운트 후 최근 이벤트 조회 + 실시간 구독 시작.
 registerTicker($('rank-ticker-home'));
 registerTicker($('rank-ticker-result'));
+registerTicker($('rank-ticker-play'));
 startRankTicker();
 // 토스 인앱: 토스 헤더가 상단을 차지하므로 페이지 상단 safe-area 여백을 0으로(이중 여백 제거).
 if (IS_TOSS) { document.documentElement.style.setProperty('--sat', '0px'); document.body.classList.add('in-toss'); }
