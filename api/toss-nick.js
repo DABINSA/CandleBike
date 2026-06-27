@@ -6,6 +6,7 @@
 
 import crypto from 'node:crypto';
 import { sb, supaReady } from './_supa.js';
+import { checkNick } from './_moderation.js';
 
 const NICK_SECRET = process.env.TOSS_NICK_SECRET || '';
 const NICK_MAX = 20;
@@ -44,6 +45,8 @@ export default async function handler(req, res) {
 
   const nick = String(b.nick || '').trim().replace(/\s+/g, ' ').slice(0, NICK_MAX);
   if (!nick) { res.status(400).json({ error: 'empty nick' }); return; }
+  // 금지어/차단닉 거부 — 클라가 안내 후 다른 닉 입력
+  try { if (!(await checkNick(nick)).ok) { res.status(400).json({ error: 'bad nick' }); return; } } catch {}
 
   try {
     const r = await sb('toss_users', {

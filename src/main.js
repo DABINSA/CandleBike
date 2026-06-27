@@ -941,8 +941,21 @@ function promptNick(onSave, { prefill = '' } = {}) {
   inp.value = prefill && !ANON_NICKS.includes(prefill) ? prefill : '';
   modal.classList.add('active');
   inp.focus();
-  $('nick-save').onclick = () => {
+  $('nick-save').onclick = async () => {
     const n = inp.value.trim() || t.anon;
+    // 금지어 검증(서버 권위). 막히면 모달 유지 + 안내. 네트워크 실패 시엔 통과(서버 백스톱이 막음).
+    const btn = $('nick-save');
+    btn.disabled = true;
+    let allowed = true;
+    try {
+      const r = await fetch('/api/nick-check', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nick: n }),
+      });
+      if (r.ok) allowed = !!(await r.json()).ok;
+    } catch {}
+    btn.disabled = false;
+    if (!allowed) { showToast(t.nickBanned, { top: true }); return; }
     modal.classList.remove('active');
     onSave(n);
   };
