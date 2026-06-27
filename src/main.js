@@ -995,14 +995,21 @@ async function loadNickBans() {
   } catch (e) { console.warn('nick_bans 조회', e); }
   return _nickBans;
 }
-// 금지어(부분일치) 또는 차단닉(정확일치)이면 불가
+// 금지어(부분일치) 또는 차단닉(정확일치)이면 불가.
+// 숫자 끼움 우회(섹1스 → 섹스)도 차단: 숫자 제거 버전으로도 비교.
 async function nickAllowed(nick) {
   const n = normNick(nick);
   if (!n) return false;
-  const words = await loadBannedWords();
-  if (words.some((w) => w && n.includes(w))) return false;
+  const nND = n.replace(/[0-9]/g, '');
   const bans = await loadNickBans();
-  return !bans.has(n);
+  if (bans.has(n)) return false;
+  const words = await loadBannedWords();
+  for (const w of words) {
+    if (!w) continue;
+    const wND = w.replace(/[0-9]/g, '');
+    if (n.includes(w) || (wND && nND.includes(wND))) return false;
+  }
+  return true;
 }
 // 현재 닉이 더는 허용되지 않으면(금지어 추가/직접 차단) → 로컬 닉 비우고 강제 재입력.
 async function enforceNickBan() {

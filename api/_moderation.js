@@ -57,14 +57,19 @@ async function getNickBans() {
 
 // 닉 사용 가능 여부. 반환 { ok, reason: 'empty'|'banned'|'blocked' }
 //   banned = 금지어 포함, blocked = 어드민이 직접 차단한 닉
+// 숫자 끼움 우회(예: 섹1스머신 → 섹스머신) 차단: 숫자 제거 버전으로도 비교.
+//   (숫자만 있는 닉이 빈 문자열 되어 오인 차단되지 않게 원형 norm 으로 empty 판정)
 export async function checkNick(nick) {
   const norm = normalize(nick);
   if (!norm) return { ok: false, reason: 'empty' };
+  const nND = norm.replace(/[0-9]/g, '');
   const bans = await getNickBans();
   if (bans.has(norm)) return { ok: false, reason: 'blocked' };
   const words = await getBannedWords();
   for (const w of words) {
-    if (w && norm.includes(w)) return { ok: false, reason: 'banned' };
+    if (!w) continue;
+    const wND = w.replace(/[0-9]/g, '');
+    if (norm.includes(w) || (wND && nND.includes(wND))) return { ok: false, reason: 'banned' };
   }
   return { ok: true };
 }
