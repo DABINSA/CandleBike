@@ -43,14 +43,40 @@ export default async function handler(req, res) {
     return;
   }
 
+  // 닉 차단 — ban_nick RPC(차단등록 + 기록을 익명의라이더로 덮어쓰기)
+  if (body.banNick) {
+    const nick = String(body.banNick).trim().slice(0, 40);
+    if (!nick) { res.status(400).json({ error: 'bad nick' }); return; }
+    try {
+      const r = await sb('rpc/ban_nick', { method: 'POST', body: { p_nick: nick } });
+      if (!r.ok) { res.status(502).json({ error: 'ban failed', status: r.status }); return; }
+      res.status(200).json({ ok: true });
+    } catch (e) { res.status(502).json({ error: String(e) }); }
+    return;
+  }
+  // 닉 차단 해제 — 목록에서만 제거(이미 익명처리된 기록은 복원 안 됨)
+  if (body.unbanNick) {
+    const nick = String(body.unbanNick).trim().slice(0, 40);
+    try {
+      const r = await sb(`nick_bans?nick=eq.${encodeURIComponent(nick)}`, { method: 'DELETE' });
+      if (!r.ok) { res.status(502).json({ error: 'unban failed' }); return; }
+      res.status(200).json({ ok: true });
+    } catch (e) { res.status(502).json({ error: String(e) }); }
+    return;
+  }
+
   try {
     const r = await sb('rpc/admin_stats', { method: 'POST', body: {} });
     if (!r.ok) { res.status(502).json({ error: 'rpc failed', status: r.status }); return; }
     const data = await r.json();
-    // 금지어 목록도 함께 반환(어드민 UI가 별도 호출 없이 표시)
+    // 금지어 + 차단닉 목록도 함께 반환(어드민 UI가 별도 호출 없이 표시)
     try {
       const wr = await sb('banned_words?select=word&order=word.asc');
       if (wr.ok) data.banned_words = (await wr.json()).map((x) => x.word);
+    } catch {}
+    try {
+      const nr = await sb('nick_bans?select=nick&order=created_at.desc');
+      if (nr.ok) data.nick_bans = (await nr.json()).map((x) => x.nick);
     } catch {}
     res.status(200).json(data);
   } catch (e) {

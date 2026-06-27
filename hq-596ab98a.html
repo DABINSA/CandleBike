@@ -145,6 +145,15 @@
     </div>
     <div id="words-box" style="display:flex;flex-wrap:wrap;gap:6px"></div>
 
+    <h2 style="margin-top:24px">차단된 닉 (변경 요청)</h2>
+    <p class="muted" style="margin-top:-4px">차단하면 기존 기록의 그 닉이 <b>익명의라이더</b>로 바뀌고, 그 유저는 재접속 시 새 닉으로 강제 변경돼요. (아래 표의 닉 옆 <b>차단</b> 버튼으로도 가능)</p>
+    <div style="display:flex;gap:8px;margin:8px 0 12px;max-width:420px">
+      <input id="ban-input" type="text" placeholder="차단할 닉 직접 입력" maxlength="40"
+        style="flex:1;padding:9px 12px;border-radius:8px;border:1px solid #2a3550;background:#0d1320;color:#e6f0f0;font-size:14px" />
+      <button id="ban-add" style="padding:9px 16px;border-radius:8px;border:none;background:#ff7676;color:#160606;font-weight:800;cursor:pointer">차단</button>
+    </div>
+    <div id="bans-box" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+
     <h2 style="margin-top:24px">도구 / 테스트</h2>
     <div class="tools" id="tools"></div>
   </div>
@@ -185,6 +194,7 @@
         lastData = await r.json();
         render(lastData);
         renderWords(lastData.banned_words || []);
+        renderBans(lastData.nick_bans || []);
         showDash();
       } catch (e) { showGate('네트워크 오류: ' + e.message); }
     }
@@ -213,6 +223,40 @@
     }
     $('word-add').onclick = function () { sendWord($('word-input').value.trim(), 'add'); };
     $('word-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('word-add').click(); });
+
+    // ── 닉 차단/해제 ──
+    function renderBans(nicks) {
+      var box = $('bans-box');
+      box.innerHTML = (nicks || []).map(function (n) {
+        return '<span class="pill" style="display:inline-flex;align-items:center;gap:6px">' + esc(n) +
+          '<button data-n="' + esc(n) + '" class="unban-btn" title="차단 해제" style="border:none;background:none;color:#7fd1ff;cursor:pointer;font-size:12px;line-height:1;padding:0">해제</button></span>';
+      }).join('') || '<span class="muted">(없음)</span>';
+    }
+    async function banNick(nick) {
+      if (!nick || !confirm('"' + nick + '" 닉을 차단할까요?\n기존 기록은 익명의라이더로 바뀌고, 유저는 재접속 시 새 닉으로 변경됩니다.')) return;
+      await postAdmin({ banNick: nick });
+    }
+    async function postAdmin(body) {
+      try {
+        var r = await fetch('/api/admin/stats', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token() },
+          body: JSON.stringify(body),
+        });
+        if (r.ok) load(); else alert('실패 (' + r.status + ')');
+      } catch (e) { alert('네트워크 오류'); }
+    }
+    $('ban-add').onclick = function () { banNick($('ban-input').value.trim()); };
+    $('ban-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('ban-add').click(); });
+    // 표의 닉 옆 차단 버튼 + 차단목록 해제 버튼 (이벤트 위임)
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t.classList && t.classList.contains('ban-row')) { banNick(t.getAttribute('data-n')); }
+      else if (t.classList && t.classList.contains('unban-btn')) { postAdmin({ unbanNick: t.getAttribute('data-n') }); }
+    });
+    // 닉 + 차단버튼 셀(표에서 사용)
+    function nickCell(nick) {
+      return esc(nick) + ' <button class="ban-row" data-n="' + esc(nick) + '" title="이 닉 차단" style="border:none;background:#3a1414;color:#ff9a9a;border-radius:5px;cursor:pointer;font-size:10px;padding:1px 5px;margin-left:4px">차단</button>';
+    }
 
     var EK = 'cr_admin_email';
     function showGate(msg) {
@@ -254,11 +298,11 @@
       renderTop('all');
 
       $('user-body').innerHTML = (u.recent || []).map(function (x) {
-        return '<tr><td>' + esc(x.nick) + '</td><td class="num">' + kst(x.created_at) + '</td></tr>';
+        return '<tr><td>' + nickCell(x.nick) + '</td><td class="num">' + kst(x.created_at) + '</td></tr>';
       }).join('') || '<tr><td colspan="2" class="muted">아직 없음</td></tr>';
 
       $('recent-body').innerHTML = (d.recent_scores || []).map(function (x) {
-        return '<tr><td>' + esc(x.nick) + '</td><td>' + symCell(x) + '</td>' +
+        return '<tr><td>' + nickCell(x.nick) + '</td><td>' + symCell(x) + '</td>' +
                '<td class="num">' + ms(x.score) + '</td><td class="num">' + kst(x.created_at) + '</td></tr>';
       }).join('') || '<tr><td colspan="4" class="muted">아직 없음</td></tr>';
 

@@ -21,14 +21,40 @@ do $$ begin
   end if;
 end $$;
 
--- ── (2) 차단된 닉(슬립스루) — Phase 2에서 강제변경/익명처리 ───
+-- ── (2) 차단된 닉(슬립스루) — 강제변경/익명처리 ─────────────
 create table if not exists nick_bans (
   nick       text primary key,
   reason     text,
   created_at timestamptz default now()
 );
 alter table nick_bans enable row level security;
--- 정책 0개 → anon 차단. 서버만.
+-- 읽기 공개(클라가 '내 닉이 차단됐는지' 확인해 강제 변경). 쓰기는 서버만.
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename='nick_bans' and cmd='SELECT') then
+    create policy "bn_read" on nick_bans for select using (true);
+  end if;
+end $$;
+
+-- ── 닉 차단 RPC(어드민 전용) — 차단등록 + 기존 기록을 '익명의라이더'로 일괄 덮어쓰기 ──
+-- /api/admin/stats 가 service_role 로 호출. (원본 닉은 사라짐 — 어차피 부적절)
+create or replace function ban_nick(p_nick text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_nick is null or length(trim(p_nick)) = 0 then return; end if;
+  insert into nick_bans(nick) values (p_nick) on conflict (nick) do nothing;
+  update scores set nick = '익명의라이더' where nick = p_nick;
+  if to_regclass('public.rank_events') is not null then
+    update rank_events set nick = '익명의라이더' where nick = p_nick;
+  end if;
+  if to_regclass('public.toss_users') is not null then
+    update toss_users set nick = '익명의라이더' where nick = p_nick;
+  end if;
+end $$;
+revoke all on function ban_nick(text) from public, anon, authenticated;
 
 -- ── 초기 금지어 시드(기본값 — 어드민에서 추가/삭제 가능) ─────
 -- 부분일치 기준이라 핵심 어근 위주. 오탐이 보이면 어드민에서 삭제.

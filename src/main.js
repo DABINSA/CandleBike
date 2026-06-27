@@ -545,13 +545,18 @@ async function tossLoginFlow() {
     if (!res.ok) { console.warn('토스 로그인 API', res.status); return 'none'; }
     const data = await res.json();
     if (data.token) { localStorage.setItem(TOSS_TOKEN_LS, data.token); invPull(data.token); }
-    const localNick = getNick();
-    // 계정엔 닉이 있는데 로컬엔 없으면 → 계정닉 채택
-    if (data.nick && !localNick) { setNick(data.nick); updateNickButton(); return 'set'; }
+    let localNick = getNick();
+    // 차단된 로컬 닉이면 비우고 강제 재입력으로 유도(아래 promptNick)
+    if (localNick && !(await nickAllowed(localNick))) {
+      setNick(''); updateNickButton(); showToast(t.nickForced, { top: true }); localNick = '';
+    }
+    const acctOk = data.nick && (await nickAllowed(data.nick));
+    // 계정닉이 멀쩡하고 로컬엔 없으면 → 계정닉 채택
+    if (acctOk && !localNick) { setNick(data.nick); updateNickButton(); return 'set'; }
     // 로컬 닉이 있고 계정엔 없거나 다르면 → 계정에 저장(=toss_users 적재/갱신). 토큰 있을 때만.
     if (localNick && data.token && data.nick !== localNick) { saveNick(localNick); }
     if (localNick) return 'has';
-    // 로컬·계정 둘 다 닉 없음 → 첫 닉 입력(저장 시 toss_users 적재)
+    // 로컬·계정 둘 다 (멀쩡한) 닉 없음 → 닉 입력(저장 시 toss_users 적재)
     promptNick((n) => saveNick(n));
     return 'prompted';
   } catch (e) {
@@ -562,7 +567,7 @@ async function tossLoginFlow() {
 // 최초 1회 닉 입력 — '토스(로그인 진입)'에서만. 웹/원스토어는 첫 진입 프롬프트 없이
 // 완주 시점에 닉을 입력받는다(아래 결과 처리). 변경은 토스 홈의 닉네임 칩에서.
 async function firstRunNick() {
-  if (!IS_TOSS) return;
+  if (!IS_TOSS) { enforceNickBan(); return; }   // 웹/원스토어: 차단된 닉이면 강제 변경
   const r = await tossLoginFlow();
   if (r === 'has' || r === 'set' || r === 'prompted') return;
   if (!getNick()) promptNick((n) => saveNick(n));   // 토스 로그인 브리지/API 실패 폴백
@@ -972,11 +977,38 @@ async function loadBannedWords() {
   } catch (e) { console.warn('banned_words 조회', e); }
   return _bannedWords;
 }
+let _nickBans = null;
+async function loadNickBans() {
+  if (_nickBans) return _nickBans;
+  _nickBans = new Set();
+  try {
+    const c = await getClient();
+    if (c) {
+      const { data } = await c.from('nick_bans').select('nick');
+      if (Array.isArray(data)) _nickBans = new Set(data.map((x) => normNick(x.nick)).filter(Boolean));
+    }
+  } catch (e) { console.warn('nick_bans 조회', e); }
+  return _nickBans;
+}
+// 금지어(부분일치) 또는 차단닉(정확일치)이면 불가
 async function nickAllowed(nick) {
   const n = normNick(nick);
   if (!n) return false;
   const words = await loadBannedWords();
-  return !words.some((w) => w && n.includes(w));
+  if (words.some((w) => w && n.includes(w))) return false;
+  const bans = await loadNickBans();
+  return !bans.has(n);
+}
+// 현재 닉이 더는 허용되지 않으면(금지어 추가/직접 차단) → 로컬 닉 비우고 강제 재입력.
+async function enforceNickBan() {
+  const cur = getNick();
+  if (!cur) return false;
+  if (await nickAllowed(cur)) return false;
+  setNick('');
+  updateNickButton();
+  showToast(t.nickForced, { top: true });
+  promptNick((n) => saveNick(n), { prefill: '' });
+  return true;
 }
 
 // ---------------- 공유 / 저장 ----------------
