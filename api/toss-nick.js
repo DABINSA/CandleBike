@@ -10,8 +10,12 @@ import { sb, supaReady } from './_supa.js';
 const NICK_SECRET = process.env.TOSS_NICK_SECRET || '';
 const NICK_MAX = 20;
 
+const DEBUG = process.env.TOSS_DEBUG === '1';
 function verifyToken(token) {
-  if (!NICK_SECRET || typeof token !== 'string' || !token.includes('.')) return '';
+  if (!NICK_SECRET || typeof token !== 'string' || !token.includes('.')) {
+    if (DEBUG) console.log('[toss-nick] reject(pre)', { hasSecret: !!NICK_SECRET, secretLen: NICK_SECRET.length, tokType: typeof token, hasDot: typeof token === 'string' && token.includes('.') });
+    return '';
+  }
   const [payload, sig] = token.split('.');
   let userKey = '';
   try { userKey = Buffer.from(payload, 'base64url').toString('utf8'); } catch { return ''; }
@@ -19,7 +23,10 @@ function verifyToken(token) {
   const expect = crypto.createHmac('sha256', NICK_SECRET).update(userKey).digest('base64url');
   const a = Buffer.from(sig || '');
   const b = Buffer.from(expect);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return '';
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    if (DEBUG) console.log('[toss-nick] reject(sig)', { secretLen: NICK_SECRET.length, userKeyLen: userKey.length, sigLen: a.length, expLen: b.length, sigPfx: String(sig || '').slice(0, 6), expPfx: expect.slice(0, 6) });
+    return '';
+  }
   return userKey;
 }
 

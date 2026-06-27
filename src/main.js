@@ -530,22 +530,29 @@ function runMatchmaking(myNick, ghostNames) {
 // 기본 닉이 있으면 자동 적용 → 순위에 자동으로 그 닉이 들어간다. 없으면 1회 입력받아 저장.
 // 실패하면 조용히 넘어가고, 기존 흐름(첫 완주 시 닉 입력)으로 폴백한다.
 const TOSS_TOKEN_LS = 'candlebike_toss_token';
-// 토스 로그인 → 계정 기본닉 조회. 반환: 'has'(이미 닉 있음) 'set'(계정닉 적용)
-// 'prompted'(닉 모달 띄움) 'none'(브리지/API 실패) 'skip'(토스 아님).
+// 토스 로그인 → user_key 귀속(toss_users) + 계정 기본닉 동기화.
+// 반환: 'has'(닉 보유·귀속완료) 'set'(계정닉 적용) 'prompted'(닉 모달) 'none'(실패) 'skip'(토스 아님).
+// 🔴 닉이 있어도 매 진입 시 로그인을 거친다 — 그래야 기존 유저도 toss_users 에 귀속되어 '가입'으로 잡힘.
 async function tossLoginFlow() {
   if (!IS_TOSS) return 'skip';
-  if (getNick()) return 'has';
   try {
     const login = await requestTossLogin();                 // 셸 appLogin → { authorizationCode, referrer }
+    if (!login?.authorizationCode) return 'none';           // 브리지 없음/구셸 → 폴백
     const res = await fetch('/api/auth/toss', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ authorizationCode: login?.authorizationCode, referrer: login?.referrer }),
+      body: JSON.stringify({ authorizationCode: login.authorizationCode, referrer: login.referrer }),
     });
     if (!res.ok) { console.warn('토스 로그인 API', res.status); return 'none'; }
     const data = await res.json();
     if (data.token) { localStorage.setItem(TOSS_TOKEN_LS, data.token); invPull(data.token); }
-    if (data.nick) { setNick(data.nick); updateNickButton(); return 'set'; }  // 계정 기본닉 자동 적용
-    promptNick((n) => saveNick(n));                          // 첫 로그인 → 닉 1회 입력(+서버 저장)
+    const localNick = getNick();
+    // 계정엔 닉이 있는데 로컬엔 없으면 → 계정닉 채택
+    if (data.nick && !localNick) { setNick(data.nick); updateNickButton(); return 'set'; }
+    // 로컬 닉이 있고 계정엔 없거나 다르면 → 계정에 저장(=toss_users 적재/갱신). 토큰 있을 때만.
+    if (localNick && data.token && data.nick !== localNick) { saveNick(localNick); }
+    if (localNick) return 'has';
+    // 로컬·계정 둘 다 닉 없음 → 첫 닉 입력(저장 시 toss_users 적재)
+    promptNick((n) => saveNick(n));
     return 'prompted';
   } catch (e) {
     console.warn('토스 로그인 생략', e);                     // 브리지 없음/타임아웃 등 → 폴백
