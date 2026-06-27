@@ -8,7 +8,7 @@ import { getCourse, getLastCourseSource, currentPeriod } from './courseCache.js'
 import { Game } from './game/game.js';
 import { initPlayBanner, showRewardedAd, renderHouseAd, tossPreResultGate } from './ads/ads.js';
 import { submitScore, topScores, getNick, setNick, isRemote } from './leaderboard/leaderboard.js';
-import { startRankTicker, registerTicker, showLocalRankEvent, showGhostRankEvent } from './leaderboard/rankTicker.js';
+import { startRankTicker, registerTicker, showLocalRankEvent, showGhostRankEvent, repaintTicker } from './leaderboard/rankTicker.js';
 import { shareResult, saveCard } from './share/share.js';
 import * as Items from './items/items.js';
 import { drawPreview } from './game/vehicles.js';
@@ -50,6 +50,7 @@ const $ = (id) => document.getElementById(id);
 const screens = ['home', 'loading', 'play', 'ad', 'result'];
 function show(name) {
   screens.forEach((s) => $(`screen-${s}`).classList.toggle('active', s === name));
+  repaintTicker();        // 새로 보이는 화면의 1위 띠를 정확한 폭으로 다시 그림(플레이 전환 시 누락 방지)
   refreshTossAdSlots();   // 결과 보기 전 이미지 배너(좌표 오버레이) 재통지
   if (IS_TOSS) {
     // 자리별 하단 고정 배너 — 화면당 1개, 스크롤 추적 안 함(깜빡임 없음).

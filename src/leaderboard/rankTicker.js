@@ -64,7 +64,7 @@ function paintMount(el) {
   try {
     move.animate(
       [{ transform: `translateX(${cw}px)` }, { transform: `translateX(${-iw}px)` }],
-      { duration: PASS_MS, iterations: PASSES, easing: 'linear', fill: 'forwards' }
+      { duration: PASS_MS, iterations: playing.passes || PASSES, easing: 'linear', fill: 'forwards' }
     );
   } catch {
     move.style.transform = 'translateX(0)';   // WAAPI 미지원 폴백: 그냥 보이기만
@@ -72,6 +72,19 @@ function paintMount(el) {
 }
 
 function renderAll() { mounts.forEach(paintMount); }
+
+// 화면 전환으로 어떤 마운트가 '보이게' 됐을 때 호출 — 그 화면에서 처음부터 정확히 보이도록
+// 현재 이벤트를 다시 그린다(가려져 있던 동안 폭 0으로 잘못 계산된 애니메이션 교정).
+// 라이브 이벤트면 타이머도 리셋해 그 화면에서 PASSES번 온전히 보이게 한다.
+export function repaintTicker() {
+  if (!playing) return;
+  let anyVisible = false;
+  mounts.forEach((el) => { if ((el.offsetWidth || 0) > 0) { paintMount(el); anyVisible = true; } });
+  if (anyVisible && playing.kind === 'live') {
+    clearTimeout(timer);
+    timer = setTimeout(playNext, PASS_MS * (playing.passes || PASSES) + 250);
+  }
+}
 
 // idle(도전 문구) 한 건 — 챔피언 풀에서 순환.
 function nextIdleItem() {
