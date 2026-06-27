@@ -47,13 +47,14 @@ export default async function handler(req, res) {
       res.status(429).json({ error: 'rate limited' });
       return;
     }
-    res.status(200).json(out);
-    // 완주 핑 — 응답 후 전송(유저 지연 0). 누구든 1판 완주 시 닉·종목·기록·순위.
+    // 완주 핑 — 응답 '전'에 전송(서버리스는 응답 후 작업이 잘릴 수 있어 보장). 누구든 1판 완주 시.
+    // tgNotify 는 내부 4초 타임아웃 + 실패 무시라, 알림 때문에 점수 응답이 막히지 않음.
     const sec = (score / 1000).toFixed(1);
     const rankTxt = (out && out.rank)
       ? `전체 ${out.rank}위${out.percentile != null ? ` (상위 ${out.percentile}%)` : ''}`
       : '-';
     await tgNotify(`🏁 <b>캔들라이더 완주!</b>\n\n· 닉: ${tgEscape(nick)}\n· 종목: ${tgEscape(symbol)}\n· 기록: ${sec}초\n· 순위: ${rankTxt}`);
+    res.status(200).json(out);
   } catch (e) {
     res.status(502).json({ error: String(e) });
   }
