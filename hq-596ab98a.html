@@ -59,8 +59,17 @@
     td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
     .pill { display:inline-block; background:var(--bg2); border:1px solid var(--border); border-radius:6px;
       padding:1px 7px; font-size:11px; color:var(--muted); }
-    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
     @media (max-width:720px){ .grid2{ grid-template-columns:1fr; } }
+
+    /* 전체 유저 모달 */
+    .umodal { position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.6);
+      display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; }
+    .umodal-card { width:min(560px,96vw); background:#0d1320; border:1px solid #2a3550;
+      border-radius:14px; max-height:86vh; display:flex; flex-direction:column; }
+    .umodal-head { display:flex; align-items:center; justify-content:space-between;
+      padding:14px 16px; border-bottom:1px solid #1c2740; }
+    .umodal-body { overflow-y:auto; padding:6px 16px 16px; }
 
     /* 도구 링크 */
     .tools { display:flex; flex-wrap:wrap; gap:10px; }
@@ -129,9 +138,26 @@
           <tbody id="top-body"></tbody></table>
       </div>
       <div>
-        <h2>신규 가입 유저 (토스 · 최근 30)</h2>
+        <h2 style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <span>신규 가입 유저 (토스)</span>
+          <button id="users-all-btn" style="border:1px solid #2a3550;background:#0d1320;color:#7fd1ff;border-radius:8px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer">전체 보기 →</button>
+        </h2>
         <table><thead><tr><th>닉네임</th><th class="num">가입일시(KST)</th></tr></thead>
           <tbody id="user-body"></tbody></table>
+      </div>
+    </div>
+
+    <!-- 전체 가입 유저 모달 -->
+    <div id="users-modal" class="umodal" hidden>
+      <div class="umodal-card">
+        <div class="umodal-head">
+          <h2 style="margin:0">전체 가입 유저 <span class="muted" id="users-count" style="font-size:14px"></span></h2>
+          <button id="users-close" style="border:none;background:none;color:#9fb0c8;font-size:20px;cursor:pointer">✕</button>
+        </div>
+        <div class="umodal-body">
+          <table><thead><tr><th>닉네임</th><th class="num">가입일시(KST)</th></tr></thead>
+            <tbody id="users-all-body"></tbody></table>
+        </div>
       </div>
     </div>
 
@@ -149,7 +175,7 @@
     <div id="words-box" style="display:flex;flex-wrap:wrap;gap:6px"></div>
 
     <h2 style="margin-top:24px">차단된 닉 (변경 요청)</h2>
-    <p class="muted" style="margin-top:-4px">차단하면 기존 기록의 그 닉이 <b>익명의라이더</b>로 바뀌고, 그 유저는 재접속 시 새 닉으로 강제 변경돼요. (아래 표의 닉 옆 <b>차단</b> 버튼으로도 가능)</p>
+    <p class="muted" style="margin-top:-4px">차단하면 기존 기록의 그 닉이 <b>랜덤 닉(예: 질주라이더)</b>으로 바뀌고, 그 유저는 재접속 시 새 닉으로 강제 변경돼요. (아래 표의 닉 옆 <b>차단</b> 버튼으로도 가능)</p>
     <div style="display:flex;gap:8px;margin:8px 0 12px;max-width:420px">
       <input id="ban-input" type="text" placeholder="차단할 닉 직접 입력" maxlength="40"
         style="flex:1;padding:9px 12px;border-radius:8px;border:1px solid #2a3550;background:#0d1320;color:#e6f0f0;font-size:14px" />
@@ -236,7 +262,7 @@
       }).join('') || '<span class="muted">(없음)</span>';
     }
     async function banNick(nick) {
-      if (!nick || !confirm('"' + nick + '" 닉을 차단할까요?\n기존 기록은 익명의라이더로 바뀌고, 유저는 재접속 시 새 닉으로 변경됩니다.')) return;
+      if (!nick || !confirm('"' + nick + '" 닉을 차단할까요?\n기존 기록은 랜덤 닉으로 바뀌고, 유저는 재접속 시 새 닉으로 변경됩니다.')) return;
       await postAdmin({ banNick: nick });
     }
     async function postAdmin(body) {
@@ -245,7 +271,7 @@
           method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token() },
           body: JSON.stringify(body),
         });
-        if (r.ok) load(); else alert('실패 (' + r.status + ')');
+        if (r.ok) { $('users-modal').hidden = true; load(); } else alert('실패 (' + r.status + ')');
       } catch (e) { alert('네트워크 오류'); }
     }
     $('ban-add').onclick = function () { banNick($('ban-input').value.trim()); };
@@ -260,6 +286,28 @@
     function nickCell(nick) {
       return esc(nick) + ' <button class="ban-row" data-n="' + esc(nick) + '" title="이 닉 차단" style="border:none;background:#3a1414;color:#ff9a9a;border-radius:5px;cursor:pointer;font-size:10px;padding:1px 5px;margin-left:4px">차단</button>';
     }
+
+    // ── 전체 가입 유저 모달 ──
+    async function openUsersAll() {
+      $('users-all-body').innerHTML = '<tr><td colspan="2" class="muted">불러오는 중…</td></tr>';
+      $('users-count').textContent = '';
+      $('users-modal').hidden = false;
+      try {
+        var r = await fetch('/api/admin/stats', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token() },
+          body: JSON.stringify({ allUsers: true }),
+        });
+        if (!r.ok) { $('users-all-body').innerHTML = '<tr><td colspan="2" class="muted">불러오기 실패 (' + r.status + ')</td></tr>'; return; }
+        var us = (await r.json()).users || [];
+        $('users-count').textContent = '(' + us.length + '명)';
+        $('users-all-body').innerHTML = us.map(function (x) {
+          return '<tr><td>' + nickCell(x.nick) + '</td><td class="num">' + kst(x.created_at) + '</td></tr>';
+        }).join('') || '<tr><td colspan="2" class="muted">아직 없음</td></tr>';
+      } catch (e) { $('users-all-body').innerHTML = '<tr><td colspan="2" class="muted">네트워크 오류</td></tr>'; }
+    }
+    $('users-all-btn').onclick = openUsersAll;
+    $('users-close').onclick = function () { $('users-modal').hidden = true; };
+    $('users-modal').addEventListener('click', function (e) { if (e.target === $('users-modal')) $('users-modal').hidden = true; });
 
     var EK = 'cr_admin_email';
     function showGate(msg) {
@@ -300,7 +348,8 @@
 
       renderTop('all');
 
-      $('user-body').innerHTML = (u.recent || []).map(function (x) {
+      // 위젯엔 최신 10개만(옆칸 인기종목 10줄과 정렬), 전체는 '전체 보기'로
+      $('user-body').innerHTML = (u.recent || []).slice(0, 10).map(function (x) {
         return '<tr><td>' + nickCell(x.nick) + '</td><td class="num">' + kst(x.created_at) + '</td></tr>';
       }).join('') || '<tr><td colspan="2" class="muted">아직 없음</td></tr>';
 

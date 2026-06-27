@@ -54,6 +54,15 @@ export default async function handler(req, res) {
     } catch (e) { res.status(502).json({ error: String(e) }); }
     return;
   }
+  // 전체 가입 유저 목록(토스) — '전체 보기'용. 별도 함수 대신 여기서 처리.
+  if (body.allUsers) {
+    try {
+      const r = await sb('toss_users?select=nick,created_at&order=created_at.desc&limit=1000');
+      const users = r.ok ? await r.json() : [];
+      res.status(200).json({ users });
+    } catch (e) { res.status(502).json({ error: String(e) }); }
+    return;
+  }
   // 닉 차단 해제 — 목록에서만 제거(이미 익명처리된 기록은 복원 안 됨)
   if (body.unbanNick) {
     const nick = String(body.unbanNick).trim().slice(0, 40);
