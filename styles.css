@@ -100,10 +100,14 @@ body {
 
 /* 차고 / 아이템 모달 */
 .garage-inner {
-  width: min(440px, 92vw); max-height: 86vh; display: flex; flex-direction: column;
+  width: min(440px, 92vw); display: flex; flex-direction: column;
   background: var(--bg2); border: 1px solid var(--panel-border); border-radius: 16px;
   padding: 16px; gap: 12px;
+  /* 토스 하단 배너(≈64px)+안전영역에 안 가리도록 높이 제한 */
+  max-height: calc(100vh - var(--sat) - var(--sab) - 120px);
 }
+/* 차고 모달은 위쪽 정렬 — 가운데 정렬이면 하단이 배너에 가려짐 */
+#garage-modal { align-items: flex-start; padding-top: calc(var(--sat) + 14px); padding-bottom: calc(var(--sab) + 84px); }
 .garage-head { display: flex; align-items: center; justify-content: space-between; }
 .garage-head h2 { font-size: 17px; }
 .garage-x { background: transparent; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 4px 8px; }
@@ -127,7 +131,7 @@ body {
   background: var(--panel); border: 1px solid var(--panel-border); color: var(--muted);
 }
 .garage-tab.active { background: var(--neon); color: #06231f; border-color: var(--neon); }
-.garage-body { overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 2px; }
+.garage-body { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 2px 2px 8px; }
 .item-card {
   background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px;
   padding: 12px 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;
@@ -164,9 +168,12 @@ body {
 .item-card { min-height: 184px; }
 .item-actions { margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 6px; }
 .veh-thumb { width: 118px; height: 80px; display: block; }
+/* 퍽 배지: 여러 개면 줄바꿈으로 카드 안에 정렬(넘침 방지) */
+.item-perks { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; width: 100%; }
 .item-perk {
   display: inline-block; background: rgba(44,230,196,.12); border: 1px solid rgba(44,230,196,.5);
   color: #9ff0e2; border-radius: 999px; padding: 2px 8px; font-size: 10px; font-weight: 700; line-height: 1.3; min-height: 16px;
+  white-space: nowrap; max-width: 100%;
 }
 .item-btn.buy-btn { background: linear-gradient(180deg, #1b3a36, #13302c); border-color: var(--gold); color: var(--gold); display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
 .item-btn.buy-btn:disabled { background: var(--bg); border-color: var(--panel-border); color: var(--muted); }

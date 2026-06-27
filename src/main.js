@@ -239,12 +239,16 @@ const garageModal = $('garage-modal');
 let garageTab = 'consum';   // 기본 탭: 소모품 먼저
 let acquiring = false;
 
-// 탈것 기본 퍽 → 소모품 이모지+이름 배지 텍스트
-function perkText(perk) {
-  return Object.keys(perk || {}).map((id) => {
+// 탈것 기본 퍽 → 소모품 이모지+이름 '개별 배지'(2개 이상이면 줄바꿈으로 카드 안에 정렬)
+function perkBadges(perk) {
+  const items = Object.keys(perk || {}).map((id) => {
     const c = Items.CONSUMABLES.find((x) => x.id === id);
     return c ? `${c.emoji} ${escapeHtml(Items.itemName(c))}` : '';
-  }).filter(Boolean).join(' · ');
+  }).filter(Boolean);
+  const inner = items.length
+    ? items.map((s) => `<span class="item-perk">${s}</span>`).join('')
+    : '<span class="item-perk">&nbsp;</span>';
+  return `<div class="item-perks">${inner}</div>`;
 }
 // 토큰 잔액 칩 + 광고 버튼 라벨 갱신
 function updateTokenUI() {
@@ -273,11 +277,10 @@ function renderGarage() {
       const btn = owned
         ? `<button class="item-btn ${on ? 'ghost' : 'primary'}" data-eqveh="${v.id}" ${on ? 'disabled' : ''}>${on ? t.equipped : t.equip}</button>`
         : `<button class="item-btn buy-btn" data-buyveh="${v.id}" ${afford ? '' : 'disabled'}><span class="coin"></span> ${v.cost}</button>`;
-      const perk = perkText(v.perk);
       return `<div class="item-card ${on ? 'on' : ''}">
         <canvas class="veh-thumb" data-veh="${v.id}"></canvas>
         <span class="item-name">${escapeHtml(Items.itemName(v))}</span>
-        <span class="item-perk">${perk || '&nbsp;'}</span>
+        ${perkBadges(v.perk)}
         <div class="item-actions">${btn}</div></div>`;
     }).join('');
   } else {
