@@ -567,6 +567,35 @@ body {
 .lb-crown { font-size: 14px; flex: 0 0 auto; }
 .leaderboard li.king { border-color: rgba(255,211,77,.5); background: rgba(255,211,77,.06); }
 
+/* 🏆 종목별 1위 — 컴팩트 행 + 칸별 도전 버튼 + 내 순위 칩 */
+.lb-sub { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+.leaderboard.champions { margin-bottom: 14px; }
+.leaderboard li.champ {
+  display: flex; align-items: center; gap: 9px; padding: 8px 11px; margin-bottom: 6px;
+  background: linear-gradient(135deg, rgba(255,211,77,.06), rgba(255,255,255,.02));
+  border: 1px solid rgba(255,211,77,.26); border-radius: 11px;
+}
+.champ .cmedal { font-size: 19px; line-height: 1; flex: 0 0 auto; }
+.champ .cbody { flex: 1; min-width: 0; }
+.champ .cl1 { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.champ .cveh { font-size: 15px; flex: 0 0 auto; }
+.champ .cnick { font-size: 14px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.champ .cago { font-size: 10px; color: var(--muted); font-weight: 700; flex: 0 0 auto; }
+.champ .cago.fresh { color: var(--neon); }
+.champ .cl2 { display: flex; align-items: center; gap: 6px; margin-top: 2px; min-width: 0; }
+.champ .cstock { font-size: 12px; font-weight: 700; color: #cfd8de; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.champ .ccode { font-size: 10px; color: var(--muted); flex: 0 0 auto; }
+.champ .myrank { flex: 0 0 auto; font-size: 9.5px; font-weight: 800; border-radius: 6px; padding: 2px 6px; background: rgba(255,255,255,.06); color: var(--muted); }
+.champ .myrank.me { color: var(--gold); background: rgba(255,211,77,.14); }
+.champ .myrank.none { color: #8aa0ad; }
+.champ .cright { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.champ .ctime { font-size: 14px; font-weight: 900; color: var(--neon); line-height: 1; }
+.champ .cgo { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 800; cursor: pointer;
+  color: #06231f; background: var(--neon); border: none; border-radius: 8px; padding: 5px 12px; white-space: nowrap;
+  box-shadow: 0 3px 12px rgba(44,230,196,.25); }
+.champ .cgo:active { transform: scale(.96); }
+.leaderboard li.champ-empty { justify-content: center; color: var(--muted); text-align: center; }
+
 /* ===== 모달 ===== */
 .modal {
   position: fixed; inset: 0; z-index: 50;

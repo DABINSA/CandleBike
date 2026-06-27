@@ -14,6 +14,17 @@ export function loadSymbols() {
   return loadPromise;
 }
 
+// 코드 → 한글명 즉시 조회(로드돼 있을 때만). 종목별 1위 표시 등에서 사용.
+let NAME_MAP = null;
+export function krNameOf(symbol) {
+  if (!DATA) return null;
+  if (!NAME_MAP || NAME_MAP.size !== DATA.length) {
+    NAME_MAP = new Map();
+    for (const it of DATA) NAME_MAP.set(it.s, it.n);
+  }
+  return NAME_MAP.get(symbol) || null;
+}
+
 // 한국 종목 즉시 검색 → [{ symbol, name }] (최대 limit개). 매칭 없으면 [].
 export async function searchKr(q, limit = 8) {
   const list = DATA || (await loadSymbols());

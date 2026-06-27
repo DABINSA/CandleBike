@@ -136,4 +136,58 @@ export async function poolRankInfo(symbols) {
   return out;
 }
 
+// 종목별 1위(챔피언) — 이번 주, '최신 1위 달성순' 정렬. [{ symbol, nick, score, vehicle, created_at }]
+// 전체 순위(난이도 제각각) 대신, 종목마다 현재 1등만 모아 보여주는 용도.
+export async function symbolChampions(limit = 50) {
+  const sinceISO = weekStartISO();
+  const client = await getClient();
+  let rows = [];
+  if (client) {
+    // 빠른 기록 위주로 가져와(각 종목의 1위는 그 종목에서 가장 빠른 기록) 종목별 최소값을 잡는다.
+    const { data, error } = await client.from('scores')
+      .select('symbol,nick,score,vehicle,created_at')
+      .gte('created_at', sinceISO).order('score', { ascending: true }).limit(8000);
+    if (!error && data) rows = data;
+  } else {
+    const sinceMs = weekStartMs();
+    rows = lsAll().filter((x) => new Date(x.created_at || 0).getTime() >= sinceMs);
+  }
+  // 종목별 최소 score(=1위). 동점이면 먼저 달성(작은 created_at)을 1위로.
+  const champ = new Map();
+  for (const r of rows) {
+    const c = champ.get(r.symbol);
+    if (!c || r.score < c.score || (r.score === c.score && new Date(r.created_at) < new Date(c.created_at))) champ.set(r.symbol, r);
+  }
+  return Array.from(champ.values())
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))   // 최신 달성순
+    .slice(0, limit);
+}
+
+// 여러 종목에서 '내(현재 닉) 등수' → { symbol: { rank, best } } (기록 없으면 미포함).
+export async function mySymbolRanks(symbols) {
+  const nick = getNick();
+  const out = {};
+  if (!nick || !symbols || !symbols.length) return out;
+  const sinceISO = weekStartISO();
+  const client = await getClient();
+  let rows = [];
+  if (client) {
+    const { data, error } = await client.from('scores')
+      .select('symbol,nick,score').in('symbol', symbols).gte('created_at', sinceISO).limit(10000);
+    if (!error && data) rows = data;
+  } else {
+    const sinceMs = weekStartMs();
+    const set = new Set(symbols);
+    rows = lsAll().filter((x) => set.has(x.symbol) && new Date(x.created_at || 0).getTime() >= sinceMs);
+  }
+  const myBest = {};
+  for (const r of rows) if (r.nick === nick && (myBest[r.symbol] == null || r.score < myBest[r.symbol])) myBest[r.symbol] = r.score;
+  for (const sym in myBest) {
+    let better = 0;
+    for (const r of rows) if (r.symbol === sym && r.score < myBest[sym]) better += 1;
+    out[sym] = { rank: better + 1, best: myBest[sym] };
+  }
+  return out;
+}
+
 export function isRemote() { return isConfigured(); }

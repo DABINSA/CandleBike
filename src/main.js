@@ -7,7 +7,8 @@ import { searchSymbols, getTrending, getTrendingPool, getProvider, activeMarket 
 import { getCourse, getLastCourseSource, currentPeriod } from './courseCache.js';
 import { Game } from './game/game.js';
 import { initPlayBanner, showRewardedAd, renderHouseAd, tossPreResultGate } from './ads/ads.js';
-import { submitScore, topScores, getNick, setNick, isRemote, nextResetMs, poolRankInfo } from './leaderboard/leaderboard.js';
+import { submitScore, topScores, getNick, setNick, isRemote, nextResetMs, poolRankInfo, symbolChampions, mySymbolRanks } from './leaderboard/leaderboard.js';
+import { loadSymbols, krNameOf } from './stock/symbols.js';
 import { startRankTicker, registerTicker, showLocalRankEvent, showGhostRankEvent, repaintTicker } from './leaderboard/rankTicker.js';
 import { shareResult, saveCard } from './share/share.js';
 import * as Items from './items/items.js';
@@ -1052,6 +1053,8 @@ function renderWeekHeader() {
   }, 1000);
 }
 async function renderLeaderboard(symbol, myId) {
+  $('leaderboard-list').className = 'leaderboard';   // 종목별 1위 모드에서 돌아온 경우 원복
+  $('btn-retry').style.display = '';
   // 제목도 종목명 + 코드로 (이름 알 때). 예: "금호건설 (002990.KS) 순위"
   const titleNm = symbol ? lookupName(symbol) : null;
   $('lb-title').textContent = t.leaderboardTitle(symbol ? (titleNm ? `${titleNm} (${symbol})` : symbol) : null);
@@ -1084,6 +1087,66 @@ async function renderLeaderboard(symbol, myId) {
     ol.appendChild(li);
   });
   if (list.length === 0) ol.innerHTML = `<li style="justify-content:center;color:var(--muted)">${t.noRecords}</li>`;
+}
+
+// 상대 시간(방금/N분 전/N시간 전/어제/N일 전)
+function timeAgo(iso) {
+  const ms = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return t.agoNow;
+  if (m < 60) return t.agoMin(m);
+  const h = Math.floor(m / 60);
+  if (h < 24) return t.agoHour(h);
+  const d = Math.floor(h / 24);
+  return d === 1 ? t.agoYesterday : t.agoDay(d);
+}
+
+// 🏆 종목별 1위 — 전체 순위 대신 '종목마다 현재 1위'를 최신 달성순으로. 칸별 '도전'(싱글 즉시 진입) + 내 순위.
+async function renderChampions() {
+  $('lb-title').textContent = t.championsTitle;
+  renderWeekHeader();
+  const wk = $('lb-week');
+  if (wk && !wk.querySelector('.lb-sub')) {
+    const sub = document.createElement('div'); sub.className = 'lb-sub'; sub.textContent = t.championsSub; wk.appendChild(sub);
+  }
+  const ol = $('leaderboard-list');
+  ol.className = 'leaderboard champions';
+  ol.innerHTML = `<li class="champ-empty">${t.loadingTrending}</li>`;
+  await loadSymbols().catch(() => {});   // 한국 종목명 즉시 조회 준비
+  let champs = [];
+  try { champs = await symbolChampions(50); } catch (e) { console.warn('종목별 1위 조회 실패', e); }
+  if (!champs.length) { ol.innerHTML = `<li class="champ-empty">${t.noRecords}</li>`; return; }
+  let myRanks = {};
+  try { myRanks = await mySymbolRanks(champs.map((c) => c.symbol)); } catch (e) { /* 내 순위 없음 */ }
+  ol.innerHTML = '';
+  champs.forEach((c) => {
+    const nm = lookupName(c.symbol) || krNameOf(c.symbol);
+    if (nm) rememberName(c.symbol, nm);
+    const dispNick = nick6(ANON_NICKS.includes(c.nick) ? t.anon : c.nick);
+    const veh = Items.vehicleEmoji(c.vehicle);
+    const ago = timeAgo(c.created_at);
+    const fresh = (Date.now() - new Date(c.created_at).getTime()) < 3600000;   // 1시간 내 = 강조
+    const mr = myRanks[c.symbol];
+    const myChip = (mr && mr.rank === 1) ? `<span class="myrank me">${t.myRankFirst}</span>`
+      : mr ? `<span class="myrank">${t.myRankN(mr.rank)}</span>`
+      : `<span class="myrank none">${t.myRankNone}</span>`;
+    const li = document.createElement('li');
+    li.className = 'champ';
+    li.innerHTML =
+      `<span class="cmedal">🥇</span>` +
+      `<div class="cbody">` +
+        `<div class="cl1">${veh ? `<span class="cveh">${veh}</span>` : ''}<span class="cnick">${escapeHtml(dispNick)}</span><span class="cago${fresh ? ' fresh' : ''}">· ${ago}</span></div>` +
+        `<div class="cl2"><span class="cstock">${escapeHtml(nm || c.symbol)}</span>${nm ? `<span class="ccode">${escapeHtml(c.symbol)}</span>` : ''}${myChip}</div>` +
+      `</div>` +
+      `<div class="cright"><span class="ctime">${t.timeFmt(c.score)}</span>` +
+        `<button class="cgo" type="button">🏍️ ${escapeHtml(t.challenge)}</button></div>`;
+    li.querySelector('.cgo').onclick = (e) => {
+      e.stopPropagation();
+      logTossEvent('game_start', { symbol: c.symbol, mode: 'single' });
+      launch({ symbol: c.symbol, name: nm });   // 항상 싱글로 즉시 진입
+    };
+    ol.appendChild(li);
+  });
 }
 
 // ---------------- 닉네임 모달 ----------------
@@ -1300,13 +1363,14 @@ $('btn-retry').onclick = () => {
 $('btn-home').onclick = () => { show('home'); input.value = ''; selected = null; $('btn-start').disabled = true; };
 $('btn-leaderboard-home').onclick = async () => {
   show('result');
-  // 전체 순위만 — 직전 플레이 결과(카드/공유/멀티 등수/배너)는 모두 숨김
+  // 종목별 1위만 — 직전 플레이 결과(카드/공유/멀티 등수/배너)는 모두 숨김
   $('result-card').style.display = 'none';
   document.querySelector('.share-row').style.display = 'none';
   $('multi-result').hidden = true;
   $('ad-result').style.display = 'none';
-  $('lb-back').hidden = false;        // 상단 뒤로가기 노출(전체순위 보기 모드)
-  await renderLeaderboard(null);
+  $('lb-back').hidden = false;        // 상단 뒤로가기 노출
+  $('btn-retry').style.display = 'none';   // 선택 종목이 없으므로 '다시 도전' 숨김(칸별 도전 사용)
+  await renderChampions();
 };
 // 전체순위 화면 상단 뒤로가기 → 메인으로
 $('lb-back').onclick = () => { show('home'); resetResultView(); };
@@ -1335,6 +1399,9 @@ function resetResultView() {
   document.querySelector('.share-row').style.display = '';
   $('ad-result').style.display = '';
   $('lb-back').hidden = true;
+  $('btn-retry').style.display = '';                  // 종목별 1위 모드에서 숨겼던 것 원복
+  $('leaderboard-list').className = 'leaderboard';
+  $('lb-week')?.querySelector('.lb-sub')?.remove();
 }
 $('btn-retry').addEventListener('click', resetResultView);
 $('btn-home').addEventListener('click', resetResultView);
