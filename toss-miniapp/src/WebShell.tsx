@@ -5,7 +5,7 @@ import { Component, useEffect, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useBackHandler, IOScrollView } from '@granite-js/react-native';
 import { WebView } from '@granite-js/native/react-native-webview';
-import { appLogin, loadFullScreenAd, showFullScreenAd, contactsViral, Analytics, InlineAd } from '@apps-in-toss/framework';
+import { appLogin, loadFullScreenAd, showFullScreenAd, contactsViral, Analytics, InlineAd, share } from '@apps-in-toss/framework';
 
 const SITE = 'https://candlerider.2nt4soft.com';
 
@@ -21,6 +21,7 @@ const INJECT_BEFORE = `
   window.__APPS_IN_TOSS_SHARE__ = true;
   window.__APPS_IN_TOSS_EVENT__ = true;
   window.__APPS_IN_TOSS_BANNER_AD__ = true;
+  window.__APPS_IN_TOSS_SHARE_SHEET__ = true;
   true;
 `;
 
@@ -143,6 +144,15 @@ export function WebShell({ path }: { path: string }) {
           });
         } catch (err) {
           done(false, undefined, err instanceof Error ? err.message : 'shareError');
+        }
+      } else if (type === 'shareLink') {
+        // 시스템 공유 시트(카톡 등) — navigator.share 가 막힌 토스 WebView 대체.
+        const message = (msg.params && (msg.params as any).message) || '';
+        try {
+          await share({ message });
+          reply(requestId, true, { ok: true });
+        } catch (err) {
+          reply(requestId, false, undefined, err instanceof Error ? err.message : 'SHARE_SHEET_ERROR');
         }
       } else if (type === 'logEvent') {
         // 핵심지표 커스텀 이벤트 — Analytics.Impression 을 잠깐 렌더해 1회 발사(best-effort).

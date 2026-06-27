@@ -5,6 +5,7 @@
 // 데스크톱에서는 이미지 다운로드 + 캡션 복사로 처리한다. (가장 현실적인 방식)
 
 import { t, LANG } from '../i18n.js';
+import { IS_TOSS, IS_TOSS_SHARE_SHEET_READY, requestTossShareSheet } from '../toss.js';
 
 const W = 1080, H = 1350;
 const SITE_HOST = (typeof location !== 'undefined' && location.host) ? location.host : 'candlerider.2nt4soft.com';
@@ -108,6 +109,18 @@ export async function shareResult(result) {
   const caption = result.completed
     ? t.shareCaptionTime(result.symbol, t.timeFmt(result.timeMs), result.rank, shareUrl)
     : t.shareCaption(result.symbol, (result.distance || 0).toLocaleString(), '–', shareUrl);
+
+  // 토스 인앱: navigator.share 가 막혀 있어 셸의 네이티브 share()(카톡 등 시스템 공유 시트)로.
+  // 메시지에 링크를 포함해 보낸다(메신저가 OG 카드로 펼침). 새 .ait(공유시트 브리지)에서만.
+  if (IS_TOSS && IS_TOSS_SHARE_SHEET_READY) {
+    try {
+      await requestTossShareSheet(`${caption}\n${shareUrl}`);
+      return 'shared';
+    } catch (e) {
+      if (e && e.message === 'cancelled') return 'cancelled';
+      // 실패 시 아래 클립보드 폴백으로 진행
+    }
+  }
 
   // 링크를 클립보드에도 복사 — 공유 대상이 url을 무시해도 채팅에 붙여넣어 보낼 수 있다.
   let copied = false;

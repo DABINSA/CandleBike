@@ -71,6 +71,16 @@ export function requestTossShareReward(moduleId, timeoutMs = 120000) {
   return callBridge('shareReward', { moduleId }, timeoutMs);
 }
 
+// 토스 시스템 공유 시트(카톡 등) — navigator.share 가 막힌 토스 WebView에서 share() 네이티브 호출.
+export function requestTossShareSheet(message, timeoutMs = 120000) {
+  return callBridge('shareLink', { message }, timeoutMs);
+}
+// 셸이 시스템 공유(share) 브리지를 지원하는지(=새 .ait). 구버전이면 false → 링크 복사 폴백.
+export const IS_TOSS_SHARE_SHEET_READY = (() => {
+  try { return typeof window !== 'undefined' && window.__APPS_IN_TOSS_SHARE_SHEET__ === true; }
+  catch { return false; }
+})();
+
 // 셸이 공유 리워드 브리지를 지원하는지(=새 .ait). 구버전 셸이면 false → 공유 버튼 숨김.
 export const IS_TOSS_SHARE_READY = (() => {
   try { return typeof window !== 'undefined' && window.__APPS_IN_TOSS_SHARE__ === true; }
