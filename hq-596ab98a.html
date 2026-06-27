@@ -77,7 +77,8 @@
       border:1px solid var(--border); border-radius:12px; text-decoration:none; color:var(--text); min-width:180px; }
     .tool .t { font-weight:700; font-size:14px; }
     .tool .s { font-size:12px; color:var(--muted); }
-    .tabs { display:inline-flex; gap:6px; margin-bottom:10px; }
+    .tabs { display:inline-flex; gap:6px; margin-bottom:10px; min-height:24px; }
+    .grid2 h2 { min-height:30px; display:flex; align-items:center; }
     .tab { font-size:12px; padding:5px 10px; border-radius:8px; border:1px solid var(--border);
       background:var(--bg2); color:var(--muted); cursor:pointer; }
     .tab.active { background:var(--neon); color:#06231f; border-color:var(--neon); font-weight:800; }
@@ -138,10 +139,11 @@
           <tbody id="top-body"></tbody></table>
       </div>
       <div>
-        <h2 style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <h2 style="justify-content:space-between;gap:8px">
           <span>신규 가입 유저 (토스)</span>
           <button id="users-all-btn" style="border:1px solid #2a3550;background:#0d1320;color:#7fd1ff;border-radius:8px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer">전체 보기 →</button>
         </h2>
+        <div class="tabs" aria-hidden="true"></div>
         <table><thead><tr><th>닉네임</th><th class="num">가입일시(KST)</th></tr></thead>
           <tbody id="user-body"></tbody></table>
       </div>
