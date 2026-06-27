@@ -5,7 +5,7 @@
 // 주의: 완전한 안티치트(리플레이/서버 시뮬)는 범위 밖 — 캐주얼 게임 기준 위조·스팸·비용폭탄 차단 수준.
 import { sb, supaReady, clientIp } from './_supa.js';
 import { tgNotify, tgEscape } from './_telegram.js';
-import { checkNick, ANON_RIDER } from './_moderation.js';
+import { checkNick, randomNick } from './_moderation.js';
 
 // score = 완주 시간(ms). 작을수록 빠름(상위). 비현실적 값 차단.
 const SCORE_MIN = 3_000;           // 3초 미만 완주는 불가능 → 위조 차단
@@ -24,10 +24,10 @@ export default async function handler(req, res) {
 
   // ---- 서버 검증 (프론트 검증은 우회되므로 여기서 재검증) ----
   let nick = typeof b.nick === 'string' ? b.nick.trim().replace(/[ -]/g, '') : '';
-  if (!nick) nick = '익명';
+  if (!nick) nick = randomNick();   // 빈 닉이면 '익명' 대신 랜덤 더미닉
   if (nick.length > NICK_MAX) nick = nick.slice(0, NICK_MAX);
-  // 금지어/차단닉이면 익명 처리(클라 우회 백스톱) — 순위판 오염 방지
-  try { if (!(await checkNick(nick)).ok) nick = ANON_RIDER; } catch {}
+  // 금지어/차단닉이면 랜덤 더미닉으로 대체(클라 우회 백스톱) — 순위판 오염 방지
+  try { if (!(await checkNick(nick)).ok) nick = randomNick(); } catch {}
 
   const symbol = typeof b.symbol === 'string' ? b.symbol.trim().toUpperCase() : '';
   if (!SYMBOL_RE.test(symbol)) { res.status(400).json({ error: 'bad symbol' }); return; }

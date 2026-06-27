@@ -2,7 +2,7 @@
 // 홈 → (검색/선택) → 로딩 → 플레이 → 리워드광고 → 결과/순위
 
 import { CONFIG } from './config.js';
-import { t, applyStatic, LANG, setLang, ANON_NICKS } from './i18n.js';
+import { t, applyStatic, LANG, setLang, ANON_NICKS, randomNick } from './i18n.js';
 import { searchSymbols, getTrending, getProvider, activeMarket } from './stock/provider.js';
 import { getCourse, getLastCourseSource, currentPeriod } from './courseCache.js';
 import { Game } from './game/game.js';
@@ -944,11 +944,12 @@ async function renderLeaderboard(symbol, myId) {
 function promptNick(onSave, { prefill = '' } = {}) {
   const modal = $('nick-modal');
   const inp = $('nick-input');
-  inp.value = prefill && !ANON_NICKS.includes(prefill) ? prefill : '';
+  // 빈 닉이면 '익명' 대신 랜덤 더미닉을 미리 채워 제안(우선 적용, 사용자가 바꿔도 됨)
+  inp.value = prefill && !ANON_NICKS.includes(prefill) ? prefill : randomNick();
   modal.classList.add('active');
   inp.focus();
   $('nick-save').onclick = async () => {
-    const n = inp.value.trim() || t.anon;
+    const n = inp.value.trim() || randomNick();   // 비우고 저장해도 랜덤 닉 적용
     // 금지어 검증(banned_words 직접 조회). 막히면 모달 유지 + 안내.
     // 조회 실패 시엔 통과 — 서버(/api/score·/api/toss-nick)가 백스톱으로 막음.
     const btn = $('nick-save');

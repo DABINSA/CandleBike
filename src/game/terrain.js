@@ -74,6 +74,15 @@ export function buildTerrain(world, series) {
     });
     bodies.push(joint);
   }
+
+  // 시작 왼쪽 벽 — 출발 직후 뒤로 굴러 활주로 왼쪽 끝을 넘어 추락하는 것 방지(뒤가 뚫림).
+  // label 'wall' (ground 아님) → 벽에 기대도 '착지'로 오판 안 함. friction 0 으로 끈적임 없음.
+  const wallX = points[0].x - GROUND_THICK;
+  const wall = Matter.Bodies.rectangle(wallX, points[0].y, GROUND_THICK * 2, AMPLITUDE + 2400, {
+    isStatic: true, friction: 0, label: 'wall', render: { visible: false },
+  });
+  bodies.push(wall);
+
   Matter.Composite.add(world, bodies);
 
   // 라벨 (스파스)

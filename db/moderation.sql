@@ -35,23 +35,29 @@ do $$ begin
   end if;
 end $$;
 
--- ── 닉 차단 RPC(어드민 전용) — 차단등록 + 기존 기록을 '익명의라이더'로 일괄 덮어쓰기 ──
+-- ── 닉 차단 RPC(어드민 전용) — 차단등록 + 기존 기록을 '랜덤 더미닉'으로 일괄 덮어쓰기 ──
 -- /api/admin/stats 가 service_role 로 호출. (원본 닉은 사라짐 — 어차피 부적절)
+-- '익명의라이더' 대신 시드 스타일 랜덤닉(차단 유저당 1개)으로 대체해 순위판에 자연스럽게.
 create or replace function ban_nick(p_nick text)
 returns void
 language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  a text[] := array['질주','칼바람','풀악셀','변동성','캔들','폭주','야수','슈퍼','한방','도파민','로켓','칼치기','백플립','차트','불꽃','번개','강철','돌격','질풍','폭락장'];
+  b text[] := array['라이더','킹','마스터','장인','헌터','바이크','러','보스','전설','괴물','스피드','윙','질주','본능','대장'];
+  v_anon text;
 begin
   if p_nick is null or length(trim(p_nick)) = 0 then return; end if;
+  v_anon := a[floor(random() * array_length(a, 1)) + 1] || b[floor(random() * array_length(b, 1)) + 1];
   insert into nick_bans(nick) values (p_nick) on conflict (nick) do nothing;
-  update scores set nick = '익명의라이더' where nick = p_nick;
+  update scores set nick = v_anon where nick = p_nick;
   if to_regclass('public.rank_events') is not null then
-    update rank_events set nick = '익명의라이더' where nick = p_nick;
+    update rank_events set nick = v_anon where nick = p_nick;
   end if;
   if to_regclass('public.toss_users') is not null then
-    update toss_users set nick = '익명의라이더' where nick = p_nick;
+    update toss_users set nick = v_anon where nick = p_nick;
   end if;
 end $$;
 revoke all on function ban_nick(text) from public, anon, authenticated;

@@ -340,6 +340,15 @@ export const t = DICT[LANG];
 // 리더보드 표시 때 이 목록에 해당하면 보는 사람의 언어(t.anon)로 치환한다.
 export const ANON_NICKS = [DICT.ko.anon, DICT.en.anon];
 
+// 닉네임이 없을 때 줄 랜덤 더미 닉(시드 스타일) — '익명' 대신 진짜 같은 닉을 기본 적용.
+const RN_A = ['질주', '칼바람', '풀악셀', '변동성', '캔들', '폭주', '야수', '슈퍼', '한방', '도파민',
+  '로켓', '칼치기', '백플립', '차트', '불꽃', '번개', '강철', '돌격', '질풍', '폭락장'];
+const RN_B = ['라이더', '킹', '마스터', '장인', '헌터', '바이크', '러', '보스', '전설', '괴물',
+  '스피드', '윙', '질주', '본능', '대장'];
+export function randomNick() {
+  return RN_A[Math.floor(Math.random() * RN_A.length)] + RN_B[Math.floor(Math.random() * RN_B.length)];
+}
+
 // data-i18n / data-i18n-html / data-i18n-ph 속성 채우기
 export function applyStatic(root = document) {
   document.documentElement.lang = LANG;
