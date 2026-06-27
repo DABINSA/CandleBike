@@ -59,6 +59,8 @@ const DICT = {
     // 1등 달성 알림 띠 — who=닉네임, sym=종목명(또는 코드)
     rankAchieved: (who, sym) => `<b>${who}</b> 님이 <b>${sym}</b>에서 1위를 달성했습니다 🏆`,
     rankAchievedMe: (who, sym) => `🎉 내가 <b>${sym}</b>에서 1위를 달성했어요! 🏆`,
+    // 1위 갱신이 없을 때 도는 도전 문구 — 현재 챔피언을 보여주며 경쟁 유도
+    rankChallenge: (who, sym) => `🏆 <b>${sym}</b> 현재 1위는 <b>${who}</b>님 — 도전해보세요!`,
     timeFmt: (ms) => `${(ms / 1000).toFixed(1)}초`,
     timeUnit: '초',
     notFinished: '완주 실패 — 끝까지 달려야 순위에 올라요! 🏁',
@@ -213,6 +215,7 @@ const DICT = {
     rankLine: (r, p) => `Finish <b>#${r}</b> · Top <b>${p}</b>%`,
     rankAchieved: (who, sym) => `<b>${who}</b> took <b>#1</b> on <b>${sym}</b> 🏆`,
     rankAchievedMe: (who, sym) => `🎉 You took <b>#1</b> on <b>${sym}</b>! 🏆`,
+    rankChallenge: (who, sym) => `🏆 <b>${who}</b> leads <b>${sym}</b> — can you beat them?`,
     timeFmt: (ms) => `${(ms / 1000).toFixed(1)}s`,
     timeUnit: 's',
     notFinished: "Didn't finish — reach the end to make the leaderboard! 🏁",

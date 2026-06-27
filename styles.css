@@ -661,10 +661,10 @@ body {
 .rt-item b { color: var(--gold); font-weight: 900; }
 .rt-item.mine b { color: var(--neon); }   /* 내 1위는 색만 강조(문구는 닉네임으로 동일) */
 
-/* 플레이 화면 변형 — HUD 아래 오버레이(터치 방해 없음) */
+/* 플레이 화면 변형 — HUD(거리/연료/종목) 아래로 충분히 내려 오버레이(터치·UI 방해 없음) */
 .rank-ticker.on-play {
   position: absolute;
-  top: calc(max(var(--sat), 12px) + 116px);
+  top: calc(max(var(--sat), 12px) + 150px);
   left: 12px; right: 12px;
   width: auto; margin: 0; height: 30px;
   z-index: 6;

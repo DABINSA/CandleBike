@@ -75,7 +75,7 @@ recordVisit();           // 방문 비콘(/api/hit) — 웹+토스 방문/고유
 registerTicker($('rank-ticker-home'));
 registerTicker($('rank-ticker-result'));
 registerTicker($('rank-ticker-play'));
-startRankTicker();
+startRankTicker({ nameOf: lookupName });   // 도전 문구 종목명 예쁘게(코드→기업명)
 // 토스 인앱: 토스 헤더가 상단을 차지하므로 페이지 상단 safe-area 여백을 0으로(이중 여백 제거).
 if (IS_TOSS) { document.documentElement.style.setProperty('--sat', '0px'); document.body.classList.add('in-toss'); }
 

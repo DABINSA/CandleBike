@@ -5,43 +5,57 @@
 //       큐가 비면 띠가 사라진다. → 자주 떠 있지 않고, 1위가 났을 때만 잠깐 announce.
 //
 // 데이터원:
-//   • 최초 진입: 최근 BACKLOG 건만 한 번 흘려보냄(약간의 생동감).
-//   • 실시간: Supabase Realtime(rank_events INSERT)으로 새 1위를 즉시 큐 앞에 넣어 announce.
+//   • 실시간 '달성': Supabase Realtime(rank_events INSERT) → 새 1위를 즉시 큐 앞에 announce.
 //   • 내 1위 / 고스트 1위: 결과 화면에서 즉시 큐 앞에 넣어 표시.
+//   • 비는 시간 '도전 문구'(idle): top_holders RPC 의 종목별 현재 챔피언을 순환 표시.
+//     (과거 '달성' 기록은 재생하지 않음 — 옛 메시지 반복 방지)
 //
-// 마운트: 홈·결과·플레이 컨테이너 모두에 같은 '현재 이벤트'를 그린다(보이는 화면에서만 의미).
-// DB 선행: db/rank-events.sql.
+// 마운트: 홈·결과·플레이 컨테이너에 같은 '현재 항목'을 그림(보이는 화면에서만 의미).
+//   단, 플레이(on-play)에선 idle 도전 문구는 숨기고 실시간 달성만 표시(산만함 방지).
+// DB 선행: db/rank-events.sql, db/top-holders.sql.
 import { getClient, isConfigured } from '../supabaseClient.js';
 import { t } from '../i18n.js';
 
-const PASSES = 3;              // 각 이벤트가 화면을 가로지르는 횟수(끝나면 사라짐)
+const PASSES = 3;              // 라이브 1위 이벤트가 화면을 가로지르는 횟수
+const IDLE_PASSES = 2;         // 도전 문구(idle)가 가로지르는 횟수
 const PASS_MS = 8000;          // 1회 가로지르는 시간(ms)
-// 과거 기록은 재생하지 않음(0). 옛 1등 메시지가 로드마다 다시 뜨는 걸 방지 —
-// 띠는 '지금 막 난 1위'(실시간) + 내 1위/고스트 만 announce 한다.
-const BACKLOG = 0;
+// 과거 '달성' 기록은 재생하지 않음. 옛 1등 메시지가 로드마다 다시 뜨는 걸 방지.
+// 대신 비는 시간엔 '현재 챔피언 도전 문구'(idle)를 돌려 경쟁 욕구를 유지한다.
 const DEDUP_WINDOW_MS = 60000; // 같은 nick|symbol 중복(실시간 echo 등) 억제 창
+const CHAMP_REFRESH_MS = 5 * 60 * 1000;  // 챔피언 목록 갱신 주기
 
 const mounts = new Set();      // 띠 컨테이너들(홈/결과/플레이)
-const queue = [];              // 대기 이벤트 [{nick,symbol,name,mine}]
+const queue = [];              // 라이브 1위 이벤트(우선) [{nick,symbol,name,mine,kind,passes}]
 const recentKeys = new Map();  // 'nick|symbol' → ts (중복 억제)
-let playing = null;            // 현재 흐르는 이벤트
+let idlePool = [];             // 종목별 현재 챔피언 [{nick,symbol,name}]
+let idleIdx = 0;
+let nameOf = null;             // 코드→이름 해석기(선택, main 에서 주입)
+let playing = null;            // 현재 흐르는 항목
 let timer = null;
 let started = false;
 
 function key(n, s) { return `${n}|${s}`; }
-function symLabel(ev) { const nm = (ev.name || '').trim(); return nm || ev.symbol; }
+function symLabel(ev) {
+  const nm = (ev.name || '').trim();
+  return nm || (nameOf && nameOf(ev.symbol)) || ev.symbol;
+}
 
-// 내 1위도 닉네임 문구로 통일(예: "OO 님이 △△에서 1위를 달성했습니다"). mine 은 색 강조만.
+// 라이브: "OO 님이 △△에서 1위 달성"(내 1위도 닉네임으로, mine 은 색 강조만).
+// idle: "△△ 현재 1위는 OO님 — 도전!"(비는 시간 경쟁 유도).
 function itemHTML(ev) {
-  return `<span class="rt-item${ev.mine ? ' mine' : ''}">${t.rankAchieved(ev.nick, symLabel(ev))}</span>`;
+  const sym = symLabel(ev);
+  const txt = ev.kind === 'idle' ? t.rankChallenge(ev.nick, sym) : t.rankAchieved(ev.nick, sym);
+  return `<span class="rt-item${ev.mine ? ' mine' : ''}">${txt}</span>`;
 }
 
 // 한 마운트에 현재 이벤트를 그리고 가로지르기 애니메이션 시작.
 function paintMount(el) {
   const move = el.querySelector('.rt-move');
   if (!move) return;
-  el.hidden = !playing;
-  if (!playing) { move.innerHTML = ''; return; }
+  // 플레이 화면(on-play)에선 도전 문구(idle)는 숨기고 실시간 '달성'만 표시(게임 중 산만함 방지).
+  const showHere = !!playing && !(el.classList.contains('on-play') && playing.kind === 'idle');
+  el.hidden = !showHere;
+  if (!showHere) { move.innerHTML = ''; return; }
   move.innerHTML = itemHTML(playing);
   // 폭 측정(보이는 화면에서만 유효) 후 오른쪽 밖→왼쪽 밖으로 PASSES 회.
   const track = el.querySelector('.rt-track') || el;
@@ -60,24 +74,34 @@ function paintMount(el) {
 
 function renderAll() { mounts.forEach(paintMount); }
 
-function playNext() {
-  clearTimeout(timer);
-  playing = queue.shift() || null;
-  renderAll();
-  if (!playing) { mounts.forEach((el) => { el.hidden = true; }); return; }
-  timer = setTimeout(playNext, PASS_MS * PASSES + 250);
+// idle(도전 문구) 한 건 — 챔피언 풀에서 순환.
+function nextIdleItem() {
+  if (!idlePool.length) return null;
+  const r = idlePool[idleIdx % idlePool.length];
+  idleIdx++;
+  return { nick: r.nick, symbol: r.symbol, name: r.name || '', mine: false, kind: 'idle', passes: IDLE_PASSES };
 }
 
-// 이벤트 적재. front=true 면 큐 앞(빠르게 announce). 중복은 무시.
+function playNext() {
+  clearTimeout(timer);
+  // 라이브 1위(우선) → 없으면 도전 문구(순환) → 둘 다 없으면 숨김
+  playing = queue.shift() || nextIdleItem();
+  renderAll();
+  if (!playing) { mounts.forEach((el) => { el.hidden = true; }); return; }
+  timer = setTimeout(playNext, PASS_MS * (playing.passes || PASSES) + 250);
+}
+
+// 라이브 이벤트 적재. front=true 면 큐 앞(빠르게 announce). 중복은 무시.
 function enqueue(ev, { front = false } = {}) {
   if (!ev || !ev.nick || !ev.symbol) return false;
   const k = key(ev.nick, ev.symbol), now = Date.now();
   const last = recentKeys.get(k);
   if (last && now - last < DEDUP_WINDOW_MS) return false;
   recentKeys.set(k, now);
-  const item = { nick: ev.nick, symbol: ev.symbol, name: ev.name || '', mine: !!ev.mine };
+  const item = { nick: ev.nick, symbol: ev.symbol, name: ev.name || '', mine: !!ev.mine, kind: 'live', passes: PASSES };
   if (front) queue.unshift(item); else queue.push(item);
   if (!playing) playNext();
+  else if (front && playing.kind === 'idle') playNext();   // 도전 문구 재생 중이면 즉시 라이브로 교체
   return true;
 }
 
@@ -103,16 +127,26 @@ export function registerTicker(el) {
   if (playing) paintMount(el);
 }
 
-// 최초 조회(소량) + 실시간 구독. 한 번만.
-export async function startRankTicker() {
+// 종목별 현재 챔피언(도전 문구용) 갱신. RPC(top_holders)가 없으면 조용히 무시(라이브만 동작).
+async function refreshChampions(client) {
+  try {
+    const { data, error } = await client.rpc('top_holders', { p_limit: 14 });
+    if (error || !Array.isArray(data)) return;
+    idlePool = data.map((r) => ({ nick: r.nick, symbol: r.symbol, name: r.name || '' }));
+    // 도전 문구만 떠 있는 상태(라이브 없음)면, 갱신된 풀로 자연스럽게 이어지도록 재생 시작
+    if (!playing && idlePool.length) playNext();
+  } catch (e) { console.warn('top_holders 조회 실패', e); }
+}
+
+// 실시간 구독 + 챔피언(도전 문구) 로드. 한 번만. opts.nameOf: 코드→이름 해석기(선택).
+export async function startRankTicker(opts = {}) {
   if (started || !isConfigured()) return;
   started = true;
+  if (typeof opts.nameOf === 'function') nameOf = opts.nameOf;
   const client = await getClient();
   if (!client) return;
 
-  // (과거 기록 재생 안 함 — BACKLOG=0) 새로 INSERT 되는 1위만 실시간 announce.
-
-  // 실시간 — 새 1위 INSERT 즉시 큐 앞에 announce.
+  // 실시간 — 새 1위 INSERT 즉시 큐 앞에 announce(달성). 과거 기록은 재생하지 않음.
   try {
     client
       .channel('rank-events')
@@ -122,4 +156,8 @@ export async function startRankTicker() {
       })
       .subscribe();
   } catch (e) { console.warn('rank_events 실시간 구독 실패', e); }
+
+  // 비는 시간용 '현재 챔피언 도전 문구' — 최초 1회 + 주기 갱신.
+  await refreshChampions(client);
+  try { setInterval(() => refreshChampions(client), CHAMP_REFRESH_MS); } catch {}
 }
