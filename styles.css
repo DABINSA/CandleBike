@@ -310,7 +310,7 @@ body {
 
 .controls {
   position: absolute; left: 0; right: 0; z-index: 8;
-  bottom: calc(var(--sab) + 88px);  /* 하단 광고 배너(마진+둥근카드) 위로 */
+  bottom: calc(var(--sab) + 66px);  /* 배너 바로 위로 내림 — 위쪽(가야 할 길) 시야 확보 */
   padding: 0 12px; pointer-events: none;
 }
 /* 2×2 풀폭: 위 앞들기/뒤로·앞숙임 / 아래 점프·가속 (가속+점프는 좌우 다른 손) */
@@ -661,13 +661,16 @@ body {
 .rt-item b { color: var(--gold); font-weight: 900; }
 .rt-item.mine b { color: var(--neon); }   /* 내 1위는 색만 강조(문구는 닉네임으로 동일) */
 
-/* 플레이 화면 변형 — HUD(거리/연료/종목) 아래로 충분히 내려 오버레이(터치·UI 방해 없음) */
+/* 플레이 화면 변형 — 바(배경/테두리) 없이 게임 위에 '텍스트만' 잠깐 겹침(화면 안 좁아 보이게).
+   실시간 1위 달성만 여기 표시(도전 문구는 JS에서 숨김). 터치/UI 방해 없음(pointer-events:none). */
 .rank-ticker.on-play {
   position: absolute;
-  top: calc(max(var(--sat), 12px) + 150px);
-  left: 12px; right: 12px;
-  width: auto; margin: 0; height: 30px;
+  top: calc(max(var(--sat), 12px) + 132px);
+  left: 8px; right: 8px;
+  width: auto; margin: 0; height: 28px;
   z-index: 6;
-  background: linear-gradient(90deg, rgba(255, 211, 77, .18), rgba(44, 230, 196, .12));
-  backdrop-filter: blur(3px);
+  background: transparent;
+  border: none;
+  backdrop-filter: none;
 }
+.rank-ticker.on-play .rt-item { text-shadow: 0 1px 3px rgba(0,0,0,.95), 0 0 10px rgba(0,0,0,.7); }
