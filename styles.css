@@ -544,6 +544,19 @@ body {
 .lb-sym { color: var(--muted); font-size: 12px; max-width: 140px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lb-code { opacity: .55; font-size: 11px; }
 .lb-score { font-weight: 800; color: var(--neon); }
+/* 주간 순위 헤더: 리셋 안내(카운트다운) + 👑 역대 1위 */
+.lb-week { margin-bottom: 12px; }
+.lb-reset { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: #ffe2a6;
+  background: rgba(255,211,77,.10); border: 1px solid rgba(255,211,77,.30); border-radius: 999px; padding: 4px 10px; margin-bottom: 10px; }
+.lb-king { display: flex; align-items: center; gap: 10px; padding: 11px 13px; border-radius: 13px;
+  background: linear-gradient(135deg, rgba(255,211,77,.14), rgba(44,230,196,.05)); border: 1px solid rgba(255,211,77,.40); }
+.lb-king-ico { font-size: 23px; line-height: 1; flex: 0 0 auto; }
+.lb-king-b { flex: 1; min-width: 0; }
+.lb-king-lbl { font-size: 11px; font-weight: 800; color: var(--gold); }
+.lb-king-who { font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+.lb-king-rec { margin-left: auto; font-weight: 900; color: var(--neon); flex: 0 0 auto; }
+.lb-crown { font-size: 14px; flex: 0 0 auto; }
+.leaderboard li.king { border-color: rgba(255,211,77,.5); background: rgba(255,211,77,.06); }
 
 /* ===== 모달 ===== */
 .modal {

@@ -62,18 +62,49 @@ function submitLocal({ nick, symbol, score }) {
   return { rank, total, percentile: Math.max(1, Math.round((rank / total) * 100)), id: entry.id };
 }
 
-// 특정 종목의 완주 시간 상위 N개(빠른 순) → [{ nick, symbol, score, id }]
+// ── 주간 순위 경계 — 매주 '월요일 04:00 KST' 리셋 ──
+// 순위표는 이 경계 이후 기록만 표시(삭제 X). 서버 week_start() 와 동일 기준.
+export function weekStartMs(nowMs = Date.now()) {
+  const KST = 9 * 3600 * 1000;
+  const k = nowMs + KST;                 // KST epoch(분석용)
+  const d = new Date(k);
+  const dowMon = (d.getUTCDay() + 6) % 7;            // 월=0 .. 일=6
+  const minsIntoDay = d.getUTCHours() * 60 + d.getUTCMinutes();
+  let elapsed = dowMon * 1440 + minsIntoDay - 240;   // 월 04:00 부터 경과(분)
+  if (elapsed < 0) elapsed += 7 * 1440;              // 월 04:00 이전이면 직전 주기
+  return (k - elapsed * 60000) - KST;                // 경계의 실제 epoch ms
+}
+export function weekStartISO(nowMs = Date.now()) { return new Date(weekStartMs(nowMs)).toISOString(); }
+export function nextResetMs(nowMs = Date.now()) { return weekStartMs(nowMs) + 7 * 86400 * 1000; }
+
+// 특정 종목의 '이번 주' 완주 시간 상위 N개(빠른 순) → [{ nick, symbol, score, vehicle, id }]
 export async function topScores(symbol, limit = 20) {
+  const sinceISO = weekStartISO();
   const client = await getClient();
   if (client) {
-    let q = client.from('scores').select('*').order('score', { ascending: true }).limit(limit);
+    let q = client.from('scores').select('*').gte('created_at', sinceISO).order('score', { ascending: true }).limit(limit);
     if (symbol) q = q.eq('symbol', symbol);
     const { data, error } = await q;
     if (!error && data) return data;
   }
-  let arr = lsAll();
+  const sinceMs = weekStartMs();
+  let arr = lsAll().filter((x) => new Date(x.created_at || 0).getTime() >= sinceMs);
   if (symbol) arr = arr.filter((x) => x.symbol === symbol);
   return arr.sort((a, b) => a.score - b.score).slice(0, limit);
+}
+
+// 그 종목 '역대(전체 기간) 1위' 1명 → { nick, score, vehicle } | null. 👑 명예 표시용.
+export async function allTimeTop(symbol) {
+  if (!symbol) return null;
+  const client = await getClient();
+  if (client) {
+    const { data, error } = await client.from('scores').select('nick,score,vehicle')
+      .eq('symbol', symbol).order('score', { ascending: true }).limit(1);
+    if (!error && data && data[0]) return data[0];
+    return null;
+  }
+  const arr = lsAll().filter((x) => x.symbol === symbol).sort((a, b) => a.score - b.score);
+  return arr[0] || null;
 }
 
 export function isRemote() { return isConfigured(); }

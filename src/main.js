@@ -7,7 +7,7 @@ import { searchSymbols, getTrending, getProvider, activeMarket } from './stock/p
 import { getCourse, getLastCourseSource, currentPeriod } from './courseCache.js';
 import { Game } from './game/game.js';
 import { initPlayBanner, showRewardedAd, renderHouseAd, tossPreResultGate } from './ads/ads.js';
-import { submitScore, topScores, getNick, setNick, isRemote } from './leaderboard/leaderboard.js';
+import { submitScore, topScores, getNick, setNick, isRemote, allTimeTop, nextResetMs } from './leaderboard/leaderboard.js';
 import { startRankTicker, registerTicker, showLocalRankEvent, showGhostRankEvent, repaintTicker } from './leaderboard/rankTicker.js';
 import { shareResult, saveCard } from './share/share.js';
 import * as Items from './items/items.js';
@@ -917,11 +917,38 @@ async function registerAndRender(result, nick) {
   await renderLeaderboard(result.symbol, rankInfo.id);
 }
 
+// 리셋까지 남은 시간 포맷 (D일 HH:MM:SS)
+function fmtCountdown(ms) {
+  let s = Math.max(0, Math.floor(ms / 1000));
+  const d = Math.floor(s / 86400); s -= d * 86400;
+  const h = Math.floor(s / 3600); s -= h * 3600;
+  const m = Math.floor(s / 60); const sec = s - m * 60;
+  const p = (n) => String(n).padStart(2, '0');
+  return (d > 0 ? `${d}${t.dayUnit} ` : '') + `${p(h)}:${p(m)}:${p(sec)}`;
+}
+// 주간 헤더: 이번 주 안내(+실시간 카운트다운) + 👑 역대 1위(종목일 때)
+function renderWeekHeader(champ) {
+  const wk = $('lb-week'); if (!wk) return;
+  let html = `<div class="lb-reset">🗓️ ${t.weeklyNote} · <span id="lb-cd">${fmtCountdown(nextResetMs() - Date.now())}</span></div>`;
+  if (champ) {
+    const veh = Items.vehicleEmoji(champ.vehicle);
+    const dispNick = ANON_NICKS.includes(champ.nick) ? t.anon : champ.nick;
+    html +=
+      `<div class="lb-king"><span class="lb-king-ico">👑</span>` +
+      `<div class="lb-king-b"><div class="lb-king-lbl">${t.allTimeTop}</div>` +
+      `<div class="lb-king-who">${veh ? `<span class="lb-veh">${veh}</span>` : ''}${escapeHtml(dispNick)}</div></div>` +
+      `<span class="lb-king-rec">${t.timeFmt(champ.score)}</span></div>`;
+  }
+  wk.innerHTML = html;
+}
 async function renderLeaderboard(symbol, myId) {
   // 제목도 종목명 + 코드로 (이름 알 때). 예: "금호건설 (002990.KS) 순위"
   const titleNm = symbol ? lookupName(symbol) : null;
   $('lb-title').textContent = t.leaderboardTitle(symbol ? (titleNm ? `${titleNm} (${symbol})` : symbol) : null);
-  let list = await topScores(symbol, 20);
+  // 이번 주 순위(주간 윈도우) + 역대 1위(종목일 때) — 병렬 조회
+  const [list0, champ] = await Promise.all([topScores(symbol, 20), symbol ? allTimeTop(symbol) : null]);
+  renderWeekHeader(champ);
+  let list = list0;
   // 멀티: 완주한 고스트 기록을 합쳐 같은 순위표에 보이게(표시 전용)
   if (symbol && multiGhostRows.length) {
     list = [...list, ...multiGhostRows].sort((a, b) => a.score - b.score).slice(0, 20);
@@ -931,6 +958,8 @@ async function renderLeaderboard(symbol, myId) {
   list.forEach((row, i) => {
     const li = document.createElement('li');
     if (row.id === myId) li.classList.add('me');
+    const isKing = champ && row.nick === champ.nick;   // 역대 1위 보유자면 👑
+    if (isKing) li.classList.add('king');
     const nm = lookupName(row.symbol);
     const symHtml = nm
       ? `${escapeHtml(nm)} <span class="lb-code">${escapeHtml(row.symbol)}</span>`
@@ -940,13 +969,15 @@ async function renderLeaderboard(symbol, myId) {
     const vehEmoji = Items.vehicleEmoji(row.vehicle);   // 그 판에 탄 탈것(구기록은 없음 → 생략)
     li.innerHTML =
       `<span class="lb-rank ${i < 3 ? 'top' : ''}">${i + 1}</span>` +
-      `<span class="lb-nick">${vehEmoji ? `<span class="lb-veh" title="탈것">${vehEmoji}</span>` : ''}${escapeHtml(dispNick)}</span>` +
+      `<span class="lb-nick">${vehEmoji ? `<span class="lb-veh" title="탈것">${vehEmoji}</span>` : ''}${isKing ? '<span class="lb-crown" title="역대 1위">👑</span>' : ''}${escapeHtml(dispNick)}</span>` +
       `<span class="lb-sym">${symHtml}</span>` +
       `<span class="lb-score">${t.timeFmt(row.score)}</span>`;
     ol.appendChild(li);
   });
   if (list.length === 0) ol.innerHTML = `<li style="justify-content:center;color:var(--muted)">${t.noRecords}</li>`;
 }
+// 리셋 카운트다운 실시간 갱신(보일 때만 동작 — 가벼움)
+setInterval(() => { const el = $('lb-cd'); if (el) el.textContent = fmtCountdown(nextResetMs() - Date.now()); }, 1000);
 
 // ---------------- 닉네임 모달 ----------------
 // 닉 허용 문자: 한글(음절+자모)·영문·숫자만. 그 외(특수문자·이모지)는 제거(에러 방지).
