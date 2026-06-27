@@ -100,8 +100,9 @@ function enqueue(ev, { front = false } = {}) {
   recentKeys.set(k, now);
   const item = { nick: ev.nick, symbol: ev.symbol, name: ev.name || '', mine: !!ev.mine, kind: 'live', passes: PASSES };
   if (front) queue.unshift(item); else queue.push(item);
+  // 지금 아무것도 안 나오면 바로 시작. 무언가(도전 문구 등) 재생 중이면 끊지 않고
+  // 현재 항목이 화면 밖으로 다 빠진 뒤(다음 playNext) 라이브를 보여준다.
   if (!playing) playNext();
-  else if (front && playing.kind === 'idle') playNext();   // 도전 문구 재생 중이면 즉시 라이브로 교체
   return true;
 }
 
