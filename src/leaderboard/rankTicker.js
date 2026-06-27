@@ -11,7 +11,6 @@
 //     (과거 '달성' 기록은 재생하지 않음 — 옛 메시지 반복 방지)
 //
 // 마운트: 홈·결과·플레이 컨테이너에 같은 '현재 항목'을 그림(보이는 화면에서만 의미).
-//   단, 플레이(on-play)에선 idle 도전 문구는 숨기고 실시간 달성만 표시(산만함 방지).
 // DB 선행: db/rank-events.sql, db/top-holders.sql.
 import { getClient, isConfigured } from '../supabaseClient.js';
 import { t } from '../i18n.js';
@@ -52,10 +51,9 @@ function itemHTML(ev) {
 function paintMount(el) {
   const move = el.querySelector('.rt-move');
   if (!move) return;
-  // 플레이 화면(on-play)에선 도전 문구(idle)는 숨기고 실시간 '달성'만 표시(게임 중 산만함 방지).
-  const showHere = !!playing && !(el.classList.contains('on-play') && playing.kind === 'idle');
-  el.hidden = !showHere;
-  if (!showHere) { move.innerHTML = ''; return; }
+  // 모든 화면(홈/결과/플레이)에서 현재 항목(도전 문구·실시간 달성)을 동일하게 표시.
+  el.hidden = !playing;
+  if (!playing) { move.innerHTML = ''; return; }
   move.innerHTML = itemHTML(playing);
   // 폭 측정(보이는 화면에서만 유효) 후 오른쪽 밖→왼쪽 밖으로 PASSES 회.
   const track = el.querySelector('.rt-track') || el;
