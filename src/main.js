@@ -927,6 +927,7 @@ function fmtCountdown(ms) {
   return (d > 0 ? `${d}${t.dayUnit} ` : '') + `${p(h)}:${p(m)}:${p(sec)}`;
 }
 // 주간 헤더: 이번 주 안내(+실시간 카운트다운) + 👑 역대 1위(종목일 때)
+let _cdTimer = null;
 function renderWeekHeader(champ) {
   const wk = $('lb-week'); if (!wk) return;
   let html = `<div class="lb-reset">🗓️ ${t.weeklyNote} · <span id="lb-cd">${fmtCountdown(nextResetMs() - Date.now())}</span></div>`;
@@ -940,6 +941,13 @@ function renderWeekHeader(champ) {
       `<span class="lb-king-rec">${t.timeFmt(champ.score)}</span></div>`;
   }
   wk.innerHTML = html;
+  // 리셋 카운트다운 실시간 갱신 — 헤더 그릴 때마다 (재)시작(매초). 요소 사라지면 정지.
+  clearInterval(_cdTimer);
+  _cdTimer = setInterval(() => {
+    const el = $('lb-cd');
+    if (!el) { clearInterval(_cdTimer); return; }
+    el.textContent = fmtCountdown(nextResetMs() - Date.now());
+  }, 1000);
 }
 async function renderLeaderboard(symbol, myId) {
   // 제목도 종목명 + 코드로 (이름 알 때). 예: "금호건설 (002990.KS) 순위"
@@ -955,10 +963,12 @@ async function renderLeaderboard(symbol, myId) {
   }
   const ol = $('leaderboard-list');
   ol.innerHTML = '';
+  const MEDAL = ['🥇', '🥈', '🥉'];
   list.forEach((row, i) => {
     const li = document.createElement('li');
     if (row.id === myId) li.classList.add('me');
-    const isKing = champ && row.nick === champ.nick;   // 역대 1위 보유자면 👑
+    // 역대 1위는 '그 기록 한 줄'에만 👑 (닉 아닌 id 매칭 → 동일 닉의 다른 줄엔 안 뜸)
+    const isKing = champ && row.id != null && row.id === champ.id;
     if (isKing) li.classList.add('king');
     const nm = lookupName(row.symbol);
     const symHtml = nm
@@ -967,8 +977,9 @@ async function renderLeaderboard(symbol, myId) {
     // 기본 익명 닉은 저장 시점 언어로 박혀 있으므로(예: '익명라이더') 보는 언어로 치환.
     const dispNick = ANON_NICKS.includes(row.nick) ? t.anon : row.nick;
     const vehEmoji = Items.vehicleEmoji(row.vehicle);   // 그 판에 탄 탈것(구기록은 없음 → 생략)
+    const rankDisp = i < 3 ? `<span class="lb-medal">${MEDAL[i]}</span>` : (i + 1);
     li.innerHTML =
-      `<span class="lb-rank ${i < 3 ? 'top' : ''}">${i + 1}</span>` +
+      `<span class="lb-rank ${i < 3 ? 'medal' : ''}">${rankDisp}</span>` +
       `<span class="lb-nick">${vehEmoji ? `<span class="lb-veh" title="탈것">${vehEmoji}</span>` : ''}${isKing ? '<span class="lb-crown" title="역대 1위">👑</span>' : ''}${escapeHtml(dispNick)}</span>` +
       `<span class="lb-sym">${symHtml}</span>` +
       `<span class="lb-score">${t.timeFmt(row.score)}</span>`;
@@ -976,8 +987,6 @@ async function renderLeaderboard(symbol, myId) {
   });
   if (list.length === 0) ol.innerHTML = `<li style="justify-content:center;color:var(--muted)">${t.noRecords}</li>`;
 }
-// 리셋 카운트다운 실시간 갱신(보일 때만 동작 — 가벼움)
-setInterval(() => { const el = $('lb-cd'); if (el) el.textContent = fmtCountdown(nextResetMs() - Date.now()); }, 1000);
 
 // ---------------- 닉네임 모달 ----------------
 // 닉 허용 문자: 한글(음절+자모)·영문·숫자만. 그 외(특수문자·이모지)는 제거(에러 방지).

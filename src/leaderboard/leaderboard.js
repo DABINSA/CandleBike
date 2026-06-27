@@ -93,12 +93,13 @@ export async function topScores(symbol, limit = 20) {
   return arr.sort((a, b) => a.score - b.score).slice(0, limit);
 }
 
-// 그 종목 '역대(전체 기간) 1위' 1명 → { nick, score, vehicle } | null. 👑 명예 표시용.
+// 그 종목 '역대(전체 기간) 1위' 1건 → { id, nick, score, vehicle } | null. 👑 명예 표시용.
+// id 까지 가져와, 순위표에선 '그 기록 1줄'에만 왕관(동일 닉 다른 줄 X).
 export async function allTimeTop(symbol) {
   if (!symbol) return null;
   const client = await getClient();
   if (client) {
-    const { data, error } = await client.from('scores').select('nick,score,vehicle')
+    const { data, error } = await client.from('scores').select('id,nick,score,vehicle')
       .eq('symbol', symbol).order('score', { ascending: true }).limit(1);
     if (!error && data && data[0]) return data[0];
     return null;

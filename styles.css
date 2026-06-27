@@ -537,8 +537,10 @@ body {
   border-radius: 12px; margin-bottom: 6px;
 }
 .leaderboard li.me { border-color: var(--neon); background: rgba(44,230,196,.1); }
-.lb-rank { width: 28px; font-weight: 800; color: var(--muted); }
+.lb-rank { width: 28px; font-weight: 800; color: var(--muted); text-align: center; flex: 0 0 auto; }
 .lb-rank.top { color: var(--gold); }
+.lb-rank.medal { width: 28px; }
+.lb-medal { font-size: 18px; line-height: 1; }
 .lb-nick { flex: 1; font-weight: 700; display: flex; align-items: center; gap: 6px; min-width: 0; }
 .lb-veh { font-size: 17px; line-height: 1; flex: 0 0 auto; }
 .lb-sym { color: var(--muted); font-size: 12px; max-width: 140px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
