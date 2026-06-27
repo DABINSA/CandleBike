@@ -4,6 +4,7 @@
 // 검증은 JS 에서, 등록+레이트리밋+순위계산은 DB 함수(submit_score) 한 번 왕복으로 처리(지연 단축).
 // 주의: 완전한 안티치트(리플레이/서버 시뮬)는 범위 밖 — 캐주얼 게임 기준 위조·스팸·비용폭탄 차단 수준.
 import { sb, supaReady, clientIp } from './_supa.js';
+import { tgNotify, tgEscape } from './_telegram.js';
 
 // score = 완주 시간(ms). 작을수록 빠름(상위). 비현실적 값 차단.
 const SCORE_MIN = 3_000;           // 3초 미만 완주는 불가능 → 위조 차단
@@ -47,6 +48,12 @@ export default async function handler(req, res) {
       return;
     }
     res.status(200).json(out);
+    // 완주 핑 — 응답 후 전송(유저 지연 0). 누구든 1판 완주 시 닉·종목·기록·순위.
+    const sec = (score / 1000).toFixed(1);
+    const rankTxt = (out && out.rank)
+      ? `전체 ${out.rank}위${out.percentile != null ? ` (상위 ${out.percentile}%)` : ''}`
+      : '-';
+    await tgNotify(`🏁 <b>캔들라이더 완주!</b>\n\n· 닉: ${tgEscape(nick)}\n· 종목: ${tgEscape(symbol)}\n· 기록: ${sec}초\n· 순위: ${rankTxt}`);
   } catch (e) {
     res.status(502).json({ error: String(e) });
   }
