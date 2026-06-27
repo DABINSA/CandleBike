@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>공유 리워드 — 화면 목업 (클릭해서 동작 확인)</title>
+<style>
+  :root{
+    --bg:#0a0e14; --bg2:#0d1320; --neon:#2ce6c4; --text:#e6f0f0; --muted:#6b7d8a;
+    --gold:#ffd34d; --panel:rgba(255,255,255,0.04); --panel-border:rgba(44,230,196,0.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    background:radial-gradient(120% 80% at 50% 0%, #131b2b 0%, var(--bg) 60%);
+    color:var(--text); min-height:100vh; padding:24px 12px 60px;
+    display:flex; flex-direction:column; align-items:center; gap:18px;}
+  .mock-note{max-width:460px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6;}
+  .mock-note b{color:var(--neon);}
+  .mock-note .tag{display:inline-block;background:var(--panel);border:1px solid var(--panel-border);
+    border-radius:999px;padding:3px 10px;color:var(--text);font-size:12px;margin:0 3px;}
+
+  .phone{width:min(440px,94vw); border-radius:30px; padding:10px; background:#05080d;
+    border:1px solid rgba(255,255,255,.08); box-shadow:0 24px 60px rgba(0,0,0,.55); position:relative;}
+  .phone-bar{height:26px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;}
+  .phone-screen{position:relative;border-radius:22px;overflow:hidden;background:var(--bg);min-height:560px;
+    display:flex;align-items:center;justify-content:center;padding:14px;}
+
+  /* 차고 모달 (실제 클래스) */
+  .garage-inner{width:100%; max-height:540px; display:flex; flex-direction:column;
+    background:var(--bg2); border:1px solid var(--panel-border); border-radius:16px; padding:16px; gap:12px;}
+  .garage-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .garage-head h2{font-size:17px;}
+  /* 토큰 잔액 칩 */
+  .garage-tokchip{display:inline-flex;align-items:center;gap:6px;margin-left:auto;
+    background:#0b1422;border:1px solid var(--gold);color:var(--gold);border-radius:999px;padding:5px 12px;font-weight:800;font-size:14px;}
+  .coin{display:inline-block;width:16px;height:16px;border-radius:50%;vertical-align:-3px;
+    background:radial-gradient(circle at 35% 30%, #ffe79a, #f5b820 62%, #c4860f);border:1px solid #b9810f;box-shadow:inset 0 0 0 2px rgba(255,255,255,.18);}
+  .garage-x{background:transparent;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px 8px;}
+  .garage-tabs{display:flex;gap:8px;}
+  .garage-tab{flex:1;padding:9px;border-radius:10px;cursor:pointer;font-weight:800;font-size:13px;
+    background:var(--panel);border:1px solid var(--panel-border);color:var(--muted);}
+  .garage-tab.active{background:var(--neon);color:#06231f;border-color:var(--neon);}
+  .garage-body{overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:2px;}
+  .item-card{background:var(--panel);border:1px solid var(--panel-border);border-radius:12px;
+    padding:12px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;min-height:150px;}
+  .item-emoji{font-size:30px;line-height:1;}
+  .item-name{font-size:13px;font-weight:800;}
+  .item-sub{font-size:11px;color:var(--muted);min-height:14px;}
+  .item-btn{width:100%;padding:8px;border-radius:9px;cursor:pointer;font-weight:800;font-size:12px;
+    border:1px solid var(--panel-border);background:var(--bg);color:var(--text);margin-top:auto;}
+  .item-btn.primary{background:var(--neon);color:#06231f;border-color:var(--neon);}
+  .buy-btn{display:flex;align-items:center;justify-content:center;gap:5px;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(44,230,196,.5);}50%{box-shadow:0 0 0 6px rgba(44,230,196,0);}}
+  #share-reward-btn{grid-column:1/-1;animation:pulse 1.8s infinite;margin-top:0;}
+
+  .toast{position:absolute;left:50%;bottom:24px;transform:translate(-50%,20px);max-width:86%;
+    padding:13px 18px;border-radius:12px;background:rgba(13,19,32,.97);border:1px solid var(--neon);color:var(--text);
+    font-size:14px;line-height:1.5;text-align:center;z-index:50;box-shadow:0 8px 28px rgba(0,0,0,.5),0 0 0 3px rgba(44,230,196,.12);
+    opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;}
+  .toast.show{opacity:1;transform:translate(-50%,0);}
+
+  /* 토스 공유 시트(시뮬레이션) */
+  .toss-sheet{position:absolute;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;z-index:60;}
+  .toss-sheet.show{display:flex;}
+  .toss-card{width:100%;background:#fff;color:#191f28;border-radius:20px 20px 0 0;padding:18px 18px 22px;transform:translateY(100%);transition:transform .28s;}
+  .toss-sheet.show .toss-card{transform:translateY(0);}
+  .toss-blue{color:#3182f6;font-weight:800;font-size:13px;}
+  .toss-title{font-size:18px;font-weight:800;margin:6px 0 2px;}
+  .toss-sub{font-size:13px;color:#8b95a1;margin-bottom:14px;}
+  .toss-friends{display:flex;gap:14px;margin-bottom:18px;}
+  .toss-friend{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;color:#4e5968;}
+  .toss-ava{width:48px;height:48px;border-radius:50%;background:#e8f3ff;display:flex;align-items:center;justify-content:center;font-size:22px;}
+  .toss-actions{display:flex;gap:10px;}
+  .toss-btn{flex:1;padding:14px;border-radius:14px;border:none;font-size:15px;font-weight:800;cursor:pointer;}
+  .toss-btn.primary{background:#3182f6;color:#fff;}
+  .toss-btn.ghost{background:#f2f4f6;color:#4e5968;}
+
+  .replay{background:var(--panel);border:1px solid var(--panel-border);color:var(--text);border-radius:10px;padding:10px 16px;font-weight:800;font-size:13px;cursor:pointer;}
+  .legend{max-width:460px;font-size:12.5px;line-height:1.7;color:var(--muted);background:var(--panel);border:1px solid var(--panel-border);border-radius:12px;padding:14px 16px;}
+  .legend b{color:var(--text);} .legend code{color:var(--neon);font-size:12px;}
+</style>
+</head>
+<body>
+  <div class="mock-note">
+    <b>공유 리워드 — 화면 목업 (토큰)</b><br/>
+    맨 위 <span class="tag">🎁 친구에게 공유하고 토큰 받기</span> → 토스 공유 시트 → <b>공유하기</b> 누르면 <b>토큰 +100</b>이 적립돼요.<br/>
+    받은 토큰으로 차고에서 원하는 아이템(탈것·소모품)을 삽니다.
+  </div>
+
+  <div class="phone">
+    <div class="phone-bar">📈🏍️ 캔들라이더 · 토스 인앱</div>
+    <div class="phone-screen">
+      <div class="garage-inner">
+        <div class="garage-head">
+          <h2>아이템 / 차고</h2>
+          <span class="garage-tokchip"><span class="coin"></span> <span id="tok">0</span></span>
+          <button class="garage-x" aria-label="close">✕</button>
+        </div>
+        <div class="garage-tabs">
+          <button class="garage-tab active">소모품</button>
+          <button class="garage-tab">탈것</button>
+        </div>
+        <div class="garage-body" id="garage-body"></div>
+      </div>
+
+      <div class="toss-sheet" id="toss-sheet">
+        <div class="toss-card">
+          <div class="toss-blue">🔵 toss</div>
+          <div class="toss-title">친구에게 공유하고<br/>토큰을 더 받아요</div>
+          <div class="toss-sub">캔들라이더에서 100 토큰을 받으세요</div>
+          <div class="toss-friends">
+            <div class="toss-friend"><div class="toss-ava">🙂</div>김토스</div>
+            <div class="toss-friend"><div class="toss-ava">😎</div>이토스</div>
+            <div class="toss-friend"><div class="toss-ava">🤩</div>박토스</div>
+            <div class="toss-friend"><div class="toss-ava">＋</div>더보기</div>
+          </div>
+          <div class="toss-actions">
+            <button class="toss-btn ghost" id="share-cancel">닫기</button>
+            <button class="toss-btn primary" id="share-send">공유하기</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="toast" id="toast"></div>
+    </div>
+  </div>
+
+  <button class="replay" id="replay">↻ 처음부터 다시 (오늘 보상·토큰 초기화)</button>
+
+  <div class="legend">
+    <b>실제 동작 요약</b><br/>
+    • 노출 조건: <b>토스 인앱 + 새 .ait + 오늘 미수령</b>일 때만 차고 상단에 버튼(<code>shareRewardAvailable()</code>)<br/>
+    • 공유 완료(<code>sendViral</code>) → <b>토큰 +100</b>(<code>CONFIG.TOSS_SHARE.tokens</code>, 광고 보상과 동일), <b>하루 1회</b>(<code>cr_share_reward_day</code>)<br/>
+    • 받은 토큰으로 차고에서 탈것/소모품 구매 → 토큰 경제와 통일<br/>
+    • 공유 취소/안 함 → 적립 없음 · 수령 후 버튼 사라지고 다음 날 재노출
+  </div>
+
+<script>
+  const CONSUM = [
+    {id:'boost',   name:'시작 부스터', emoji:'🚀', desc:'출발 직후 가속', cost:8},
+    {id:'fuel',    name:'연료 +5초',   emoji:'⛽', desc:'시작 연료 +5초', cost:14},
+    {id:'softland',name:'착지 보호',   emoji:'🪂', desc:'나쁜 착지 1회 무효', cost:18},
+    {id:'phase',   name:'장애물 통과', emoji:'👻', desc:'폭락 캔들 1회 통과', cost:24},
+    {id:'dbljump', name:'더블 점프',   emoji:'⏫', desc:'한 판 내내 공중 점프', cost:35},
+    {id:'revive',  name:'추가 이어가기', emoji:'❤️', desc:'광고 없이 1회 부활', cost:50},
+  ];
+  const SHARE_TOKENS = 100;           // CONFIG.TOSS_SHARE.tokens
+  let claimedToday = false;           // cr_share_reward_day 시뮬
+  let tokens = 0;                     // Items.getTokens()
+
+  const body = document.getElementById('garage-body');
+  const sheet = document.getElementById('toss-sheet');
+  const toastEl = document.getElementById('toast');
+  const tokEl = document.getElementById('tok');
+
+  function render(){
+    tokEl.textContent = tokens;
+    let html = '';
+    if(!claimedToday){
+      html += `<button class="item-btn primary" id="share-reward-btn">🎁 친구에게 공유하고 토큰 받기</button>`;
+    }
+    html += CONSUM.map(c=>{
+      const afford = tokens >= c.cost;
+      return `<div class="item-card">
+        <span class="item-emoji">${c.emoji}</span>
+        <span class="item-name">${c.name}</span>
+        <span class="item-sub">${c.desc} · 보유 0</span>
+        <button class="item-btn buy-btn" ${afford?'':'disabled'}><span class="coin"></span> ${c.cost}</button>
+      </div>`;
+    }).join('');
+    body.innerHTML = html;
+    const srb = document.getElementById('share-reward-btn');
+    if(srb) srb.onclick = openShare;
+  }
+
+  function openShare(){
+    if(claimedToday){ toast('오늘 공유 보상은 이미 받았어요 — 내일 또 받을 수 있어요!'); return; }
+    sheet.classList.add('show');
+  }
+  function closeShare(){ sheet.classList.remove('show'); }
+
+  document.getElementById('share-send').onclick = ()=>{   // sendViral → 토큰 지급
+    closeShare();
+    claimedToday = true;
+    tokens += SHARE_TOKENS;            // Items.addTokens(100)
+    render();
+    setTimeout(()=>toast(`토큰 +${SHARE_TOKENS} 획득!`), 250);   // t.tokenGain(100)
+  };
+  document.getElementById('share-cancel').onclick = ()=>{ closeShare(); toast('공유를 취소했어요 (적립 없음)'); };
+
+  function toast(msg){ toastEl.textContent = msg; toastEl.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(()=>toastEl.classList.remove('show'), 2600); }
+
+  document.getElementById('replay').onclick = ()=>{ claimedToday=false; tokens=0; render(); toast('초기화됨 — 다시 공유해보세요'); };
+
+  render();
+</script>
+</body>
+</html>

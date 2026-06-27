@@ -943,22 +943,40 @@ function promptNick(onSave, { prefill = '' } = {}) {
   inp.focus();
   $('nick-save').onclick = async () => {
     const n = inp.value.trim() || t.anon;
-    // 금지어 검증(서버 권위). 막히면 모달 유지 + 안내. 네트워크 실패 시엔 통과(서버 백스톱이 막음).
+    // 금지어 검증(banned_words 직접 조회). 막히면 모달 유지 + 안내.
+    // 조회 실패 시엔 통과 — 서버(/api/score·/api/toss-nick)가 백스톱으로 막음.
     const btn = $('nick-save');
     btn.disabled = true;
-    let allowed = true;
-    try {
-      const r = await fetch('/api/nick-check', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nick: n }),
-      });
-      if (r.ok) allowed = !!(await r.json()).ok;
-    } catch {}
+    const allowed = await nickAllowed(n);
     btn.disabled = false;
     if (!allowed) { showToast(t.nickBanned, { top: true }); return; }
     modal.classList.remove('active');
     onSave(n);
   };
+}
+
+// ── 닉네임 금지어(클라 즉시 검사) — 서버 _moderation.normalize 와 동일 기준 ──
+function normNick(s) {
+  return String(s || '').toLowerCase().replace(/\s+/g, '').replace(/[^0-9a-z가-힣ㄱ-ㆎ]/g, '');
+}
+let _bannedWords = null;
+async function loadBannedWords() {
+  if (_bannedWords) return _bannedWords;
+  _bannedWords = [];
+  try {
+    const c = await getClient();
+    if (c) {
+      const { data } = await c.from('banned_words').select('word');
+      if (Array.isArray(data)) _bannedWords = data.map((x) => normNick(x.word)).filter(Boolean);
+    }
+  } catch (e) { console.warn('banned_words 조회', e); }
+  return _bannedWords;
+}
+async function nickAllowed(nick) {
+  const n = normNick(nick);
+  if (!n) return false;
+  const words = await loadBannedWords();
+  return !words.some((w) => w && n.includes(w));
 }
 
 // ---------------- 공유 / 저장 ----------------

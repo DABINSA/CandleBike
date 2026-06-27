@@ -14,7 +14,12 @@ create table if not exists banned_words (
   created_at timestamptz default now()
 );
 alter table banned_words enable row level security;
--- 정책 0개 → anon 차단. 서버(service_role)만 읽기/쓰기. (목록 노출로 우회학습 방지)
+-- 읽기는 공개(클라가 닉 저장 전 즉시 검사). 쓰기는 서버(service_role)만 — anon 추가/삭제 불가.
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename='banned_words' and cmd='SELECT') then
+    create policy "bw_read" on banned_words for select using (true);
+  end if;
+end $$;
 
 -- ── (2) 차단된 닉(슬립스루) — Phase 2에서 강제변경/익명처리 ───
 create table if not exists nick_bans (

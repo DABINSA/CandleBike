@@ -184,39 +184,34 @@
         if (!r.ok) { showGate('불러오기 실패 (' + r.status + ')'); return; }
         lastData = await r.json();
         render(lastData);
+        renderWords(lastData.banned_words || []);
         showDash();
-        loadWords();
       } catch (e) { showGate('네트워크 오류: ' + e.message); }
     }
 
-    // ── 닉네임 금지어 관리 ──
-    async function loadWords() {
-      try {
-        var r = await fetch('/api/admin/words', { headers: { Authorization: 'Bearer ' + token() } });
-        if (!r.ok) return;
-        var d = await r.json();
-        var box = $('words-box');
-        box.innerHTML = (d.words || []).map(function (w) {
-          return '<span class="pill" style="display:inline-flex;align-items:center;gap:6px">' + esc(w) +
-            '<button data-w="' + esc(w) + '" class="word-rm" style="border:none;background:none;color:#ff7676;cursor:pointer;font-size:14px;line-height:1;padding:0">✕</button></span>';
-        }).join('') || '<span class="muted">(없음)</span>';
-        Array.prototype.forEach.call(box.querySelectorAll('.word-rm'), function (b) {
-          b.onclick = function () { sendWord(b.getAttribute('data-w'), true); };
-        });
-      } catch (e) {}
+    // ── 닉네임 금지어 관리 (목록은 /api/admin/stats 응답에 포함, 변경은 wordAction) ──
+    function renderWords(words) {
+      var box = $('words-box');
+      box.innerHTML = (words || []).map(function (w) {
+        return '<span class="pill" style="display:inline-flex;align-items:center;gap:6px">' + esc(w) +
+          '<button data-w="' + esc(w) + '" class="word-rm" style="border:none;background:none;color:#ff7676;cursor:pointer;font-size:14px;line-height:1;padding:0">✕</button></span>';
+      }).join('') || '<span class="muted">(없음)</span>';
+      Array.prototype.forEach.call(box.querySelectorAll('.word-rm'), function (b) {
+        b.onclick = function () { sendWord(b.getAttribute('data-w'), 'del'); };
+      });
     }
-    async function sendWord(word, remove) {
+    async function sendWord(word, action) {
       if (!word) return;
       try {
-        var r = await fetch('/api/admin/words', {
+        var r = await fetch('/api/admin/stats', {
           method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token() },
-          body: JSON.stringify({ word: word, remove: !!remove }),
+          body: JSON.stringify({ wordAction: action, word: word }),
         });
-        if (r.ok) { $('word-input').value = ''; loadWords(); }
+        if (r.ok) { $('word-input').value = ''; load(); }   // load() 가 목록까지 갱신
         else alert('실패 (' + r.status + ')');
       } catch (e) { alert('네트워크 오류'); }
     }
-    $('word-add').onclick = function () { sendWord($('word-input').value.trim(), false); };
+    $('word-add').onclick = function () { sendWord($('word-input').value.trim(), 'add'); };
     $('word-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('word-add').click(); });
 
     var EK = 'cr_admin_email';
