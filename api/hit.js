@@ -12,14 +12,15 @@ const TG_CHAT = process.env.TELEGRAM_CHAT_ID || '';
 async function notifyNewUser(toss) {
   if (!TG_TOKEN || !TG_CHAT) return;
   const when = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });
-  const text = `🎉 캔들라이더 신규 유저\n· 경로: ${toss ? '토스 인앱' : '웹'}\n· 시각: ${when}`;
+  // 제목 bold(HTML) + 제목/내용 사이 빈 줄.
+  const text = `🎉 <b>캔들라이더 신규 유저</b>\n\n· 경로: ${toss ? '토스 인앱' : '웹'}\n· 시각: ${when}`;
   try {
     const ctrl = new AbortController();
     const to = setTimeout(() => ctrl.abort(), 4000);   // 응답 지연 방지
     await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: TG_CHAT, text, disable_web_page_preview: true }),
+      body: JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: 'HTML', disable_web_page_preview: true }),
       signal: ctrl.signal,
     });
     clearTimeout(to);
