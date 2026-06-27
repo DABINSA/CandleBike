@@ -17,7 +17,7 @@ import { getClient, isConfigured } from '../supabaseClient.js';
 import { t } from '../i18n.js';
 
 const PASSES = 3;              // 라이브 1위 이벤트가 화면을 가로지르는 횟수
-const IDLE_PASSES = 2;         // 도전 문구(idle)가 가로지르는 횟수
+const IDLE_PASSES = 1;         // 도전 문구(idle)는 1번만 흐르고 다음 종목으로
 const PASS_MS = 8000;          // 1회 가로지르는 시간(ms)
 // 과거 '달성' 기록은 재생하지 않음. 옛 1등 메시지가 로드마다 다시 뜨는 걸 방지.
 // 대신 비는 시간엔 '현재 챔피언 도전 문구'(idle)를 돌려 경쟁 욕구를 유지한다.
