@@ -280,6 +280,7 @@ body {
 .toast.toast--top.show { transform: translate(-50%, 0); }
 .site-foot { margin-top: 14px; text-align: center; }
 .foot-ad { font-size: 12px; color: var(--muted); margin-bottom: 7px; }
+.foot-disclaim { font-size: 10.5px; line-height: 1.5; color: var(--muted); opacity: .7; margin-bottom: 7px; }
 .foot-ad a { color: var(--neon); text-decoration: none; border-bottom: 1px solid transparent; }
 .foot-ad a:hover { border-bottom-color: var(--neon); }
 .site-foot a { color: var(--muted); font-size: 12px; text-decoration: none; border-bottom: 1px solid transparent; }
