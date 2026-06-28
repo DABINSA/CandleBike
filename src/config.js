@@ -58,6 +58,8 @@ export const CONFIG = {
     bannerPlay:   'ait.v2.live.933c580e68c94185',   // 배너: 플레이 하단
     bannerResult: 'ait.v2.live.204aca6e8ebf46ec',   // 배너: 결과 화면
     bannerPre:    'ait.v2.live.f9e393ed93c54f70',   // 배너: 결과 보기 전(이미지 강조)
+    randomDice:   'ait.v2.live.22d1fe0c5bed4a96',   // 배너: 랜덤 주사위(굴리는 중)
+    randomPick:   'ait.v2.live.60cd40edb80b4f8c',   // 배너: 랜덤 선택창(추천 결과)
   },
 
   // 토스 공유 리워드(contactsViral) — 콘솔 「마케팅>공유 리워드」 발급 리워드 ID(UUID).

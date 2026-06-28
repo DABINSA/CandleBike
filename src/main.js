@@ -719,6 +719,11 @@ function renderRandomPicks(picks) {
 function showRandomState(state) {
   $('rnd-rolling').style.display = state === 'rolling' ? '' : 'none';
   $('rnd-result').style.display = state === 'result' ? '' : 'none';
+  // 토스: 상태별 전용 배너 — 굴리는 중=랜덤 주사위 / 결과=랜덤 선택창
+  if (IS_TOSS) {
+    const g = state === 'result' ? CONFIG.TOSS_AD?.randomPick : CONFIG.TOSS_AD?.randomDice;
+    showTossBanner(g, { position: 'bottom', height: 64 });
+  }
 }
 
 async function rollRandom(ms) {
@@ -748,7 +753,10 @@ function openRandom() {
   renderHouseAd($('rnd-ad'), 'banner');   // 웹: 하우스 배너 / 토스: 숨김(셸 하단 배너가 이미 노출됨)
   rollRandom(2000);                        // 첫 굴림 2초
 }
-function closeRandom() { $('random-overlay').classList.remove('active'); }
+function closeRandom() {
+  $('random-overlay').classList.remove('active');
+  if (IS_TOSS) showTossBanner(CONFIG.TOSS_AD?.bannerHome, { position: 'bottom', height: 64 });   // 홈 배너로 복귀
+}
 
 $('tab-random')?.addEventListener('click', openRandom);
 $('rnd-close')?.addEventListener('click', closeRandom);
